@@ -159,7 +159,7 @@ impl App {
                                 AppMode::Editor => { self.editor_tool.render_main(ui); }
                                 AppMode::Simulation => { self.simulation_tool.render_main(ui); }
                                 AppMode::Path => { self.path_tool.render_main(ui); }
-                                AppMode::ConfigEditor => panic!("Can't happen")
+                                AppMode::ConfigEditor => {}
                             }
                         });
                 },

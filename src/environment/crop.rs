@@ -24,12 +24,12 @@ pub struct Crop {
 impl Crop {
     pub fn new(id: u32, row_id: u32, position: Pos2) -> Self {
         Self {
-            id: id,
-            row_id: row_id,
-            position: position,
+            id,
+            row_id,
+            position,
             state: CropState::Unprocessed,
             worked_time: 0,
-            required_scan_time: 1 * 60,
+            required_scan_time: 60,
             required_process_time: 2 * 60
         }
     }

@@ -1,4 +1,4 @@
-use egui::{Pos2, Vec2};
+use egui::{Color32, Pos2, Vec2};
 
 use super::movement::Movement;
 use crate::path::visibility_graph::VisibilityGraph;
@@ -15,6 +15,7 @@ pub struct Agent {
     pub visibility_graph: VisibilityGraph,
     pub velocity_lin: f32,
     pub velocity_ang: f32,
+    pub color: Color32,
 
     pub path: Option<Vec<Pos2>>,
 }
@@ -24,15 +25,17 @@ impl Agent {
         position: Pos2,
         direction: Vec2,
         movement: Movement,
-        visibility_graph: VisibilityGraph) -> Self {
+        visibility_graph: VisibilityGraph,
+        color: Color32) -> Self {
         Self {
-            id: id,
-            position: position,
-            direction: direction,
-            movement: movement,
-            visibility_graph: visibility_graph,
+            id,
+            position,
+            direction,
+            movement,
+            visibility_graph,
             velocity_lin: 0.0,
             velocity_ang: 0.0,
+            color,
 
             path: None,
         }
@@ -55,38 +58,34 @@ impl Agent {
     }
     
     fn _get_inputs(&self) -> (f32,f32) {
-        let next_position;
         let next_direction: Option<Vec2> = None;
 
-        match &self.path {
-            Some(path) if &path.len() > &(0 as usize) => {
+        let next_position = match &self.path {
+            Some(path) if !path.is_empty() => {
                 // Follow path normally
-                next_position = path[0];
+                path[0]
             },
             _ => {
-                next_position = self.position;
+                self.position
             }
         };
         let (m1, m2) = self.movement.calculate_inputs_for_target(
             self.position, self.direction, next_position, next_direction
         );
 
-        return (m1, m2)
+        (m1, m2)
     }
     
     fn update_path(&mut self) {
-        match self.path.take() {
-            Some(mut path) => {
-                while !path.is_empty() {
-                    if self.position.is_close_to(path[0], TOLERANCE_DISTANCE) {
-                        path.remove(0);
-                    } else {
-                        break;
-                    }
+        if let Some(mut path) = self.path.take() {
+            while !path.is_empty() {
+                if self.position.is_close_to(path[0], TOLERANCE_DISTANCE) {
+                    path.remove(0);
+                } else {
+                    break;
                 }
-                self.path = Some(path);
-            },
-            None => {}
+            }
+            self.path = Some(path);
         }
     }
 

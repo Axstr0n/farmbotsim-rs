@@ -12,14 +12,14 @@ pub struct VisibilityGraph {
 }
 
 impl VisibilityGraph {
-    pub fn new(points: &Vec<Pos2>, obstacles: Vec<Obstacle>) -> Self {
+    pub fn new(points: &[Pos2], obstacles: Vec<Obstacle>) -> Self {
         Self {
-            graph: Self::build_graph(&points, &obstacles),
-            obstacles: obstacles,
+            graph: Self::build_graph(points, &obstacles),
+            obstacles,
         }
     }
     
-    pub fn recalculate(&mut self, points: &Vec<Pos2>, obstacles: &Vec<Obstacle>) {
+    pub fn recalculate(&mut self, points: &[Pos2], obstacles: &[Obstacle]) {
         self.graph = Self::build_graph(points, obstacles);
     }
 
@@ -99,10 +99,12 @@ impl VisibilityGraph {
             start_node,
             |n| n == end_node,
             |e| {
-                let (a, b) = self.graph.edge_endpoints(e.id()).unwrap();
-                self.graph[a].distance(self.graph[b]) as f32
+                // Safely handle Option from edge_endpoints
+                self.graph.edge_endpoints(e.id()).map_or(f32::INFINITY, |(a, b)| {
+                    self.graph[a].distance(self.graph[b])
+                })
             },
-            |n| self.graph[n].distance(end) as f32,
+            |n| self.graph[n].distance(end),
         )
         .map(|(_, path)| path.into_iter().map(|n| self.graph[n]).collect())
     }

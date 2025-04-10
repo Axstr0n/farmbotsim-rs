@@ -8,7 +8,7 @@ pub struct Obstacle {
 impl Obstacle {
     pub fn new(points: Vec<Pos2>) -> Self {
         Self {
-            points: points,
+            points,
         }
     }
 }

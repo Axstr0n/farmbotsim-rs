@@ -23,7 +23,7 @@ impl Default for Camera {
         let zoom_level = 70.0;
         let initial_pos = Pos2::new(4.0, 4.0);
         Self {
-            zoom_level: zoom_level,
+            zoom_level,
             zoom_factor: 1.1,
             min_zoom: 5.0,
             max_zoom: 500.0,

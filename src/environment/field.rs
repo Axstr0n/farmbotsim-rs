@@ -14,16 +14,13 @@ pub struct Field {
 
 impl Field {
     pub fn from_config(config: Option<FieldConfig>) -> Self {
-        let config = match config {
-            Some(config) => config,
-            None => FieldConfig::default()
-        };
+        let config = config.unwrap_or_default();
         let crops = Self::calculate_crops(&config);
         let obstacles = Self::calculate_obstacles(&config);
         Self {
-            config: config,
-            crops: crops,
-            obstacles: obstacles,
+            config,
+            crops,
+            obstacles,
         }
     }
 
@@ -50,7 +47,7 @@ impl Field {
             }
         }
 
-        return crops
+        crops
     }
 
     pub fn calculate_obstacles(field_config: &FieldConfig) -> Vec<Obstacle> {
@@ -78,7 +75,7 @@ impl Field {
             pos1 += Vec2::new(row_spacing, 0.0).rotate_degrees(angle);
         }
 
-        return obstacles
+        obstacles
     }
 
     pub fn get_graph_points(&self) -> Vec<Pos2> {

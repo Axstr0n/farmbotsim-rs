@@ -1,10 +1,11 @@
 use egui::epaint::CircleShape;
-use egui::{Color32, Grid, Pos2, Shape, Stroke, Ui, Vec2};
+use egui::{Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
 
 use super::camera::Camera;
 use crate::agent::agent::Agent;
 use crate::environment::crop::Crop;
 use crate::environment::obstacle::Obstacle;
+use crate::environment::station::Station;
 use crate::path::visibility_graph::VisibilityGraph;
 use crate::utilities::{pos2::ExtendedPos2, vec2::ExtendedVec2};
 
@@ -87,38 +88,42 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
         painter.add(CircleShape {
             center,
             radius,
-            fill: Color32::RED,
+            fill: agent.color,
             stroke: Stroke::default(),
         });
         let start = center;
         let end = center + (agent.direction*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
         let stroke = Stroke {
             width: camera.scene_to_screen_val(0.02),
-            color: Color32::RED,
+            color: agent.color,
         };
-        painter.line(vec![start.into(), end.into()], stroke);
+        painter.line(vec![start, end], stroke);
 
         painter.add(CircleShape {
             center: end,
             radius: radius*0.5,
-            fill: Color32::RED,
+            fill: agent.color,
             stroke: Stroke::default(),
         });
         let stroke1 = Stroke {
             width: camera.scene_to_screen_val(0.02),
             color: Color32::MAGENTA,
         };
-        if agent.path.is_some() {
+        
+        if let Some(agent_path) = &agent.path {
             let mut path = vec![agent.position];
-            path.extend(agent.path.as_ref().unwrap());
+            path.extend(agent_path);
+        
             if path.len() > 1 {
-                for i in 0..path.len()-1 {
+                for i in 0..path.len() - 1 {
                     let start = camera.scene_to_screen_pos(path[i]);
-                    let end = camera.scene_to_screen_pos(path[i+1]);
-                    painter.line(vec![start.into(), end.into()], stroke1);
+                    let end = camera.scene_to_screen_pos(path[i + 1]);
+                    painter.line(vec![start, end], stroke1);
                 }
             }
         }
+            
+        
     }
 }
 
@@ -143,21 +148,44 @@ pub fn render_visibility_graph(ui: &mut Ui, camera: &Camera, visibility_graph: &
     }
 }
 
+pub fn render_stations(ui: &mut Ui, camera: &Camera, stations: &Vec<Station>) {
+    let painter = ui.painter();
+    for station in stations {
+        let center = camera.scene_to_screen_pos(station.position);
+        let radius = camera.scene_to_screen_val(0.25);
+        painter.add(CircleShape {
+            center,
+            radius,
+            fill: station.color,
+            stroke: Stroke::default(),
+        });
+        let radius = camera.scene_to_screen_val(0.20);
+        painter.add(CircleShape {
+            center,
+            radius,
+            fill: Color32::BLACK,
+            stroke: Stroke::default(),
+        });
+    }
+}
 
 // endregion
 
 // region: UI
 
 pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
+    ui.label("Agents");
     Grid::new("agents")
     .striped(true)
     .show(ui, |ui| {
-        ui.label("Agent Id");
+        ui.label(" ");
+        ui.label("Id");
         ui.label("Position");
         ui.label("Direction");
         ui.end_row();
-
+        
         for agent in agents {
+            ui.label(RichText::new("⏺").color(agent.color)); //⏹⏺
             ui.label(agent.id.to_string());
             ui.label(agent.position.fmt(2));
             ui.label(agent.direction.fmt(2));
@@ -168,10 +196,13 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
 
 pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
     for agent in agents {
-        ui.label(format!("{} {} {}", agent.id.to_string(), agent.position.fmt(2), agent.direction.fmt(2)));
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("⏺").color(agent.color));
+            ui.label(format!(" {} {} {}", agent.id, agent.position.fmt(2), agent.direction.fmt(2)));
+        });
+
         let mut path_str = String::new();
-        if agent.path.is_some() {
-            let path: &Vec<Pos2> = agent.path.as_ref().unwrap();
+        if let Some(path) = &agent.path {
             for p in path {
                 path_str += p.fmt(2).as_str();
             }
@@ -180,6 +211,27 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
         }
         ui.label(format!("Path: {}", path_str));
     }
+}
+
+pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
+    ui.label("Stations");
+    Grid::new("stations")
+    .striped(true)
+    .show(ui, |ui| {
+        ui.label(" ");
+        ui.label("Id");
+        ui.label("Position");
+        ui.label("Queue");
+        ui.end_row();
+
+        for station in stations {
+            ui.label(RichText::new("⏺").color(station.color)); //⏹⏺
+            ui.label(station.id.to_string());
+            ui.label(station.position.fmt(2));
+            ui.label(station.queue.len().to_string());
+            ui.end_row();
+        }
+    });
 }
 
 // endregion

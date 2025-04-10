@@ -3,10 +3,10 @@ use super::tool::Tool;
 use crate::environment::env::Env;
 
 use crate::rendering::camera::Camera;
-use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles};
+use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_stations, ui_render_stations};
 use crate::rendering::render::ui_render_agents;
 
-
+#[derive(Default)]
 pub struct SimulationTool {
     tick: u32,
     running: bool,
@@ -14,16 +14,6 @@ pub struct SimulationTool {
     camera: Camera,
 }
 
-impl Default for SimulationTool {
-    fn default() -> Self {
-        Self {
-            tick: 0,
-            running: false,
-            env: Env::default(),
-            camera: Camera::default(),
-        }
-    }
-}
 
 impl Tool for SimulationTool {
     fn render_main(&mut self, ui: &mut egui::Ui) {
@@ -32,6 +22,7 @@ impl Tool for SimulationTool {
         render_coordinate_system(ui, &self.camera);
         render_obstacles(ui, &self.camera, &self.env.field.obstacles);
         render_crops(ui, &self.camera, &self.env.field.crops);
+        render_stations(ui, &self.camera, &self.env.stations);
         render_agents(ui, &self.camera, &self.env.agents);
     }
     fn render_ui(&mut self, ui: &mut egui::Ui) {
@@ -43,10 +34,8 @@ impl Tool for SimulationTool {
             if ui.button("Start").clicked() {
                 self.running = true;
             }
-        } else {
-            if ui.button("Pause").clicked() {
-                self.running = false;
-            }
+        } else if ui.button("Pause").clicked() {
+            self.running = false;
         }
         if ui.button("Reset").clicked() {
             self.tick = 0;
@@ -56,6 +45,8 @@ impl Tool for SimulationTool {
         ui.label("NOT IMPLEMENTED !!!!!");
         ui.separator();
         ui_render_agents(ui, &self.env.agents);
+        ui.separator();
+        ui_render_stations(ui, &self.env.stations);
     }
     fn update(&mut self) {
         if self.running {

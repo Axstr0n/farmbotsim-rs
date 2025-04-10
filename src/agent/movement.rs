@@ -15,7 +15,7 @@ pub struct Movement {
 
 impl Default for Movement {
     fn default() -> Self {
-        let converter_kmh_ms = 0.2777777778;
+        let converter_kmh_ms = 0.277_777_8;
         Self {
             max_velocity: 10.0 * converter_kmh_ms,
             max_angular_velocity: 0.1 * converter_kmh_ms,
@@ -89,28 +89,23 @@ impl Movement {
         }
 
         // If at the target position
-        else {
-            match target_direction {
-                Some(dir) => { // a target direction is provided, adjust heading to match target direction
-                    let angle_of_target = dir.angle()  * (180.0 / PI);
-                    let angle_of_agent = direction.angle()  * (180.0 / PI);
-                    let delta_angle = (angle_of_target - angle_of_agent + 180.0).rem_euclid(360.0) - 180.0;
-                    
-                    // Normalize delta_angle to -1...1 range
-                    let normalized_delta = delta_angle / 180.0;
-
-                    // Only turn in place when adjusting final heading
-                    let turn_strength = f32::min(1.0, normalized_delta.abs()*0.5);
-
-                    if normalized_delta < 0.0 {  // Turn right
-                        m1 = turn_strength;
-                        m2 = -turn_strength;
-                    } else {  // Turn left
-                        m1 = -turn_strength;
-                        m2 = turn_strength;
-                    }
-                },
-                None => {},
+        else if let Some(dir) = target_direction { // a target direction is provided, adjust heading to match target direction
+            let angle_of_target = dir.angle() * (180.0 / PI);
+            let angle_of_agent = direction.angle() * (180.0 / PI);
+            let delta_angle = (angle_of_target - angle_of_agent + 180.0).rem_euclid(360.0) - 180.0;
+            
+            // Normalize delta_angle to -1...1 range
+            let normalized_delta = delta_angle / 180.0;
+            
+            // Only turn in place when adjusting final heading
+            let turn_strength = f32::min(1.0, normalized_delta.abs()*0.5);
+            
+            if normalized_delta < 0.0 { // Turn right
+                m1 = turn_strength;
+                m2 = -turn_strength;
+            } else { // Turn left
+                m1 = -turn_strength;
+                m2 = turn_strength;
             }
         }
     
@@ -122,6 +117,6 @@ impl Movement {
             m2 = 0.0;
         }
         
-        return (m1, m2)
+        (m1, m2)
     }
 }
