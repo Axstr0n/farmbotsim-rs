@@ -5,8 +5,10 @@ use super::camera::Camera;
 use crate::agent::agent::Agent;
 use crate::environment::crop::Crop;
 use crate::environment::obstacle::Obstacle;
+use crate::environment::spawn_area::SpawnArea;
 use crate::environment::station::Station;
 use crate::path::visibility_graph::VisibilityGraph;
+use crate::utilities::vec2::Vec2Rotate;
 use crate::utilities::{pos2::ExtendedPos2, vec2::ExtendedVec2};
 
 
@@ -165,6 +167,38 @@ pub fn render_stations(ui: &mut Ui, camera: &Camera, stations: &Vec<Station>) {
             radius,
             fill: Color32::BLACK,
             stroke: Stroke::default(),
+        });
+    }
+}
+
+pub fn render_spawn_area(ui: &mut Ui, camera: &Camera, spawn_area: &SpawnArea) {
+    let painter = ui.painter();
+    let ltp = spawn_area.left_top_pos;
+    let rtp = ltp + (Vec2::X * spawn_area.length).rotate_degrees(spawn_area.angle);
+    let rbp = rtp + (Vec2::Y * spawn_area.width).rotate_degrees(spawn_area.angle);
+    let lbp = ltp + (Vec2::Y * spawn_area.width).rotate_degrees(spawn_area.angle);
+    let points = [ltp, rtp, rbp, lbp];
+    let points: Vec<Pos2> = points
+        .iter()
+        .map(|pos| camera.scene_to_screen_pos(*pos))
+        .collect();
+
+    painter.add(Shape::convex_polygon(
+        points,
+        Color32::from_rgba_unmultiplied(0, 0, 0, 100),
+        Stroke::NONE,
+    ));
+}
+
+pub fn render_drag_points(ui: &mut Ui, camera: &Camera, points: &Vec<Pos2>) {
+    let drag_point_size = camera.scene_to_screen_val(0.08);
+    let painter = ui.painter();
+    for pt in points {
+        painter.add(egui::epaint::CircleShape {
+            center: *pt,
+            radius: drag_point_size,
+            fill: egui::Color32::RED,
+            stroke: egui::Stroke::NONE,
         });
     }
 }

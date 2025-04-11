@@ -6,6 +6,7 @@ use crate::agent::movement::Movement;
 use super::field::Field;
 use super::field_config::FieldConfig;
 use super::station::Station;
+use super::spawn_area::SpawnArea;
 use crate::path::visibility_graph::VisibilityGraph;
 
 use crate::utilities::pos2::random_pos2_in_rect;
@@ -19,6 +20,7 @@ pub struct Env {
     pub agents: Vec<Agent>,
     pub field: Field,
     pub stations: Vec<Station>,
+    pub spawn_area: SpawnArea,
     pub visibility_graph: VisibilityGraph,
 }
 
@@ -41,6 +43,7 @@ impl Default for Env {
             ],
             field,
             stations: vec![Station::default()],
+            spawn_area: SpawnArea::default(),
             visibility_graph,
         }
     }
@@ -68,6 +71,7 @@ impl Env {
             agents,
             field,
             stations: vec![Station::default()],
+            spawn_area: SpawnArea::default(),
             visibility_graph,
         }
     }

@@ -12,7 +12,6 @@ pub struct Camera {
     pub position: Pos2,
     pub mouse_position: Option<Pos2>,
 
-    pub dragging: bool,
     width: f32,
     height: f32,
 
@@ -28,7 +27,6 @@ impl Default for Camera {
             min_zoom: 5.0,
             max_zoom: 500.0,
             position: initial_pos,
-            dragging: false,
             last_zoom_level: zoom_level,
             mouse_position: None,
             width: 0.0,

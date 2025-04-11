@@ -10,6 +10,8 @@ use crate::tool::editor_tool::EditorTool;
 
 pub struct App {
     mode: AppMode,
+    is_dark_mode: bool,
+
     simulation_tool: SimulationTool,
     path_tool: PathTool,
     editor_tool: EditorTool,
@@ -32,6 +34,8 @@ impl Default for App {
     fn default() -> Self {
         Self {
             mode: AppMode::Editor,
+            is_dark_mode: true,
+
             simulation_tool: SimulationTool::default(),
             path_tool: PathTool::default(),
             editor_tool: EditorTool::default(),
@@ -116,6 +120,31 @@ impl App {
                         self.mode = mode;
                     }         
                 }
+                // Spacer
+                ui.separator();
+
+                // Settings menu
+                ui.menu_button("Settings", |ui| {
+                    // Theme toggle
+                    if self.is_dark_mode && ui.button("To Light mode").clicked() {
+                        self.is_dark_mode = false;
+                        ctx.set_visuals(egui::Visuals::light());
+                    } else if !self.is_dark_mode && ui.button("To Dark mode").clicked() {
+                        self.is_dark_mode = true;
+                        ctx.set_visuals(egui::Visuals::dark());
+                    }
+
+                    ui.separator();
+
+                    // TPS/FPS settings
+                    ui.label("TPS/FPS ratio:");
+                    ui.add(
+                        egui::Slider::new(&mut self.ratio_tps_fps, 0.01..=100.0)
+                        .logarithmic(true)
+                    );
+                    ui.label(format!("TPS: {:.2}", self.tps));
+                    ui.label(format!("FPS: {:.2}", self.fps));
+                });
             });
         });
 
@@ -130,12 +159,6 @@ impl App {
                 ui.heading(self.mode.to_string());
                 ui.separator();
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(format!("TPS: {:.2}", self.tps));
-                    ui.label(format!("FPS: {:.2}", self.fps));
-                    ui.add(
-                        egui::Slider::new(&mut self.ratio_tps_fps, 0.01..=100.0)
-                                    .logarithmic(true)
-                    );
                     
                     match self.mode {
                         AppMode::Simulation => self.simulation_tool.render_ui(ui),

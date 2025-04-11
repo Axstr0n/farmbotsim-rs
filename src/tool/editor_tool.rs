@@ -1,4 +1,4 @@
-use egui::{Ui, Slider};
+use egui::{Slider, Ui};
 
 use crate::environment::station::Station;
 use crate::tool::tool::Tool;
@@ -6,7 +6,7 @@ use crate::environment::env::Env;
 use crate::environment::field_config::FieldConfig;
 
 use crate::rendering::camera::Camera;
-use crate::rendering::render::{render_coordinate_system, render_crops, render_grid, render_obstacles, render_stations, render_visibility_graph};
+use crate::rendering::render::{render_coordinate_system, render_crops, render_drag_points, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph};
 use crate::utilities::pos2::ExtendedPos2;
 use crate::utilities::utils::generate_colors;
 
@@ -52,10 +52,12 @@ impl Tool for EditorTool {
         self.camera.handle_events(ui);
         render_grid(ui, &self.camera);
         render_coordinate_system(ui, &self.camera);
+        render_spawn_area(ui, &self.camera, &self.env.spawn_area);
         render_obstacles(ui, &self.camera, &self.env.field.obstacles);
         render_visibility_graph(ui, &self.camera, &self.env.visibility_graph);
         render_crops(ui, &self.camera, &self.env.field.crops);
         render_stations(ui, &self.camera, &self.env.stations);
+        self.handle_dragging(ui);
     }
 
     fn render_ui(&mut self, ui: &mut Ui) {
@@ -75,35 +77,15 @@ impl Tool for EditorTool {
         ui.label(format!("Mouse pos: {}", mouse_pos.map_or("None".to_string(), |p| p.fmt(2))));
         ui.label(format!("Scene pos: {}", scene_pos.map_or("None".to_string(), |p| p.fmt(2))));
 
-        ui.label(format!("Camera pos: {}", self.camera.position.fmt(2)));
-        ui.label(format!("Zoom: {}", self.camera.zoom_level));
-        ui.label(format!("Dragging: {}", self.camera.dragging));
+        // ui.label(format!("Camera pos: {}", self.camera.position.fmt(2)));
+        // ui.label(format!("Zoom: {}", self.camera.zoom_level));
 
         ui.separator();
 
         egui::CollapsingHeader::new("Field")
             .default_open(true)
             .show(ui, |ui| {
-                // LEFT_TOP_POS
-                add_slider!(
-                    ui,
-                    &mut self.env.field.config.left_top_pos.x,
-                    0.0..=10.0,
-                    "Left top pos x",
-                    0.2,
-                    &mut self.env.field,
-                    &mut self.env.visibility_graph
-                );
-
-                add_slider!(
-                    ui,
-                    &mut self.env.field.config.left_top_pos.y,
-                    0.0..=10.0,
-                    "Left top pos y",
-                    0.2,
-                    &mut self.env.field,
-                    &mut self.env.visibility_graph
-                );
+                ui.label(format!("Left top pos {}", self.env.field.config.left_top_pos.fmt(2)));
 
                 // ANGLE
                 add_slider!(
@@ -120,7 +102,7 @@ impl Tool for EditorTool {
                 add_slider!(
                     ui,
                     &mut self.env.field.config.n_rows,
-                    3..=10,
+                    1..=20,
                     "N rows",
                     1.0,
                     &mut self.env.field,
@@ -131,7 +113,7 @@ impl Tool for EditorTool {
                 add_slider!(
                     ui,
                     &mut self.env.field.config.n_crops_per_row,
-                    3..=10,
+                    1..=20,
                     "N crops per row",
                     1.0,
                     &mut self.env.field,
@@ -161,6 +143,31 @@ impl Tool for EditorTool {
                 );
             });
         
+        egui::CollapsingHeader::new("Spawn area")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.label(format!("Left top pos {}", self.env.spawn_area.left_top_pos.fmt(2)));
+
+                ui.add(Slider::new(
+                    &mut self.env.spawn_area.angle,
+                    0.0..=360.0)
+                    .text("Angle")
+                    .step_by(1.0)
+                );
+                ui.add(Slider::new(
+                    &mut self.env.spawn_area.length,
+                    1.0..=10.0)
+                    .text("Length")
+                    .step_by(0.1)
+                );
+                ui.add(Slider::new(
+                    &mut self.env.spawn_area.width,
+                    1.0..=10.0)
+                    .text("Width")
+                    .step_by(0.1)
+                );
+            });
+
         egui::CollapsingHeader::new(
             format!("Stations ({})", self.env.stations.len())
         )
@@ -200,33 +207,34 @@ impl Tool for EditorTool {
                     .default_open(false)
                     .show(ui, |ui| {
                         // LEFT_TOP_POS
-                        let response = ui.add(
-                            Slider::new(&mut station.position.x, 0.0..=10.0)
-                                .text("Left top pos x")
-                                .step_by(0.2)
-                        );
-                        if response.changed() {
-                            //self.field.recalculate_crops()
-                        }
-                        let response = ui.add(
-                            Slider::new(&mut station.position.y, 0.0..=10.0)
-                                .text("Left top pos y")
-                                .step_by(0.2)
-                        );
-                        if response.changed() {
-                            //self.field.recalculate_crops()
-                        }
-                        let mut rgb = [
-                            station.color.r(), 
-                            station.color.g(), 
-                            station.color.b(),
-                        ];
+                        // let response = ui.add(
+                        //     Slider::new(&mut station.position.x, 0.0..=10.0)
+                        //         .text("Left top pos x")
+                        //         .step_by(0.2)
+                        // );
+                        // if response.changed() {
+                        //     //self.field.recalculate_crops()
+                        // }
+                        // let response = ui.add(
+                        //     Slider::new(&mut station.position.y, 0.0..=10.0)
+                        //         .text("Left top pos y")
+                        //         .step_by(0.2)
+                        // );
+                        // if response.changed() {
+                        //     //self.field.recalculate_crops()
+                        // }
+                        ui.label(format!("Position {}", station.position.fmt(2)));
+                        // let mut rgb = [
+                        //     station.color.r(), 
+                        //     station.color.g(), 
+                        //     station.color.b(),
+                        // ];
 
-                        // Use the color picker with the mutable reference to [u8; 3]
-                        if ui.color_edit_button_srgb(&mut rgb).changed() {
-                            // Update the Color32 from the RGB array
-                            station.color = egui::Color32::from_rgb(rgb[0], rgb[1], rgb[2]);
-                        }
+                        // // Use the color picker with the mutable reference to [u8; 3]
+                        // if ui.color_edit_button_srgb(&mut rgb).changed() {
+                        //     // Update the Color32 from the RGB array
+                        //     station.color = egui::Color32::from_rgb(rgb[0], rgb[1], rgb[2]);
+                        // }
                         if ui.button("Remove").clicked() {
                             to_remove = Some(i);
                         }
@@ -253,5 +261,62 @@ impl EditorTool {
             //*station = ChargingStation::new(i as u32, station.position, station.color);
             *station = Station::new(i as u32, station.position, station.queue_direction, station.waiting_offset, colors[i]);
         }
+    }
+
+    fn handle_dragging(&mut self, ui: &mut Ui) {
+        
+        // Draw drag points
+        let mut pts = vec![];
+        for station in &mut self.env.stations {
+            let screen_pos = self.camera.scene_to_screen_pos(station.position);
+            pts.push(screen_pos);
+        }
+        let field_pos = self.camera.scene_to_screen_pos(self.env.field.crops[0].position);
+        pts.push(field_pos);
+        let spawn_pos = self.camera.scene_to_screen_pos(self.env.spawn_area.left_top_pos);
+        pts.push(spawn_pos);
+
+        render_drag_points(ui, &self.camera, &pts);
+
+        let drag_point_size = self.camera.scene_to_screen_val(0.1);
+        // Drag stations
+        for station in &mut self.env.stations {
+            let screen_pos = self.camera.scene_to_screen_pos(station.position);
+            let rect = egui::Rect::from_center_size(screen_pos, egui::Vec2::splat(drag_point_size));
+            let response = ui.interact(rect, ui.make_persistent_id(format!("station_drag_{}", station.id)), egui::Sense::click_and_drag());
+            
+            if response.dragged() {
+                let drag_delta = response.drag_delta();
+                let new_screen_pos = screen_pos + drag_delta;
+                let new_scene_pos = self.camera.screen_to_scene_pos(new_screen_pos);
+                station.position = new_scene_pos;
+            }
+        }
+        // Drag field
+        let screen_pos = self.camera.scene_to_screen_pos(self.env.field.crops[0].position);
+        let rect = egui::Rect::from_center_size(screen_pos, egui::Vec2::splat(drag_point_size));
+        let response = ui.interact(rect, ui.make_persistent_id("field_drag"), egui::Sense::click_and_drag());
+
+        if response.dragged() {
+            let drag_delta = response.drag_delta();
+            let new_screen_pos = screen_pos + drag_delta;
+            let new_scene_pos = self.camera.screen_to_scene_pos(new_screen_pos);
+            self.env.field.config.left_top_pos = new_scene_pos;
+            self.env.field.recalculate_field();
+            self.env.visibility_graph.recalculate(&self.env.field.get_graph_points(), &self.env.field.obstacles);
+        }
+
+        // Drag spawn
+        let screen_pos = self.camera.scene_to_screen_pos(self.env.spawn_area.left_top_pos);
+        let rect = egui::Rect::from_center_size(screen_pos, egui::Vec2::splat(drag_point_size));
+        let response = ui.interact(rect, ui.make_persistent_id("spawn_drag"), egui::Sense::click_and_drag());
+
+        if response.dragged() {
+            let drag_delta = response.drag_delta();
+            let new_screen_pos = screen_pos + drag_delta;
+            let new_scene_pos = self.camera.screen_to_scene_pos(new_screen_pos);
+            self.env.spawn_area.left_top_pos = new_scene_pos;
+        }
+
     }
 }
