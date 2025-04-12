@@ -5,15 +5,20 @@ use crate::utilities::utils::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE};
 use crate::utilities:: vec2::Vec2Rotate;
 
 
+pub trait Movement {
+    fn calculate_inputs_for_target(self, position: Pos2, direction: Vec2, target_position: Pos2, target_direction: Option<Vec2>) -> Vec<f32>;
+    fn calculate_new_pose_from_inputs(&self, simulation_step: u32, inputs: Vec<f32>, position: Pos2, direction: Vec2) -> (Pos2, Vec2, f32, f32);
+}
+
 #[derive(Clone, PartialEq, Copy)]
-pub struct Movement {
+pub struct RombaMovement {
     pub max_velocity: f32,
     pub max_angular_velocity: f32,
     pub wheel_distance: f32,
     pub wheel_radius: f32
 }
 
-impl Default for Movement {
+impl Default for RombaMovement {
     fn default() -> Self {
         let converter_kmh_ms = 0.277_777_8;
         Self {
@@ -25,11 +30,12 @@ impl Default for Movement {
     }
 }
 
-impl Movement {
-    pub fn calculate_new_values(&self, simulation_step: u32, m1: f32, m2: f32, position: Pos2, direction: Vec2) -> (Pos2, Vec2, f32, f32) {
+impl Movement for RombaMovement {
+    fn calculate_new_pose_from_inputs(&self, simulation_step: u32, inputs: Vec<f32>, position: Pos2, direction: Vec2) -> (Pos2, Vec2, f32, f32) {
+        if inputs.len() != 2 { assert_eq!(2, inputs.len()) }
         // Clamp if it is not
-        let m1 = m1.clamp(-1.0, 1.0);
-        let m2 = m2.clamp(-1.0, 1.0);
+        let m1 = inputs[0].clamp(-1.0, 1.0);
+        let m2 = inputs[1].clamp(-1.0, 1.0);
 
         let max_velocity = self.max_velocity;
 
@@ -49,7 +55,7 @@ impl Movement {
         (new_position, new_direction, current_velocity, omega)
     }
     
-    pub fn calculate_inputs_for_target(self, position: Pos2, direction: Vec2, target_position: Pos2, target_direction: Option<Vec2>) -> (f32,f32) {
+    fn calculate_inputs_for_target(self, position: Pos2, direction: Vec2, target_position: Pos2, target_direction: Option<Vec2>) -> Vec<f32> {
         
         let mut m1 = 0.0;
         let mut m2 = 0.0;
@@ -117,6 +123,6 @@ impl Movement {
             m2 = 0.0;
         }
         
-        (m1, m2)
+        vec![m1, m2]
     }
 }

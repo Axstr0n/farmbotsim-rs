@@ -1,7 +1,7 @@
 use egui::{Pos2, Vec2};
 
 use crate::agent::agent::Agent;
-use crate::agent::movement::Movement;
+use crate::agent::movement::{Movement, RombaMovement};
 
 use super::field::Field;
 use super::field_config::FieldConfig;
@@ -36,7 +36,7 @@ impl Default for Env {
                 Agent::new(0,
                     random_pos2_in_rect(egui::Rect { min: Pos2::ZERO, max: Pos2::new(5.0,5.0) }),
                     Vec2::Y,// random_vec2(),
-                    Movement::default(),
+                    RombaMovement::default(),
                     visibility_graph.clone(),
                     colors[0],
                 )
@@ -60,7 +60,7 @@ impl Env {
                 Agent::new(i,
                 random_pos2_in_rect(egui::Rect { min: Pos2::ZERO, max: Pos2::new(5.0,5.0) }),
                 random_vec2(),
-                Movement::default(),
+                RombaMovement::default(),
                 visibility_graph.clone(),
                 colors[i as usize])
             )
@@ -83,7 +83,7 @@ impl Env {
                 Agent::new(i,
                     random_pos2_in_rect(egui::Rect { min: Pos2::ZERO, max: Pos2::new(5.0,5.0) }),
                     random_vec2(),
-                    Movement::default(),
+                    RombaMovement::default(),
                     self.visibility_graph.clone(),
                     colors[i as usize])
             )

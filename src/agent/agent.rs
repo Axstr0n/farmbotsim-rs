@@ -1,6 +1,6 @@
 use egui::{Color32, Pos2, Vec2};
 
-use super::movement::Movement;
+use super::movement::{Movement, RombaMovement};
 use crate::path::visibility_graph::VisibilityGraph;
 use crate::utilities::pos2::ExtendedPos2;
 use crate::utilities::utils::TOLERANCE_DISTANCE;
@@ -11,7 +11,7 @@ pub struct Agent {
     pub id: u32,
     pub position: Pos2,
     pub direction: Vec2,
-    pub movement: Movement,
+    pub movement: RombaMovement,
     pub visibility_graph: VisibilityGraph,
     pub velocity_lin: f32,
     pub velocity_ang: f32,
@@ -24,7 +24,7 @@ impl Agent {
     pub fn new(id: u32, 
         position: Pos2,
         direction: Vec2,
-        movement: Movement,
+        movement: RombaMovement,
         visibility_graph: VisibilityGraph,
         color: Color32) -> Self {
         Self {
@@ -42,12 +42,12 @@ impl Agent {
     }
     pub fn update(&mut self, simulation_step: u32) {
         self.update_path();
-        let (m1,m2) = self._get_inputs();
-        self._move(simulation_step, m1, m2);
+        let inputs = self._get_inputs();
+        self._move(simulation_step, inputs);
     }
-    fn _move(&mut self, simulation_step: u32, m1: f32, m2: f32) {
-        let (new_position, new_direction, new_velocity_l, new_velocity_r) = self.movement.calculate_new_values(
-            simulation_step, m1, m2, self.position, self.direction
+    fn _move(&mut self, simulation_step: u32, inputs: Vec<f32>) {
+        let (new_position, new_direction, new_velocity_l, new_velocity_r) = self.movement.calculate_new_pose_from_inputs(
+            simulation_step, inputs, self.position, self.direction
         );
     
         // Now assign the new values
@@ -57,7 +57,7 @@ impl Agent {
         self.velocity_ang = new_velocity_r;
     }
     
-    fn _get_inputs(&self) -> (f32,f32) {
+    fn _get_inputs(&self) -> Vec<f32> {
         let next_direction: Option<Vec2> = None;
 
         let next_position = match &self.path {
@@ -69,11 +69,11 @@ impl Agent {
                 self.position
             }
         };
-        let (m1, m2) = self.movement.calculate_inputs_for_target(
+        let inputs = self.movement.calculate_inputs_for_target(
             self.position, self.direction, next_position, next_direction
         );
 
-        (m1, m2)
+        inputs
     }
     
     fn update_path(&mut self) {
