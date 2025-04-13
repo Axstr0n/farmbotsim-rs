@@ -69,11 +69,9 @@ impl Agent {
                 self.position
             }
         };
-        let inputs = self.movement.calculate_inputs_for_target(
+        self.movement.calculate_inputs_for_target(
             self.position, self.direction, next_position, next_direction
-        );
-
-        inputs
+        )
     }
     
     fn update_path(&mut self) {

@@ -2,16 +2,27 @@
 use super::tool::Tool;
 use crate::environment::env::Env;
 
+use crate::environment::field_config::FieldConfig;
 use crate::rendering::camera::Camera;
 use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_stations, ui_render_stations};
 use crate::rendering::render::ui_render_agents;
 
-#[derive(Default)]
 pub struct SimulationTool {
     tick: u32,
     running: bool,
     env: Env,
     camera: Camera,
+}
+
+impl Default for SimulationTool {
+    fn default() -> Self {
+        Self {
+            tick: 0,
+            running: false,
+            env: Env::new(2, Some(FieldConfig::default())),
+            camera: Camera::default(),
+        }
+    }
 }
 
 
@@ -20,7 +31,7 @@ impl Tool for SimulationTool {
         self.camera.handle_events(ui);
         render_grid(ui, &self.camera);
         render_coordinate_system(ui, &self.camera);
-        render_obstacles(ui, &self.camera, &self.env.field.obstacles);
+        render_obstacles(ui, &self.camera, &self.env.obstacles);
         render_crops(ui, &self.camera, &self.env.field.crops);
         render_stations(ui, &self.camera, &self.env.stations);
         render_agents(ui, &self.camera, &self.env.agents);

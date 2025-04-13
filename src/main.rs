@@ -19,6 +19,7 @@ mod rendering;
 mod agent;
 mod environment;
 mod path;
+mod task;
 mod utilities;
 
 fn main() -> Result<(), eframe::Error> {

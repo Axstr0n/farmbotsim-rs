@@ -1,10 +1,11 @@
-use egui::{Pos2, Vec2};
+use egui::Pos2;
 
 use crate::agent::agent::Agent;
-use crate::agent::movement::{Movement, RombaMovement};
+use crate::agent::movement::RombaMovement;
 
 use super::field::Field;
 use super::field_config::FieldConfig;
+use super::obstacle::Obstacle;
 use super::station::Station;
 use super::spawn_area::SpawnArea;
 use crate::path::visibility_graph::VisibilityGraph;
@@ -19,40 +20,18 @@ pub struct Env {
     n_agents: u32,
     pub agents: Vec<Agent>,
     pub field: Field,
+    pub field_config: FieldConfig,
     pub stations: Vec<Station>,
     pub spawn_area: SpawnArea,
+    pub obstacles: Vec<Obstacle>,
     pub visibility_graph: VisibilityGraph,
-}
-
-impl Default for Env {
-    fn default() -> Self {
-        let field = Field::from_config(None);
-        let visibility_graph = VisibilityGraph::new(&field.get_graph_points(), field.obstacles.clone());
-        let colors = generate_colors(1, 0.1);
-        Self {
-            step_count: 0,
-            n_agents: 1,
-            agents: vec![
-                Agent::new(0,
-                    random_pos2_in_rect(egui::Rect { min: Pos2::ZERO, max: Pos2::new(5.0,5.0) }),
-                    Vec2::Y,// random_vec2(),
-                    RombaMovement::default(),
-                    visibility_graph.clone(),
-                    colors[0],
-                )
-            ],
-            field,
-            stations: vec![Station::default()],
-            spawn_area: SpawnArea::default(),
-            visibility_graph,
-        }
-    }
 }
 
 impl Env {
     pub fn new(n_agents: u32, field_config: Option<FieldConfig>) -> Self {
-        let field = Field::from_config(field_config);
-        let visibility_graph = VisibilityGraph::new(&field.get_graph_points(), field.obstacles.clone());
+        let field_config = field_config.unwrap_or_default();
+        let obstacles = field_config.get_obstacles();
+        let visibility_graph = VisibilityGraph::new(&field_config.get_graph_points(), obstacles.clone());
         let colors = generate_colors(n_agents as usize, 0.1);
         let mut agents = Vec::new();
         for i in 0..n_agents {
@@ -69,9 +48,11 @@ impl Env {
             step_count: 0,
             n_agents,
             agents,
-            field,
+            field: Field::default(),
+            field_config,
             stations: vec![Station::default()],
             spawn_area: SpawnArea::default(),
+            obstacles,
             visibility_graph,
         }
     }

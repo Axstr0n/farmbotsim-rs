@@ -4,6 +4,7 @@ use egui::{Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
 use super::camera::Camera;
 use crate::agent::agent::Agent;
 use crate::environment::crop::Crop;
+use crate::environment::field_config::VariantFieldConfig;
 use crate::environment::obstacle::Obstacle;
 use crate::environment::spawn_area::SpawnArea;
 use crate::environment::station::Station;
@@ -203,6 +204,42 @@ pub fn render_drag_points(ui: &mut Ui, camera: &Camera, points: &Vec<Pos2>) {
     }
 }
 
+pub fn render_variant_field_configs(ui: &mut Ui, camera: &Camera, configs: &Vec<VariantFieldConfig>) {
+    let painter = ui.painter();
+    for config_variant in configs {
+        match config_variant {
+            VariantFieldConfig::Line(config) => {
+                for i in 0..config.n_lines {
+                    let p1 = config.left_top_pos + Vec2::new( i as f32*config.line_spacing, 0.0).rotate_degrees(config.angle);
+                    let p2 = p1 + Vec2::new(0.0, config.length).rotate_degrees(config.angle);
+                    let p1 = camera.scene_to_screen_pos(p1);
+                    let p2 = camera.scene_to_screen_pos(p2);
+                    let stroke = Stroke {
+                        width: camera.scene_to_screen_val(0.02),
+                        color: config.color,
+                    };
+                    painter.line(vec![p1, p2], stroke);
+                }
+            },
+            VariantFieldConfig::Point(config) => {
+                for i in 0..config.n_lines {
+                    for j in 0..config.n_points_per_line {
+                        let pos = config.left_top_pos + Vec2::new(config.line_spacing*i as f32, config.point_spacing*j as f32).rotate_degrees(config.angle);
+                        let center = camera.scene_to_screen_pos(pos);
+                        let radius = camera.scene_to_screen_val(0.10);
+                        painter.add(CircleShape {
+                            center,
+                            radius,
+                            fill: config.color,
+                            stroke: Stroke::default(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+}
+
 // endregion
 
 // region: UI
@@ -266,6 +303,20 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
             ui.end_row();
         }
     });
+}
+
+pub fn ui_render_mouse_screen_scene_pos(ui: &mut Ui, camera: &Camera) {
+    let (mouse_pos, scene_pos) = match camera.mouse_position {
+        Some(pos) => {
+            let scene_pos = camera.screen_to_scene_pos(pos);
+            (Some(pos), Some(scene_pos))
+        },
+        None => {
+            (None, None)
+        },
+    };
+    ui.label(format!("Mouse pos: {}", mouse_pos.map_or("None".to_string(), |p| p.fmt(2))));
+    ui.label(format!("Scene pos: {}", scene_pos.map_or("None".to_string(), |p| p.fmt(2))));
 }
 
 // endregion

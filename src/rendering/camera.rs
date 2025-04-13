@@ -39,16 +39,25 @@ impl Default for Camera {
 impl Camera {
     
     pub fn handle_events(&mut self, ui: &mut Ui) {
-        let min_pos = ui.available_rect_before_wrap().min;
-        let max_pos = ui.available_rect_before_wrap().max;
+        let main_rect = ui.available_rect_before_wrap();
+        let min_pos = main_rect.min;
+        let max_pos = main_rect.max;
         self.width = max_pos.x - min_pos.x;
         self.height = max_pos.y - min_pos.y;
 
-        // Get mouse position
-        let response = ui.interact(ui.available_rect_before_wrap(), ui.id(), egui::Sense::click_and_drag());
-        self.mouse_position = response.hover_pos();
+        // Get mouse pos in main scene
+        if let Some(pos) = ui.ctx().pointer_hover_pos() {
+            if main_rect.contains(pos) {
+                self.mouse_position = Some(pos);
+            } else {
+                self.mouse_position = None;
+            }
+        } else {
+            self.mouse_position = None;
+        }
 
         // Dragging
+        let response = ui.interact(ui.available_rect_before_wrap(), ui.id(), egui::Sense::click_and_drag());
         if response.dragged_by(egui::PointerButton::Middle) {
             let mut drag_delta = response.drag_delta();
             drag_delta.x *= -1.0;

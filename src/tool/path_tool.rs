@@ -2,16 +2,27 @@
 use super::tool::Tool;
 use crate::environment::env::Env;
 
+use crate::environment::field_config::FieldConfig;
 use crate::rendering::camera::Camera;
-use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_stations, render_visibility_graph};
+use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_stations, render_visibility_graph, ui_render_mouse_screen_scene_pos};
 use crate::rendering::render::ui_render_agents_path;
 
-#[derive(Default)]
 pub struct PathTool {
     tick: u32,
     running: bool,
     env: Env,
     camera: Camera,
+}
+
+impl Default for PathTool {
+    fn default() -> Self {
+        Self {
+            tick: 0,
+            running: false,
+            env: Env::new(1, Some(FieldConfig::default())),
+            camera: Camera::default(),
+        }
+    }
 }
 
 impl Tool for PathTool {
@@ -21,12 +32,14 @@ impl Tool for PathTool {
         render_grid(ui, &self.camera);
         render_coordinate_system(ui, &self.camera);
         render_visibility_graph(ui, &self.camera, &self.env.visibility_graph);
-        render_obstacles(ui, &self.camera, &self.env.field.obstacles);
+        render_obstacles(ui, &self.camera, &self.env.obstacles);
         render_crops(ui, &self.camera, &self.env.field.crops);
         render_stations(ui, &self.camera, &self.env.stations);
         render_agents(ui, &self.camera, &self.env.agents);
     }
     fn render_ui(&mut self, ui: &mut egui::Ui) {
+        ui_render_mouse_screen_scene_pos(ui, &self.camera);
+        
         ui.label(format!("Running: {}", self.running));
         ui.label(format!("Env_step: {}", self.env.step_count));
 
