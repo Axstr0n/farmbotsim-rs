@@ -1,4 +1,4 @@
-use egui::Pos2;
+use egui::Vec2;
 
 use crate::agent::agent::Agent;
 use crate::agent::movement::RombaMovement;
@@ -32,15 +32,16 @@ impl Env {
         let field_config = field_config.unwrap_or_default();
         let obstacles = field_config.get_obstacles();
         let visibility_graph = VisibilityGraph::new(&field_config.get_graph_points(), obstacles.clone());
+        let spawn_area = SpawnArea::default();
         let colors = generate_colors(n_agents as usize, 0.1);
         let mut agents = Vec::new();
         for i in 0..n_agents {
             agents.push(
                 Agent::new(i,
-                random_pos2_in_rect(egui::Rect { min: Pos2::ZERO, max: Pos2::new(5.0,5.0) }),
+                random_pos2_in_rect(egui::Rect { min: spawn_area.left_top_pos, max: spawn_area.left_top_pos+Vec2::new(spawn_area.length, spawn_area.width) }, spawn_area.angle),
                 random_vec2(),
                 RombaMovement::default(),
-                visibility_graph.clone(),
+                
                 colors[i as usize])
             )
         }
@@ -51,7 +52,7 @@ impl Env {
             field: Field::default(),
             field_config,
             stations: vec![Station::default()],
-            spawn_area: SpawnArea::default(),
+            spawn_area,
             obstacles,
             visibility_graph,
         }
@@ -62,10 +63,9 @@ impl Env {
         for i in 0..self.n_agents {
             self.agents.push(
                 Agent::new(i,
-                    random_pos2_in_rect(egui::Rect { min: Pos2::ZERO, max: Pos2::new(5.0,5.0) }),
+                    random_pos2_in_rect(egui::Rect { min: self.spawn_area.left_top_pos, max: self.spawn_area.left_top_pos+Vec2::new(self.spawn_area.length, self.spawn_area.width) }, self.spawn_area.angle),
                     random_vec2(),
                     RombaMovement::default(),
-                    self.visibility_graph.clone(),
                     colors[i as usize])
             )
         }

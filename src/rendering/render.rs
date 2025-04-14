@@ -9,8 +9,9 @@ use crate::environment::obstacle::Obstacle;
 use crate::environment::spawn_area::SpawnArea;
 use crate::environment::station::Station;
 use crate::path::visibility_graph::VisibilityGraph;
-use crate::utilities::vec2::Vec2Rotate;
-use crate::utilities::{pos2::ExtendedPos2, vec2::ExtendedVec2};
+use crate::task::task::Task;
+use crate::utilities::vec2::{ExtendedVec2, Vec2Rotate};
+use crate::utilities::pos2::ExtendedPos2;
 
 
 
@@ -113,9 +114,9 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
             color: Color32::MAGENTA,
         };
         
-        if let Some(agent_path) = &agent.path {
+        if let Some(task) = &agent.current_task {
             let mut path = vec![agent.position];
-            path.extend(agent_path);
+            path.extend(&task.path);
         
             if path.len() > 1 {
                 for i in 0..path.len() - 1 {
@@ -240,6 +241,33 @@ pub fn render_variant_field_configs(ui: &mut Ui, camera: &Camera, configs: &Vec<
     }
 }
 
+pub fn render_tasks_on_field(ui: &mut Ui, camera: &Camera, tasks: &Vec<Task>) {
+    let painter = ui.painter();
+    let color = Color32::LIGHT_BLUE;
+    for task in tasks {
+        let path: Vec<Pos2> = task.path.iter().map(|pos| {
+            camera.scene_to_screen_pos(*pos)
+        }).collect();
+        if task.path.len() == 1 {
+            painter.add(CircleShape {
+                center: path[0],
+                radius: camera.scene_to_screen_val(0.1),
+                fill: color,
+                stroke: Stroke::default(),
+            });
+        } else {
+            path.windows(2).for_each(|window| {
+                if let [p1, p2] = window {
+                    painter.line(
+                        vec![*p1, *p2], 
+                        Stroke::new(camera.scene_to_screen_val(0.05), color),
+                    );
+                }
+            });
+        }
+    }
+}
+
 // endregion
 
 // region: UI
@@ -253,6 +281,8 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
         ui.label("Id");
         ui.label("Position");
         ui.label("Direction");
+        ui.label("Current task");
+        ui.label("Work Schedule");
         ui.end_row();
         
         for agent in agents {
@@ -260,6 +290,11 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
             ui.label(agent.id.to_string());
             ui.label(agent.position.fmt(2));
             ui.label(agent.direction.fmt(2));
+            match &agent.current_task {
+                Some(task) => { ui.label("True"); },
+                None => { ui.label("False"); }
+            }
+            ui.label(agent.work_schedule.len().to_string());
             ui.end_row();
         }
     });
@@ -273,8 +308,8 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
         });
 
         let mut path_str = String::new();
-        if let Some(path) = &agent.path {
-            for p in path {
+        if let Some(task) = &agent.current_task {
+            for p in &task.path {
                 path_str += p.fmt(2).as_str();
             }
         } else {

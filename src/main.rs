@@ -25,6 +25,10 @@ mod utilities;
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         vsync: true,
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([1200.0, 800.0]) // Width, height
+            .with_min_inner_size([400.0, 300.0])
+            .with_resizable(true),
         ..Default::default()
     };
     eframe::run_native(

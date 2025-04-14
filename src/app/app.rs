@@ -33,7 +33,7 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
-            mode: AppMode::Editor,
+            mode: AppMode::Simulation,
             is_dark_mode: true,
 
             simulation_tool: SimulationTool::default(),
@@ -151,9 +151,9 @@ impl App {
         // Side panel for stats
         egui::SidePanel::right("right_panel")
             .resizable(true)
-            .default_width(200.0)
-            .min_width(200.0)
-            .max_width(300.0)
+            .default_width(300.0)
+            .min_width(250.0)
+            .max_width(350.0)
             .show(ctx, |ui| {
                 
                 ui.heading(self.mode.to_string());

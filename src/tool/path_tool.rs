@@ -4,8 +4,9 @@ use crate::environment::env::Env;
 
 use crate::environment::field_config::FieldConfig;
 use crate::rendering::camera::Camera;
-use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_stations, render_visibility_graph, ui_render_mouse_screen_scene_pos};
-use crate::rendering::render::ui_render_agents_path;
+use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph};
+use crate::rendering::render::{ui_render_agents_path, ui_render_mouse_screen_scene_pos};
+use crate::task::task::Task;
 
 pub struct PathTool {
     tick: u32,
@@ -31,6 +32,7 @@ impl Tool for PathTool {
         self.assign_path_on_mouse_click(ui);
         render_grid(ui, &self.camera);
         render_coordinate_system(ui, &self.camera);
+        render_spawn_area(ui, &self.camera, &self.env.spawn_area);
         render_visibility_graph(ui, &self.camera, &self.env.visibility_graph);
         render_obstacles(ui, &self.camera, &self.env.obstacles);
         render_crops(ui, &self.camera, &self.env.field.crops);
@@ -76,7 +78,11 @@ impl PathTool {
                 println!("Set path");
                 let scene_pos = self.camera.screen_to_scene_pos(mouse_position);
                 for agent in &mut self.env.agents {
-                    agent.set_path(scene_pos);
+                    let path = self.env.visibility_graph.find_path(agent.position, scene_pos);
+                    if let Some(p) = path {
+                        let task = Task::moving(0, p, 2.0, None, None);
+                        agent.current_task = Some(task);
+                    }
                 }
             }
         }

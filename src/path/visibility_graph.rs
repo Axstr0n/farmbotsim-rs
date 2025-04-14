@@ -84,17 +84,28 @@ impl VisibilityGraph {
     }
     
     pub fn find_path(&mut self, start: Pos2, end: Pos2) -> Option<Vec<Pos2>> {
+        let mut added_nodes: Vec<_> = Vec::new();
         // Check if start/end are already in graph
-        let start_node = self.find_existing_node(start).unwrap_or_else(|| {
-            self.add_node_with_connections(start)
-        });
+        let start_node = match self.find_existing_node(start) {
+            Some(node) => node,
+            None => {
+                let node = self.add_node_with_connections(start);
+                added_nodes.push(node);
+                node
+            }
+        };
         
-        let end_node = self.find_existing_node(end).unwrap_or_else(|| {
-            self.add_node_with_connections(end)
-        });
+        let end_node = match self.find_existing_node(end) {
+            Some(node) => node,
+            None => {
+                let node = self.add_node_with_connections(end);
+                added_nodes.push(node);
+                node
+            }
+        };
 
         // Run A* algorithm
-        astar(
+        let result = astar(
             &self.graph,
             start_node,
             |n| n == end_node,
@@ -106,7 +117,13 @@ impl VisibilityGraph {
             },
             |n| self.graph[n].distance(end),
         )
-        .map(|(_, path)| path.into_iter().map(|n| self.graph[n]).collect())
+        .map(|(_, path)| path.into_iter().map(|n| self.graph[n]).collect());
+
+        // Cleanup any temporary nodes added
+        for node in added_nodes.iter().rev() {
+            self.graph.remove_node(*node);
+        }
+        result
     }
 
     fn find_existing_node(&self, pos: Pos2) -> Option<NodeIndex> {

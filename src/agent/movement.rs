@@ -7,7 +7,7 @@ use crate::utilities:: vec2::Vec2Rotate;
 
 pub trait Movement {
     fn calculate_inputs_for_target(self, position: Pos2, direction: Vec2, target_position: Pos2, target_direction: Option<Vec2>) -> Vec<f32>;
-    fn calculate_new_pose_from_inputs(&self, simulation_step: u32, inputs: Vec<f32>, position: Pos2, direction: Vec2) -> (Pos2, Vec2, f32, f32);
+    fn calculate_new_pose_from_inputs(&self, simulation_step: u32, inputs: Vec<f32>, position: Pos2, direction: Vec2, max_velocity: f32) -> (Pos2, Vec2, f32, f32);
 }
 
 #[derive(Clone, PartialEq, Copy)]
@@ -31,13 +31,11 @@ impl Default for RombaMovement {
 }
 
 impl Movement for RombaMovement {
-    fn calculate_new_pose_from_inputs(&self, simulation_step: u32, inputs: Vec<f32>, position: Pos2, direction: Vec2) -> (Pos2, Vec2, f32, f32) {
+    fn calculate_new_pose_from_inputs(&self, simulation_step: u32, inputs: Vec<f32>, position: Pos2, direction: Vec2, max_velocity: f32) -> (Pos2, Vec2, f32, f32) {
         if inputs.len() != 2 { assert_eq!(2, inputs.len()) }
         // Clamp if it is not
         let m1 = inputs[0].clamp(-1.0, 1.0);
         let m2 = inputs[1].clamp(-1.0, 1.0);
-
-        let max_velocity = self.max_velocity;
 
         let v_left = m1 * max_velocity;
         let v_right = m2 * max_velocity;

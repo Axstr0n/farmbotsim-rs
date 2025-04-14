@@ -283,7 +283,7 @@ impl EditorTool {
     }
 
     fn handle_dragging(&mut self, ui: &mut Ui) {
-        // Draw drag points
+        
         let mut pts = vec![];
         for station in &mut self.env.stations {
             let screen_pos = self.camera.scene_to_screen_pos(station.position);
