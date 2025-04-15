@@ -10,6 +10,7 @@ use crate::environment::spawn_area::SpawnArea;
 use crate::environment::station::Station;
 use crate::path::visibility_graph::VisibilityGraph;
 use crate::task::task::Task;
+use crate::task::task_manager::TaskManager;
 use crate::utilities::vec2::{ExtendedVec2, Vec2Rotate};
 use crate::utilities::pos2::ExtendedPos2;
 
@@ -116,7 +117,7 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
         
         if let Some(task) = &agent.current_task {
             let mut path = vec![agent.position];
-            path.extend(&task.path);
+            path.extend(task.get_path());
         
             if path.len() > 1 {
                 for i in 0..path.len() - 1 {
@@ -140,7 +141,7 @@ pub fn render_visibility_graph(ui: &mut Ui, camera: &Camera, visibility_graph: &
         let end = camera.scene_to_screen_pos(visibility_graph.graph[b]);
         ui.painter().line_segment(
             [start, end],
-            (line_width, Color32::from_rgb(100, 100, 255)),
+            (line_width, Color32::from_rgba_unmultiplied(100, 100, 255, 50)),
         );
     }
 
@@ -245,10 +246,11 @@ pub fn render_tasks_on_field(ui: &mut Ui, camera: &Camera, tasks: &Vec<Task>) {
     let painter = ui.painter();
     let color = Color32::LIGHT_BLUE;
     for task in tasks {
-        let path: Vec<Pos2> = task.path.iter().map(|pos| {
+        let path = task.get_path().clone();
+        let screen_path: Vec<Pos2> = path.iter().map(|pos| {
             camera.scene_to_screen_pos(*pos)
         }).collect();
-        if task.path.len() == 1 {
+        if screen_path.len() == 1 {
             painter.add(CircleShape {
                 center: path[0],
                 radius: camera.scene_to_screen_val(0.1),
@@ -309,7 +311,7 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
 
         let mut path_str = String::new();
         if let Some(task) = &agent.current_task {
-            for p in &task.path {
+            for p in task.get_path() {
                 path_str += p.fmt(2).as_str();
             }
         } else {
@@ -352,6 +354,58 @@ pub fn ui_render_mouse_screen_scene_pos(ui: &mut Ui, camera: &Camera) {
     };
     ui.label(format!("Mouse pos: {}", mouse_pos.map_or("None".to_string(), |p| p.fmt(2))));
     ui.label(format!("Scene pos: {}", scene_pos.map_or("None".to_string(), |p| p.fmt(2))));
+}
+
+pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
+    fn make_grid_from(ui: &mut Ui, label: String, vec: Vec<Task>) {
+        ui.collapsing(format!("{} ({})", label, vec.len()), |ui| {
+            Grid::new(label.to_string())
+                .striped(true)
+                .show(ui, |ui| {
+                    // Header row for the grid
+                    ui.label("Id");
+                    ui.label("Type");
+                    ui.label("Path");
+                    ui.label("Velocity");
+                    ui.label("Duration");
+                    ui.label("Field id");
+                    ui.label("Line id");
+                    ui.end_row();
+
+                    for task in vec {
+                        let (id, type_, path, vel, dur, fid, lid) = match task {
+                            Task::Stationary { id, path, duration, field_id, line_id } => {
+                                (id, "Stationary", path, "-".to_string(), duration.to_string(), field_id, line_id)
+                            }
+                            Task::Moving { id, path, velocity, field_id, line_id } => {
+                                (id, "Moving", path, velocity.to_string(), "-".to_string(), field_id, line_id)
+                            }
+                            Task::Travel { path, velocity } => {
+                                (0_u32, "Travel", path, velocity.to_string(), "-".to_string(), 0_u32, 0_u32)
+                            } // Shouldn't be here
+                        };
+
+                        // Display task information in the grid
+                        ui.label(id.to_string());
+                        ui.label(type_);
+                        ui.label(path.iter()
+                            .map(|pos| pos.fmt(2))
+                            .collect::<Vec<String>>()
+                            .join(", "));
+                        ui.label(vel);
+                        ui.label(dur);
+                        ui.label(fid.to_string());
+                        ui.label(lid.to_string());
+                        ui.end_row();
+                    }
+                });
+        });
+    }
+    
+    ui.label("Task manager");
+    make_grid_from(ui, "Work List".to_string(), <std::collections::VecDeque<Task> as Clone>::clone(&task_manager.work_list).into());
+    make_grid_from(ui, "Assigned List".to_string(), task_manager.assigned_tasks.clone());
+    make_grid_from(ui, "Completed List".to_string(), task_manager.completed_tasks.clone());  
 }
 
 // endregion

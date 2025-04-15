@@ -5,7 +5,7 @@ use crate::environment::env::Env;
 use crate::environment::field_config::FieldConfig;
 use crate::rendering::camera::Camera;
 use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_tasks_on_field};
-use crate::rendering::render::{ui_render_agents, ui_render_stations};
+use crate::rendering::render::{ui_render_agents, ui_render_stations, ui_render_task_manager};
 use crate::task::task_manager::TaskManager;
 
 pub struct SimulationTool {
@@ -61,6 +61,8 @@ impl Tool for SimulationTool {
         ui_render_agents(ui, &self.env.agents);
         ui.separator();
         ui_render_stations(ui, &self.env.stations);
+        ui.separator();
+        ui_render_task_manager(ui, &self.task_manager);
     }
     fn update(&mut self) {
         if self.running {

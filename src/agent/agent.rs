@@ -19,6 +19,7 @@ pub struct Agent {
 
     pub work_schedule: VecDeque<Task>,
     pub current_task: Option<Task>,
+    pub completed_task_ids: Vec<u32>, // for storing so task manager can know
 }
 
 impl Agent {
@@ -38,15 +39,16 @@ impl Agent {
 
             work_schedule: VecDeque::new(),
             current_task: None,
+            completed_task_ids: vec![],
         }
     }
     pub fn update(&mut self, simulation_step: u32) {
-        self.update_path();
+        self.update_task_and_path();
         let inputs = self._get_inputs();
         self._move(simulation_step, inputs);
     }
     fn _move(&mut self, simulation_step: u32, inputs: Vec<f32>) {
-        let current_task_velocity = self.current_task.as_ref().map(|task| task.velocity).unwrap_or_default();
+        let current_task_velocity = self.current_task.as_ref().map(|task| *task.get_velocity()).unwrap_or_default();
         let (new_position, new_direction, new_velocity_l, new_velocity_r) = self.movement.calculate_new_pose_from_inputs(
             simulation_step, inputs, self.position, self.direction, current_task_velocity
         );
@@ -63,9 +65,9 @@ impl Agent {
 
         let next_position = match &self.current_task {
             Some(task) => {
-                if !task.path.is_empty() {
+                if !task.get_path().is_empty() {
                     // Follow path normally
-                    task.path[0]
+                    task.get_path()[0]
                 } else {
                     self.position
                 }
@@ -80,18 +82,39 @@ impl Agent {
         )
     }
     
-    fn update_path(&mut self) {
+    fn update_task_and_path(&mut self) {
         if let Some(task) = &mut self.current_task {
-            while !task.path.is_empty() {
-                if self.position.is_close_to(task.path[0], TOLERANCE_DISTANCE) {
-                    task.path.remove(0);
-                } else {
-                    break;
+            match task {
+                Task::Stationary { path, duration, .. } => {
+                    if self.position.is_close_to(path[0], TOLERANCE_DISTANCE) {
+                        if *duration > 0.0 {
+                            *duration -= 1.0;
+                        } else {
+                            self.completed_task_ids.push(*task.get_id());
+                            self.current_task = self.work_schedule.pop_front();
+                        }
+                    }
+                }
+                Task::Moving { path, .. } |
+                Task::Travel { path, .. } => {
+                    while !path.is_empty() {
+                        if self.position.is_close_to(path[0], TOLERANCE_DISTANCE) {
+                            path.remove(0);
+                        } else {
+                            break;
+                        }
+                    }
+                    if path.is_empty() {
+                        if let Task::Moving { .. } = task {
+                            self.completed_task_ids.push(*task.get_id());
+                        }
+                        self.current_task = self.work_schedule.pop_front();
+                    }
                 }
             }
-            if task.path.is_empty() { self.current_task = self.work_schedule.pop_front(); }
+        } else {
+            self.current_task = self.work_schedule.pop_front();
         }
-        else { self.current_task = self.work_schedule.pop_front(); }
     }
 
 }

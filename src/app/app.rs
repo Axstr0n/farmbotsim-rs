@@ -139,7 +139,7 @@ impl App {
                     // TPS/FPS settings
                     ui.label("TPS/FPS ratio:");
                     ui.add(
-                        egui::Slider::new(&mut self.ratio_tps_fps, 0.01..=100.0)
+                        egui::Slider::new(&mut self.ratio_tps_fps, 0.01..=10000.0)
                         .logarithmic(true)
                     );
                     ui.label(format!("TPS: {:.2}", self.tps));
@@ -151,9 +151,9 @@ impl App {
         // Side panel for stats
         egui::SidePanel::right("right_panel")
             .resizable(true)
-            .default_width(300.0)
-            .min_width(250.0)
-            .max_width(350.0)
+            .default_width(400.0)
+            .min_width(350.0)
+            .max_width(450.0)
             .show(ctx, |ui| {
                 
                 ui.heading(self.mode.to_string());

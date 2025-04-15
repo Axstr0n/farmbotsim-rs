@@ -20,21 +20,29 @@ impl VisibilityGraph {
     }
     
     pub fn recalculate(&mut self, points: &[Pos2], obstacles: &[Obstacle]) {
+        self.obstacles = obstacles.to_vec();
         self.graph = Self::build_graph(points, obstacles);
     }
 
     fn build_graph(points: &[Pos2], obstacles: &[Obstacle]) -> UnGraph<Pos2, ()> {
         let mut graph = UnGraph::<Pos2, ()>::new_undirected();
+
+        let mut unique_points = Vec::new();
+        for p in points {
+            if !unique_points.iter().any(|u: &Pos2| (u.x - p.x).abs() < 0.001 && (u.y - p.y).abs() < 0.001) {
+                unique_points.push(*p);
+            }
+        }
         
         // Add all points as nodes to the graph
-        let node_indices: Vec<NodeIndex> = points
+        let node_indices: Vec<NodeIndex> = unique_points
             .iter()
             .map(|&point| graph.add_node(point))
             .collect();
         
         // Check all possible edges between points
-        for (i, &point1) in points.iter().enumerate() {
-            for (j, &point2) in points.iter().enumerate().skip(i + 1) {
+        for (i, &point1) in unique_points.iter().enumerate() {
+            for (j, &point2) in unique_points.iter().enumerate().skip(i + 1) {
                 let edge_line = (point1, point2);
                 
                 // Check if this edge intersects any obstacle

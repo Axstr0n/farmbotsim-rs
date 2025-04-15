@@ -80,7 +80,7 @@ impl PathTool {
                 for agent in &mut self.env.agents {
                     let path = self.env.visibility_graph.find_path(agent.position, scene_pos);
                     if let Some(p) = path {
-                        let task = Task::moving(0, p, 2.0, None, None);
+                        let task = Task::travel(p, 2.0);
                         agent.current_task = Some(task);
                     }
                 }
