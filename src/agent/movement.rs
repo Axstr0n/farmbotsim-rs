@@ -10,7 +10,7 @@ pub trait Movement {
     fn calculate_new_pose_from_inputs(&self, simulation_step: u32, inputs: Vec<f32>, position: Pos2, direction: Vec2, max_velocity: f32) -> (Pos2, Vec2, f32, f32);
 }
 
-#[derive(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy, Debug)]
 pub struct RombaMovement {
     pub max_velocity: f32,
     pub max_angular_velocity: f32,

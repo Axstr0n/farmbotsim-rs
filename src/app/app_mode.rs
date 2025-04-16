@@ -1,6 +1,7 @@
 pub enum AppMode {
     Simulation,
     Path,
+    Task,
     Editor,
     ConfigEditor,
 }
@@ -9,6 +10,7 @@ impl AppMode {
         vec![
             AppMode::Simulation,
             AppMode::Path,
+            AppMode::Task,
             AppMode::Editor,
             AppMode::ConfigEditor,
         ]
@@ -17,6 +19,7 @@ impl AppMode {
         match self {
             AppMode::Simulation => "Simulation",
             AppMode::Path => "Path",
+            AppMode::Task => "Task",
             AppMode::Editor => "Editor",
             AppMode::ConfigEditor => "ConfigEditor",
         }

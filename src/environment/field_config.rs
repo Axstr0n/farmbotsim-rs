@@ -107,6 +107,12 @@ impl Default for FieldConfig {
 }
 
 impl FieldConfig {
+    pub fn new(configs: Vec<VariantFieldConfig>) -> Self {
+        Self {
+            configs
+        }
+    }
+
     pub fn get_obstacles(&self) -> Vec<Obstacle> {
         let mut obstacles: Vec<Obstacle> = Vec::new();
 

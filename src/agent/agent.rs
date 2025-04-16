@@ -1,13 +1,14 @@
 use egui::{Color32, Pos2, Vec2};
 use std::collections::VecDeque;
 
+use super::agent_state::AgentState;
 use super::movement::{Movement, RombaMovement};
 use crate::task::task::Task;
 use crate::utilities::pos2::ExtendedPos2;
 use crate::utilities::utils::TOLERANCE_DISTANCE;
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Agent {
     pub id: u32,
     pub position: Pos2,
@@ -20,6 +21,8 @@ pub struct Agent {
     pub work_schedule: VecDeque<Task>,
     pub current_task: Option<Task>,
     pub completed_task_ids: Vec<u32>, // for storing so task manager can know
+
+    pub state: AgentState,
 }
 
 impl Agent {
@@ -40,13 +43,32 @@ impl Agent {
             work_schedule: VecDeque::new(),
             current_task: None,
             completed_task_ids: vec![],
+
+            state: AgentState::Wait,
         }
     }
     pub fn update(&mut self, simulation_step: u32) {
+        self.update_state();
+
         self.update_task_and_path();
         let inputs = self._get_inputs();
         self._move(simulation_step, inputs);
     }
+
+    fn update_state(&mut self) {
+        let mut current_state = std::mem::replace(&mut self.state, AgentState::Wait); // placeholder
+
+        let maybe_new_state = current_state.update(self);
+
+        if let Some(mut new_state) = maybe_new_state {
+            current_state.on_exit(self);
+            new_state.on_enter(self);
+            self.state = new_state;
+        } else {
+            self.state = current_state;
+        }
+    }
+    
     fn _move(&mut self, simulation_step: u32, inputs: Vec<f32>) {
         let current_task_velocity = self.current_task.as_ref().map(|task| *task.get_velocity()).unwrap_or_default();
         let (new_position, new_direction, new_velocity_l, new_velocity_r) = self.movement.calculate_new_pose_from_inputs(

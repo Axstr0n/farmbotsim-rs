@@ -70,84 +70,89 @@ impl TaskManager {
     }
 
     pub fn assign_tasks(&mut self, agents: &mut Vec<Agent>) {
-        for agent in agents {
+        for agent in &mut *agents {
             if agent.current_task.is_none() && agent.work_schedule.is_empty() {
-                self.assign_task_to_agent(agent);
+                if let Some(task) = self.work_list.pop_front() {
+                    self.assign_task_to_agent(agent, task);
+                }
             }
-            if !agent.completed_task_ids.is_empty() {
-                self.assigned_tasks.retain(|task| {
-                    if agent.completed_task_ids.contains(task.get_id()) {
-                        self.completed_tasks.push(task.clone());
-                        false
-                    } else {
-                        true
-                    }
-                });
-                agent.completed_task_ids.clear();
-            }
+            self.update_completed_tasks(agent);
         }
     }
-    fn assign_task_to_agent(&mut self, agent: &mut Agent) -> bool {
-        if let Some(task) = self.work_list.pop_front() {
-            let target_pos = task.get_path()[0];
-            let path = self.visibility_graph.find_path(agent.position, target_pos);
-            if let Some(p) = path {
-                agent.work_schedule.push_back(Task::travel(p, 4.0)); // Travel to task
-                agent.work_schedule.push_back(task.clone()); // First task
-                self.assigned_tasks.push(task.clone());
+    pub fn assign_task_to_agent(&mut self, agent: &mut Agent, task: Task) -> bool {
+        let target_pos = task.get_path()[0];
+        let path = self.visibility_graph.find_path(agent.position, target_pos);
+        if let Some(p) = path {
+            agent.work_schedule.push_back(Task::travel(p, 4.0)); // Travel to task
+            agent.work_schedule.push_back(task.clone()); // First task
+            self.assigned_tasks.push(task.clone());
 
-                // Chain stationary tasks in same line together
-                let mut related_tasks: Vec<_> = self.work_list
-                    .iter()
-                    .filter_map(|other| {
-                        match other {
-                            Task::Stationary { field_id, line_id, .. } => {
-                                if let Task::Stationary { field_id: fid, line_id: lid, .. } = task {
-                                    if field_id == &fid && line_id == &lid {
-                                        return Some(other.clone());
-                                    }
+            // Chain stationary tasks in same line together
+            let mut related_tasks: Vec<_> = self.work_list
+                .iter()
+                .filter_map(|other| {
+                    match other {
+                        Task::Stationary { field_id, line_id, .. } => {
+                            if let Task::Stationary { field_id: fid, line_id: lid, .. } = task {
+                                if field_id == &fid && line_id == &lid {
+                                    return Some(other.clone());
                                 }
-                                None
                             }
-                            _ => None,
+                            None
                         }
-                    })
-                    .collect();
-                let reference_pos = task.get_path()[0];
-                related_tasks.sort_by(|a, b| {
-                    let a_pos = match a {
-                        Task::Stationary { path, .. } => path[0],
-                        _ => Pos2::ZERO, // shouldn't happen
-                    };
-                    let b_pos = match b {
-                        Task::Stationary { path, .. } => path[0],
-                        _ => Pos2::ZERO, // shouldn't happen
-                    };
-                    
-                    let a_distance = (a_pos.x - reference_pos.x).powi(2) + (a_pos.y - reference_pos.y).powi(2);
-                    let b_distance = (b_pos.x - reference_pos.x).powi(2) + (b_pos.y - reference_pos.y).powi(2);
+                        _ => None,
+                    }
+                })
+                .collect();
+            let reference_pos = task.get_path()[0];
+            related_tasks.sort_by(|a, b| {
+                let a_pos = match a {
+                    Task::Stationary { path, .. } => path[0],
+                    _ => Pos2::ZERO, // shouldn't happen
+                };
+                let b_pos = match b {
+                    Task::Stationary { path, .. } => path[0],
+                    _ => Pos2::ZERO, // shouldn't happen
+                };
                 
-                    a_distance.partial_cmp(&b_distance).unwrap_or(std::cmp::Ordering::Equal)
-                });
+                let a_distance = (a_pos.x - reference_pos.x).powi(2) + (a_pos.y - reference_pos.y).powi(2);
+                let b_distance = (b_pos.x - reference_pos.x).powi(2) + (b_pos.y - reference_pos.y).powi(2);
+            
+                a_distance.partial_cmp(&b_distance).unwrap_or(std::cmp::Ordering::Equal)
+            });
 
-                for task in &related_tasks {
-                    agent.work_schedule.push_back(Task::travel(vec![task.get_path()[0]], 0.5)); // Travel to task
-                    agent.work_schedule.push_back(task.clone()); // Task
-                }
-
-                for task_ in related_tasks.clone() {
-                    self.assigned_tasks.push(task_);
-                }
-                
-                // Remove related tasks from work_list
-                self.work_list.retain(|task| {
-                    !related_tasks.iter().any(|related| task == related)
-                });
-
-                return true
+            for task in &related_tasks {
+                agent.work_schedule.push_back(Task::travel(vec![task.get_path()[0]], 0.5)); // Travel to task
+                agent.work_schedule.push_back(task.clone()); // Task
             }
-            self.work_list.push_front(task); // Add task back if path to it is None
+
+            for task_ in related_tasks.clone() {
+                self.assigned_tasks.push(task_);
+            }
+            
+            // Remove related tasks from work_list
+            self.work_list.retain(|task| {
+                !related_tasks.iter().any(|related| task == related)
+            });
+
+            return true
         }
+        self.work_list.push_front(task); // Add task back if path to it is None
         false
     }
+
+    pub fn update_completed_tasks(&mut self, agent: &mut Agent) {
+        if !agent.completed_task_ids.is_empty() {
+            self.assigned_tasks.retain(|task| {
+                if agent.completed_task_ids.contains(task.get_id()) {
+                    self.completed_tasks.push(task.clone());
+                    false
+                } else {
+                    true
+                }
+            });
+            agent.completed_task_ids.clear();
+        }
+    }
+
 }

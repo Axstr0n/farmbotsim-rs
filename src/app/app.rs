@@ -6,6 +6,7 @@ use super::app_mode::AppMode;
 use crate::tool::tool::Tool;
 use crate::tool::simulation_tool::SimulationTool;
 use crate::tool::path_tool::PathTool;
+use crate::tool::task_tool::TaskTool;
 use crate::tool::editor_tool::EditorTool;
 
 pub struct App {
@@ -14,6 +15,7 @@ pub struct App {
 
     simulation_tool: SimulationTool,
     path_tool: PathTool,
+    task_tool: TaskTool,
     editor_tool: EditorTool,
 
     fps: f32,
@@ -38,14 +40,15 @@ impl Default for App {
 
             simulation_tool: SimulationTool::default(),
             path_tool: PathTool::default(),
+            task_tool: TaskTool::default(),
             editor_tool: EditorTool::default(),
 
             fps: 0.0,
             tps: 0.0,
             ratio_tps_fps: 1.0,
 
-            ticks: 0,
-            frames: 0,
+            ticks: 0, // always increment
+            frames: 0, // always increment
             frame_count: 0,
             tick_count: 0,
             last_stat_time: Instant::now(),
@@ -58,6 +61,10 @@ impl Default for App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        if self.ticks <= 1 {
+            if self.is_dark_mode { ctx.set_visuals(egui::Visuals::dark()); }
+            else { ctx.set_visuals(egui::Visuals::light()); }
+        }
 
         let now = Instant::now();
 
@@ -100,6 +107,7 @@ impl App {
         match self.mode {
             AppMode::Simulation => self.simulation_tool.update(),
             AppMode::Path => self.path_tool.update(),
+            AppMode::Task => self.task_tool.update(),
             AppMode::Editor => self.editor_tool.update(),
             AppMode::ConfigEditor => {},
         }
@@ -163,6 +171,7 @@ impl App {
                     match self.mode {
                         AppMode::Simulation => self.simulation_tool.render_ui(ui),
                         AppMode::Path => self.path_tool.render_ui(ui),
+                        AppMode::Task => self.task_tool.render_ui(ui),
                         AppMode::Editor => self.editor_tool.render_ui(ui),//self.editor_tool.render_ui(ui),
                         AppMode::ConfigEditor => {},
                     }
@@ -173,7 +182,7 @@ impl App {
         egui::CentralPanel::default().show(ctx, |ui| {
 
             match self.mode {
-                AppMode::Editor | AppMode::Simulation | AppMode::Path => {
+                AppMode::Editor | AppMode::Simulation | AppMode::Path | AppMode::Task => {
                     // Tools with camera
                     egui::Frame::group(ui.style())
                         .inner_margin(0.0)
@@ -182,6 +191,7 @@ impl App {
                                 AppMode::Editor => { self.editor_tool.render_main(ui); }
                                 AppMode::Simulation => { self.simulation_tool.render_main(ui); }
                                 AppMode::Path => { self.path_tool.render_main(ui); }
+                                AppMode::Task => { self.task_tool.render_main(ui); }
                                 AppMode::ConfigEditor => {}
                             }
                         });

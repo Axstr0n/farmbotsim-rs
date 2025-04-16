@@ -83,4 +83,12 @@ impl Task {
             .map(|w| w[0].distance(w[1]))
             .sum()
     }
+
+    pub fn is_work(&self) -> bool {
+        match self {
+            Task::Stationary { .. } => true,
+            Task::Moving { .. } => true,
+            Task::Travel { .. } => false,
+        }
+    }
 }

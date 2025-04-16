@@ -283,6 +283,7 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
         ui.label("Id");
         ui.label("Position");
         ui.label("Direction");
+        ui.label("State");
         ui.label("Current task");
         ui.label("Work Schedule");
         ui.end_row();
@@ -292,8 +293,9 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
             ui.label(agent.id.to_string());
             ui.label(agent.position.fmt(2));
             ui.label(agent.direction.fmt(2));
+            ui.label(format!("{:?}",agent.state));
             match &agent.current_task {
-                Some(task) => { ui.label("True"); },
+                Some(..) => { ui.label("True"); },
                 None => { ui.label("False"); }
             }
             ui.label(agent.work_schedule.len().to_string());
@@ -306,7 +308,7 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
     for agent in agents {
         ui.horizontal(|ui| {
             ui.label(RichText::new("⏺").color(agent.color));
-            ui.label(format!(" {} {} {}", agent.id, agent.position.fmt(2), agent.direction.fmt(2)));
+            ui.label(format!(" {} {} {} {:?}", agent.id, agent.position.fmt(2), agent.direction.fmt(2), agent.state));
         });
 
         let mut path_str = String::new();
