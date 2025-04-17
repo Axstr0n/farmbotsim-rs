@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use egui::{Pos2, Vec2};
 
-use crate::{agent::agent::Agent, environment::field_config::{FieldConfig, VariantFieldConfig}, path::visibility_graph::VisibilityGraph, utilities::vec2::Vec2Rotate};
+use crate::{agent::{agent::Agent, agent_state::AgentState}, environment::field_config::{FieldConfig, VariantFieldConfig}, path::visibility_graph::VisibilityGraph, utilities::vec2::Vec2Rotate};
 
 use super::task::Task;
 
@@ -49,7 +49,7 @@ impl TaskManager {
                 VariantFieldConfig::Line(c) => {
                     for i in 0..c.n_lines {
                         let path = vec![c.left_top_pos+Vec2::new(i as f32*c.line_spacing, 0.0).rotate_degrees(c.angle), c.left_top_pos+Vec2::new(i as f32*c.line_spacing, c.length).rotate_degrees(c.angle)];
-                        work_list.push(Task::moving(id_counter, path, 5.0, field_id, i));
+                        work_list.push(Task::moving(id_counter, path, 5.0, field_id, i, 100.0));
                         id_counter += 1;
                     }
                 },
@@ -57,7 +57,7 @@ impl TaskManager {
                     for i in 0..c.n_lines {
                         for j in 0..c.n_points_per_line {
                             let pos = c.left_top_pos + Vec2::new(c.line_spacing*i as f32, c.point_spacing*j as f32).rotate_degrees(c.angle);
-                            work_list.push(Task::stationary(id_counter, pos, 400.0, field_id, i));
+                            work_list.push(Task::stationary(id_counter, pos, 400.0, field_id, i, 50.0));
                             id_counter += 1;
                         }
                     }
@@ -77,11 +77,14 @@ impl TaskManager {
                 }
             }
             self.update_completed_tasks(agent);
+            if agent.state == AgentState::Discharged && !agent.work_schedule.is_empty() {
+
+            }
         }
     }
     pub fn assign_task_to_agent(&mut self, agent: &mut Agent, task: Task) -> bool {
-        let target_pos = task.get_path()[0];
-        let path = self.visibility_graph.find_path(agent.position, target_pos);
+        let target_pos = task.get_first_pos();
+        let path = self.visibility_graph.find_path(agent.position, *target_pos);
         if let Some(p) = path {
             agent.work_schedule.push_back(Task::travel(p, 4.0)); // Travel to task
             agent.work_schedule.push_back(task.clone()); // First task
@@ -104,15 +107,15 @@ impl TaskManager {
                     }
                 })
                 .collect();
-            let reference_pos = task.get_path()[0];
+            let reference_pos = task.get_first_pos();
             related_tasks.sort_by(|a, b| {
                 let a_pos = match a {
-                    Task::Stationary { path, .. } => path[0],
-                    _ => Pos2::ZERO, // shouldn't happen
+                    Task::Stationary { pos, .. } => pos,
+                    _ => &Pos2::ZERO, // shouldn't happen
                 };
                 let b_pos = match b {
-                    Task::Stationary { path, .. } => path[0],
-                    _ => Pos2::ZERO, // shouldn't happen
+                    Task::Stationary { pos, .. } => pos,
+                    _ => &Pos2::ZERO, // shouldn't happen
                 };
                 
                 let a_distance = (a_pos.x - reference_pos.x).powi(2) + (a_pos.y - reference_pos.y).powi(2);
@@ -122,7 +125,7 @@ impl TaskManager {
             });
 
             for task in &related_tasks {
-                agent.work_schedule.push_back(Task::travel(vec![task.get_path()[0]], 0.5)); // Travel to task
+                agent.work_schedule.push_back(Task::travel(vec![*task.get_first_pos()], 0.5)); // Travel to task
                 agent.work_schedule.push_back(task.clone()); // Task
             }
 
@@ -144,11 +147,15 @@ impl TaskManager {
     pub fn update_completed_tasks(&mut self, agent: &mut Agent) {
         if !agent.completed_task_ids.is_empty() {
             self.assigned_tasks.retain(|task| {
-                if agent.completed_task_ids.contains(task.get_id()) {
-                    self.completed_tasks.push(task.clone());
-                    false
-                } else {
-                    true
+                if let Some(id) = task.get_id() {
+                    if agent.completed_task_ids.contains(id) {
+                        self.completed_tasks.push(task.clone());
+                        false // Remove task from assigned_tasks
+                    } else {
+                        true  // Keep task in assigned_tasks
+                    }
+                } else { // If the task is Travel (no ID), keep it in assigned_tasks
+                    true 
                 }
             });
             agent.completed_task_ids.clear();

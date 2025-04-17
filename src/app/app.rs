@@ -161,7 +161,7 @@ impl App {
             .resizable(true)
             .default_width(400.0)
             .min_width(350.0)
-            .max_width(450.0)
+            .max_width(650.0)
             .show(ctx, |ui| {
                 
                 ui.heading(self.mode.to_string());

@@ -2,6 +2,7 @@ use egui::{Color32, Pos2, Vec2};
 use std::collections::VecDeque;
 
 use super::agent_state::AgentState;
+use super::battery::BatteryPack;
 use super::movement::{Movement, RombaMovement};
 use crate::task::task::Task;
 use crate::utilities::pos2::ExtendedPos2;
@@ -23,6 +24,7 @@ pub struct Agent {
     pub completed_task_ids: Vec<u32>, // for storing so task manager can know
 
     pub state: AgentState,
+    pub battery: BatteryPack,
 }
 
 impl Agent {
@@ -45,9 +47,11 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
+            battery: BatteryPack::new(24.0, 423.0, 100.0),
         }
     }
     pub fn update(&mut self, simulation_step: u32) {
+        if self.state == AgentState::Discharged { return }
         self.update_state();
 
         self.update_task_and_path();
@@ -107,12 +111,12 @@ impl Agent {
     fn update_task_and_path(&mut self) {
         if let Some(task) = &mut self.current_task {
             match task {
-                Task::Stationary { path, duration, .. } => {
-                    if self.position.is_close_to(path[0], TOLERANCE_DISTANCE) {
+                Task::Stationary { pos, duration, .. } => {
+                    if self.position.is_close_to(*pos, TOLERANCE_DISTANCE) {
                         if *duration > 0.0 {
                             *duration -= 1.0;
-                        } else {
-                            self.completed_task_ids.push(*task.get_id());
+                        } else if let Some(id) = task.get_id() {
+                            self.completed_task_ids.push(*id);
                             self.current_task = self.work_schedule.pop_front();
                         }
                     }
@@ -127,8 +131,8 @@ impl Agent {
                         }
                     }
                     if path.is_empty() {
-                        if let Task::Moving { .. } = task {
-                            self.completed_task_ids.push(*task.get_id());
+                        if let Some(id) = task.get_id() {
+                            self.completed_task_ids.push(*id);
                         }
                         self.current_task = self.work_schedule.pop_front();
                     }

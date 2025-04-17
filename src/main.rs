@@ -21,6 +21,7 @@ mod environment;
 mod path;
 mod task;
 mod utilities;
+mod cfg;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {

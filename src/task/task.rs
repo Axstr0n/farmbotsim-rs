@@ -5,10 +5,11 @@ use egui::Pos2;
 pub enum Task {
     Stationary {
         id: u32,
-        path: Vec<Pos2>,
+        pos: Pos2,
         duration: f32,
         field_id: u32,
         line_id: u32,
+        power_w: f32,
     },
     Moving {
         id: u32,
@@ -16,6 +17,7 @@ pub enum Task {
         velocity: f32,
         field_id: u32,
         line_id: u32,
+        power_w: f32,
     },
     Travel {
         path: Vec<Pos2>,
@@ -23,22 +25,24 @@ pub enum Task {
     },
 }
 impl Task {
-    pub fn stationary(id: u32, pos: Pos2, duration: f32, field_id: u32, line_id: u32) -> Self {
+    pub fn stationary(id: u32, pos: Pos2, duration: f32, field_id: u32, line_id: u32, power_w: f32) -> Self {
         Task::Stationary {
             id,
-            path: vec![pos],
+            pos,
             duration,
             field_id,
             line_id,
+            power_w,
         }
     }
-    pub fn moving(id: u32, path: Vec<Pos2>, velocity: f32, field_id: u32, line_id: u32) -> Self {
+    pub fn moving(id: u32, path: Vec<Pos2>, velocity: f32, field_id: u32, line_id: u32, power_w: f32) -> Self {
         Task::Moving {
             id,
             path,
             velocity,
             field_id,
             line_id,
+            power_w,
         }
     }
 
@@ -49,25 +53,25 @@ impl Task {
         }
     }
 
-    pub fn get_id(&self) -> &u32 {
+    pub fn get_id(&self) -> Option<&u32> {
         match self {
-            Task::Stationary {id, .. } => { id },
-            Task::Moving {id, .. } => { id },
-            Task::Travel {.. } => { &0 },
+            Task::Stationary {id, .. } => { Some(id) },
+            Task::Moving {id, .. } => { Some(id) },
+            Task::Travel {.. } => { None },
         }
     }
-    pub fn get_path(&self) -> &Vec<Pos2> {
+    pub fn get_path(&self) -> Vec<Pos2> {
         match self {
-            Task::Stationary {path, .. } => { path },
-            Task::Moving {path, .. } => { path },
-            Task::Travel {path, .. } => { path },
+            Task::Stationary {pos, .. } => { vec![*pos] },
+            Task::Moving {path, .. } => { path.clone() },
+            Task::Travel {path, .. } => { path.clone() },
         }
     }
-    pub fn get_path_mut(&mut self) -> &mut Vec<Pos2> {
+    pub fn get_first_pos(&self) -> &Pos2 {
         match self {
-            Task::Stationary {path, .. } => { path },
-            Task::Moving {path, .. } => { path },
-            Task::Travel {path, .. } => { path },
+            Task::Stationary {pos, .. } => { pos },
+            Task::Moving {path, .. } => { &path[0] },
+            Task::Travel {path, .. } => { &path[0] },
         }
     }
     pub fn get_velocity(&self) -> &f32 {

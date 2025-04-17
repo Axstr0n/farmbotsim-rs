@@ -3,6 +3,7 @@ use egui::{Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
 
 use super::camera::Camera;
 use crate::agent::agent::Agent;
+use crate::agent::battery::Battery;
 use crate::environment::crop::Crop;
 use crate::environment::field_config::VariantFieldConfig;
 use crate::environment::obstacle::Obstacle;
@@ -284,6 +285,7 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
         ui.label("Position");
         ui.label("Direction");
         ui.label("State");
+        ui.label("Battery");
         ui.label("Current task");
         ui.label("Work Schedule");
         ui.end_row();
@@ -294,6 +296,7 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
             ui.label(agent.position.fmt(2));
             ui.label(agent.direction.fmt(2));
             ui.label(format!("{:?}",agent.state));
+            ui.label(format!("{:.2}%",agent.battery.get_soc()));
             match &agent.current_task {
                 Some(..) => { ui.label("True"); },
                 None => { ui.label("False"); }
@@ -308,7 +311,7 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
     for agent in agents {
         ui.horizontal(|ui| {
             ui.label(RichText::new("⏺").color(agent.color));
-            ui.label(format!(" {} {} {} {:?}", agent.id, agent.position.fmt(2), agent.direction.fmt(2), agent.state));
+            ui.label(format!(" {} {} {} {:?} {:.2}%", agent.id, agent.position.fmt(2), agent.direction.fmt(2), agent.state, agent.battery.get_soc()));
         });
 
         let mut path_str = String::new();
@@ -372,33 +375,53 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                     ui.label("Duration");
                     ui.label("Field id");
                     ui.label("Line id");
+                    ui.label("Power w");
                     ui.end_row();
 
-                    for task in vec {
-                        let (id, type_, path, vel, dur, fid, lid) = match task {
-                            Task::Stationary { id, path, duration, field_id, line_id } => {
-                                (id, "Stationary", path, "-".to_string(), duration.to_string(), field_id, line_id)
-                            }
-                            Task::Moving { id, path, velocity, field_id, line_id } => {
-                                (id, "Moving", path, velocity.to_string(), "-".to_string(), field_id, line_id)
-                            }
-                            Task::Travel { path, velocity } => {
-                                (0_u32, "Travel", path, velocity.to_string(), "-".to_string(), 0_u32, 0_u32)
-                            } // Shouldn't be here
-                        };
+                    struct TaskInfo {
+                        id: u32, task_type: String, path: Vec<String>, vel: String, dur: String, fid: u32, lid: u32, power: f32
+                    }
 
-                        // Display task information in the grid
-                        ui.label(id.to_string());
-                        ui.label(type_);
-                        ui.label(path.iter()
-                            .map(|pos| pos.fmt(2))
-                            .collect::<Vec<String>>()
-                            .join(", "));
-                        ui.label(vel);
-                        ui.label(dur);
-                        ui.label(fid.to_string());
-                        ui.label(lid.to_string());
+                    fn display_task_info(ui: &mut Ui, task_info: TaskInfo) {
+                        ui.label(task_info.id.to_string());
+                        ui.label(task_info.task_type);
+                        ui.label(task_info.path.join(", "));
+                        ui.label(task_info.vel);
+                        ui.label(task_info.dur);
+                        ui.label(task_info.fid.to_string());
+                        ui.label(task_info.lid.to_string());
+                        ui.label(task_info.power.to_string());
                         ui.end_row();
+                    }
+
+                    for task in vec {
+                        match task {
+                            Task::Stationary { id, pos, duration, field_id, line_id, power_w } => {
+                                let task_type = "Stationary";
+                                let path = vec![pos.fmt(2)];
+                                let vel = "-".to_string();
+                                let dur = duration.to_string();
+                                let fid = field_id;
+                                let lid = line_id;
+                                let power = power_w;
+                                
+                                display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power } );
+                            }
+                            Task::Moving { id, path, velocity, field_id, line_id, power_w } => {
+                                let task_type = "Moving";
+                                let path: Vec<String> = path.iter()
+                                    .map(|pos| pos.fmt(2))
+                                    .collect();
+                                let vel = velocity.to_string();
+                                let dur = "-".to_string();
+                                let fid = field_id;
+                                let lid = line_id;
+                                let power = power_w;
+                                
+                                display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power } );
+                            }
+                            _ => {}
+                        }
                     }
                 });
         });

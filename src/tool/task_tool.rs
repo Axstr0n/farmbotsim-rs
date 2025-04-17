@@ -94,7 +94,12 @@ impl TaskTool {
         let tasks: Vec<_> = self.task_manager
             .work_list
             .iter()
-            .filter(|task| task_ids.contains(task.get_id()))
+            .filter(|task| {
+                if let Some(id) = task.get_id() {
+                    return task_ids.contains(id)
+                }
+                false
+            })
             .cloned()
             .collect();
 
@@ -106,7 +111,12 @@ impl TaskTool {
                 self.task_manager.assign_task_to_agent(agent, task.clone());
             }
         }
-        self.task_manager.work_list.retain(|task| !task_ids.contains(task.get_id()));
+        self.task_manager.work_list.retain(|task| {
+            if let Some(id) = task.get_id() {
+                return !task_ids.contains(id)
+            }
+            false
+        });
     }
     fn reset(&mut self) {
         self.tick = 0;
