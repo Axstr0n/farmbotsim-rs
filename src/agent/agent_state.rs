@@ -40,6 +40,7 @@ impl AgentState {
                 Task::Stationary { power_w, .. } => *power_w,
                 Task::Moving { power_w, .. } => power_w + calculate_power_travel(agent),
                 Task::Travel { .. } => 0.0, // handled else
+                Task::Wait { .. } => 0.0,
             }
         }
 
@@ -51,9 +52,9 @@ impl AgentState {
                 if let Some(discharge) = check_battery(agent) { return Some(discharge); }
                 // transitions
                 if let Some(task) = &agent.current_task {
-                    if !task.get_path().is_empty() {
-                        Some(AgentState::Travel)
-                    } else { None }
+                    if task.is_wait() { None }
+                    else if task.is_travel() { Some(AgentState::Travel) }
+                    else { None }
                 }
                 else { None }
             },
@@ -66,6 +67,8 @@ impl AgentState {
                 // transitions
                 if let Some(task) = &agent.current_task {
                     if task.is_work() { Some(AgentState::Work) }
+                    else if task.is_wait() && task.is_charge_intent() { Some(AgentState::Charging) }
+                    else if task.is_wait() { Some(AgentState::Wait) }
                     else { None }
                 }
                 else { Some(AgentState::Wait) }
@@ -91,7 +94,14 @@ impl AgentState {
                 else { Some(AgentState::Wait) }
             },
             AgentState::Charging => {
-                None
+                // charge battery
+                agent.battery.charge(1000.0, 1);
+                // transitions
+                if let Some(task) = &agent.current_task {
+                    if !task.is_wait() && !task.is_charge_intent() { Some(AgentState::Travel) }
+                    else { None }
+                }
+                else { None }
             },
             AgentState::Discharged => {
                 None

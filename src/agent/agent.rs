@@ -1,9 +1,9 @@
 use egui::{Color32, Pos2, Vec2};
-use std::collections::VecDeque;
 
 use super::agent_state::AgentState;
 use super::battery::BatteryPack;
 use super::movement::{Movement, RombaMovement};
+use super::work_schedule::WorkSchedule;
 use crate::task::task::Task;
 use crate::utilities::pos2::ExtendedPos2;
 use crate::utilities::utils::TOLERANCE_DISTANCE;
@@ -19,7 +19,7 @@ pub struct Agent {
     pub velocity_ang: f32,
     pub color: Color32,
 
-    pub work_schedule: VecDeque<Task>,
+    pub work_schedule: WorkSchedule,
     pub current_task: Option<Task>,
     pub completed_task_ids: Vec<u32>, // for storing so task manager can know
 
@@ -42,12 +42,12 @@ impl Agent {
             velocity_ang: 0.0,
             color,
 
-            work_schedule: VecDeque::new(),
+            work_schedule: WorkSchedule::new(),
             current_task: None,
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: BatteryPack::new(24.0, 423.0, 100.0),
+            battery: BatteryPack::new(24.0, 423.0, 70.0),
         }
     }
     pub fn update(&mut self, simulation_step: u32) {
@@ -113,10 +113,19 @@ impl Agent {
             match task {
                 Task::Stationary { pos, duration, .. } => {
                     if self.position.is_close_to(*pos, TOLERANCE_DISTANCE) {
-                        if *duration > 0.0 {
-                            *duration -= 1.0;
+                        if *duration > 0 {
+                            *duration -= 1;
                         } else if let Some(id) = task.get_id() {
                             self.completed_task_ids.push(*id);
+                            self.current_task = self.work_schedule.pop_front();
+                        }
+                    }
+                }
+                Task::Wait { pos, duration , ..} => {
+                    if self.position.is_close_to(*pos, TOLERANCE_DISTANCE) {
+                        if *duration > 0 {
+                            *duration -= 1;
+                        } else {
                             self.current_task = self.work_schedule.pop_front();
                         }
                     }

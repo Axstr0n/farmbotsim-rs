@@ -258,7 +258,7 @@ impl EditorTool {
     pub fn recalc_charging_stations(&mut self) {
         let colors = generate_colors(self.env.stations.len(), 0.01);
         for (i, station) in self.env.stations.iter_mut().enumerate() {
-            *station = Station::new(i as u32, station.position, station.queue_direction, station.waiting_offset, colors[i]);
+            *station = Station::new(i as u32, station.position, station.queue_direction, station.waiting_offset, colors[i], station.n_slots);
         }
     }
     pub fn recalc_field_config_on_add_remove(&mut self) {

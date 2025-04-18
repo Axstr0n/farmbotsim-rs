@@ -2,6 +2,7 @@
 
 pub trait Battery {
     fn discharge(&mut self, power: f32, time: u32);
+    fn charge(&mut self, power: f32, time: u32);
     fn get_soc(&self) -> f32;
 }
 
@@ -25,12 +26,19 @@ impl BatteryPack {
 }
 
 impl Battery for BatteryPack {
-    fn discharge(&mut self, power_w: f32, time_s: u32) {
+    fn discharge(&mut self, power: f32, time: u32) {
         if self.energy_wh <= 0.0 { return } // is empty
-        let energy_removed_wh = (power_w * time_s as f32) / 3600.0;  // Convert W to Wh
+        let energy_removed_wh = (power * time as f32) / 3600.0;  // Convert W to Wh
         self.energy_wh = 0_f32.max(self.energy_wh - energy_removed_wh);
         self.soc = (self.energy_wh / self.capacity_wh) * 100.0  // Update SoC
     }
+    fn charge(&mut self, power: f32, time: u32) {
+        if self.energy_wh >= self.capacity_wh { return } // is full
+        let energy_added_wh = (power * time as f32) / 3600.0;
+        self.energy_wh = self.capacity_wh.min(self.energy_wh + energy_added_wh);
+        self.soc = (self.energy_wh / self.capacity_wh) * 100.0  // Update SoC
+    }
+
     fn get_soc(&self) -> f32 {
         (self.energy_wh / self.capacity_wh) * 100.0
     }

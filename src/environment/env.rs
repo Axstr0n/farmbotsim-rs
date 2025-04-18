@@ -69,6 +69,9 @@ impl Env {
                     colors[i as usize])
             )
         }
+        for station in &mut self.stations {
+            station.reset();
+        }
         self.step_count = 0;
     }
     pub fn step(&mut self) {

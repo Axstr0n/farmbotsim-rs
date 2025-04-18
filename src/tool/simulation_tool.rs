@@ -22,7 +22,7 @@ impl Default for SimulationTool {
         Self {
             tick: 0,
             running: false,
-            env: Env::new(2, Some(field_config.clone())),
+            env: Env::new(4, Some(field_config.clone())),
             camera: Camera::default(),
             task_manager: TaskManager::from_field_config(field_config)
         }
@@ -67,7 +67,7 @@ impl Tool for SimulationTool {
     fn update(&mut self) {
         if self.running {
             self.tick += 1;
-            self.task_manager.assign_tasks(&mut self.env.agents);
+            self.task_manager.assign_tasks(&mut self.env.agents, &mut self.env.stations);
             self.env.step();
         }
     }

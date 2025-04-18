@@ -7,7 +7,7 @@ use crate::environment::env::Env;
 use crate::environment::field_config::{FieldConfig, LineFieldConfig, PointFieldConfig, VariantFieldConfig};
 use crate::rendering::camera::Camera;
 use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph};
-use crate::rendering::render::{ui_render_agents, ui_render_mouse_screen_scene_pos, ui_render_task_manager};
+use crate::rendering::render::{ui_render_agents, ui_render_mouse_screen_scene_pos, ui_render_task_manager, ui_render_stations};
 use crate::task::task_manager::TaskManager;
 
 pub struct TaskTool {
@@ -65,17 +65,43 @@ impl Tool for TaskTool {
         }
 
         ui.separator();
+        
+        for i in 0..=self.env.agents.len()-1 {
+            ui.horizontal(|ui| {
+                if ui.button(format!("Agent {} ->  work", i)).clicked() {
+                    let mut removed_from_station = false;
+                    for agent in &mut self.env.agents {
+                        if agent.id != i as u32 { continue; }
+                        removed_from_station |= self.env.stations[0].release_agent(i as u32);
+                        self.task_manager.assign_work_task_to_agent(agent);
+                    }
+                    if removed_from_station { self.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
+                }
+                if ui.button(format!("Agent {} ->  station 0", i)).clicked() {
+                    for agent in &mut self.env.agents {
+                        if agent.id != i as u32 { continue; }
+                        if !self.env.stations[0].slots.contains(&agent.id) && !self.env.stations[0].queue.contains(&agent.id) {
+                            self.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
+                        }
+                    }
+                }
+            });
 
-        if ui.button("Agent 0 to task 0").clicked() {
-            self.assign_task(vec![0], vec![0]);
         }
-        if ui.button("Agent 0 to task 3 combine line").clicked() {
-            self.assign_task(vec![0], vec![3]);
+        if ui.button("All -> station 0").clicked() {
+            for agent in &mut self.env.agents {
+                if !self.env.stations[0].slots.contains(&agent.id) && !self.env.stations[0].queue.contains(&agent.id) {
+                    self.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
+                }
+            }
         }
 
         ui.separator();
 
         ui_render_agents(ui, &self.env.agents);
+        ui.separator();
+        ui_render_stations(ui, &self.env.stations);
+        ui.separator();
         ui_render_task_manager(ui, &self.task_manager);
     }
     fn update(&mut self) {
@@ -90,34 +116,6 @@ impl Tool for TaskTool {
 }
 
 impl TaskTool {
-    fn assign_task(&mut self, agent_ids: Vec<u32>, task_ids: Vec<u32>) {
-        let tasks: Vec<_> = self.task_manager
-            .work_list
-            .iter()
-            .filter(|task| {
-                if let Some(id) = task.get_id() {
-                    return task_ids.contains(id)
-                }
-                false
-            })
-            .cloned()
-            .collect();
-
-        for agent in &mut self.env.agents {
-            if !agent_ids.contains(&agent.id) {
-                continue;
-            }
-            for task in &tasks {
-                self.task_manager.assign_task_to_agent(agent, task.clone());
-            }
-        }
-        self.task_manager.work_list.retain(|task| {
-            if let Some(id) = task.get_id() {
-                return !task_ids.contains(id)
-            }
-            false
-        });
-    }
     fn reset(&mut self) {
         self.tick = 0;
         self.running = false;

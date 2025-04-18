@@ -298,7 +298,9 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
             ui.label(format!("{:?}",agent.state));
             ui.label(format!("{:.2}%",agent.battery.get_soc()));
             match &agent.current_task {
-                Some(..) => { ui.label("True"); },
+                Some(task) => {
+                    ui.label(format!("{:?}", task.get_intent()));
+                },
                 None => { ui.label("False"); }
             }
             ui.label(agent.work_schedule.len().to_string());
@@ -334,6 +336,8 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
         ui.label(" ");
         ui.label("Id");
         ui.label("Position");
+        ui.label("N slots");
+        ui.label("Slots");
         ui.label("Queue");
         ui.end_row();
 
@@ -341,6 +345,8 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
             ui.label(RichText::new("⏺").color(station.color)); //⏹⏺
             ui.label(station.id.to_string());
             ui.label(station.position.fmt(2));
+            ui.label(station.n_slots.to_string());
+            ui.label(station.slots.len().to_string());
             ui.label(station.queue.len().to_string());
             ui.end_row();
         }
@@ -396,7 +402,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
 
                     for task in vec {
                         match task {
-                            Task::Stationary { id, pos, duration, field_id, line_id, power_w } => {
+                            Task::Stationary { id, pos, duration, field_id, line_id, power_w ,..} => {
                                 let task_type = "Stationary";
                                 let path = vec![pos.fmt(2)];
                                 let vel = "-".to_string();
@@ -407,7 +413,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                                 
                                 display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power } );
                             }
-                            Task::Moving { id, path, velocity, field_id, line_id, power_w } => {
+                            Task::Moving { id, path, velocity, field_id, line_id, power_w ,..} => {
                                 let task_type = "Moving";
                                 let path: Vec<String> = path.iter()
                                     .map(|pos| pos.fmt(2))
