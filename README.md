@@ -52,13 +52,14 @@ cargo build --release
 The **farmbotsim-rs** project is organized into several directories that help separate functionality. Here's a high-level breakdown:
 
 `src/` - Contains the core logic of the application:
-- `agent/` - Contains the agent class and its associated logic, such as movement.
+- `agent/` - Contains the agent struct and its associated logic, such as movement, battery, state machine.
 - `app/` - Main app functionality.
-- `environment/` - Contains all environment structs (Crop, Field, Env, ...).
+- `environment/` - Contains all environment structs (Crop, Field, Station, Env, Config, ...).
 - `path/` - Includes code related to robot navigation and pathfinding algorithms.
 - `rendering/` - Responsible for rendering the simulation environment and visual feedback.
-- `tool/` - Contains files for app modes (simulation, editor, path, ...).
+- `tool/` - Contains files for app modes (simulation, editor, path, task, ...).
 - `utilities/` - Common utilities and helper functions used across the project.
+- `cfg.rs` - Contains constants.
 - `main.rs` - Contains entry point into application.
 
 `.gitignore` - Ignores /target.
