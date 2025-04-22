@@ -20,7 +20,7 @@ impl Default for PathTool {
         Self {
             tick: 0,
             running: false,
-            env: Env::new(1, Some(FieldConfig::default())),
+            env: Env::new(1, Some(FieldConfig::default()), ""),
             camera: Camera::default(),
         }
     }

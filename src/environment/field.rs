@@ -1,6 +1,6 @@
 use super::{crop::Crop, row::Row};
 
-#[derive(Default, PartialEq, Clone)]
+#[derive(Default, Debug, PartialEq, Clone)]
 pub struct Field {
     pub crops: Vec<Crop>,
     pub rows: Vec<Row>,

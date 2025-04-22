@@ -1,7 +1,7 @@
 use egui::Pos2;
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SpawnArea {
     pub left_top_pos: Pos2,
     pub angle: f32,

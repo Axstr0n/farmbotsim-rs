@@ -19,7 +19,7 @@ pub struct EditorTool {
 
 impl Default for EditorTool {
     fn default() -> Self {
-        let env = Env::new(0, Some(FieldConfig::default()));
+        let env = Env::new(0, Some(FieldConfig::default()), "");
         let mut instance = Self {
             tick: 0,
             env,

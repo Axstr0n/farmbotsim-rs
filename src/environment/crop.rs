@@ -1,7 +1,7 @@
 use egui::Pos2;
 
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum CropState{
     Unprocessed,
     // Scanning,
@@ -10,7 +10,7 @@ pub enum CropState{
     // Processed
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Crop {
     pub id: u32,
     pub row_id: u32,

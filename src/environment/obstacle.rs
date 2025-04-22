@@ -1,6 +1,6 @@
 use egui::Pos2;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Obstacle {
     pub points: Vec<Pos2>,
 }

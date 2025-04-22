@@ -1,5 +1,5 @@
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Row {
     
 }

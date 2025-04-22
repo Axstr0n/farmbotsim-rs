@@ -5,7 +5,7 @@ use petgraph::algo::astar;
 use crate::environment::obstacle::Obstacle;
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VisibilityGraph {
     pub graph: UnGraph<Pos2, ()>,
     obstacles: Vec<Obstacle>

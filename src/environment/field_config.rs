@@ -4,7 +4,7 @@ use crate::utilities::vec2::Vec2Rotate;
 use super::obstacle::Obstacle;
 
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct LineFieldConfig {
     pub id: u32,
     pub color: egui::Color32,
@@ -41,7 +41,7 @@ impl LineFieldConfig {
     }
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct PointFieldConfig {
     pub id: u32,
     pub color: egui::Color32,
@@ -81,14 +81,14 @@ impl PointFieldConfig {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum VariantFieldConfig {
     Line(LineFieldConfig),
     Point(PointFieldConfig),
 }
 
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct FieldConfig {
     pub configs: Vec<VariantFieldConfig>,
 }

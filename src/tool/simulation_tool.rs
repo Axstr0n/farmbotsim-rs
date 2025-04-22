@@ -4,7 +4,7 @@ use crate::environment::env::Env;
 
 use crate::environment::field_config::FieldConfig;
 use crate::rendering::camera::Camera;
-use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_tasks_on_field};
+use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_tasks_on_field, ui_render_datetime};
 use crate::rendering::render::{ui_render_agents, ui_render_stations, ui_render_task_manager};
 use crate::task::task_manager::TaskManager;
 
@@ -22,7 +22,7 @@ impl Default for SimulationTool {
         Self {
             tick: 0,
             running: false,
-            env: Env::new(4, Some(field_config.clone())),
+            env: Env::new(4, Some(field_config.clone()), ""),
             camera: Camera::default(),
             task_manager: TaskManager::from_field_config(field_config)
         }
@@ -57,6 +57,8 @@ impl Tool for SimulationTool {
         if ui.button("Reset").clicked() {
             self.reset();
         }
+        ui.separator();
+        ui_render_datetime(ui, &self.env.date_time_manager);
         ui.separator();
         ui_render_agents(ui, &self.env.agents);
         ui.separator();

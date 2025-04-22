@@ -28,7 +28,7 @@ impl Default for TaskTool {
         Self {
             tick: 0,
             running: false,
-            env: Env::new(3, Some(cfg.clone())),
+            env: Env::new(3, Some(cfg.clone()), ""),
             camera: Camera::default(),
             task_manager: TaskManager::from_field_config(cfg),
         }

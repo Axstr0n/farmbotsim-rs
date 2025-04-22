@@ -7,7 +7,7 @@ pub enum StationPosType {
     QueueSlot,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Station {
     pub id: u32,
     pub position: Pos2,

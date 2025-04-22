@@ -12,6 +12,7 @@ use crate::environment::station::Station;
 use crate::path::visibility_graph::VisibilityGraph;
 use crate::task::task::Task;
 use crate::task::task_manager::TaskManager;
+use crate::utilities::datetime::DateTimeManager;
 use crate::utilities::vec2::{ExtendedVec2, Vec2Rotate};
 use crate::utilities::pos2::ExtendedPos2;
 
@@ -437,6 +438,10 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
     make_grid_from(ui, "Work List".to_string(), <std::collections::VecDeque<Task> as Clone>::clone(&task_manager.work_list).into());
     make_grid_from(ui, "Assigned List".to_string(), task_manager.assigned_tasks.clone());
     make_grid_from(ui, "Completed List".to_string(), task_manager.completed_tasks.clone());  
+}
+
+pub fn ui_render_datetime(ui: &mut Ui, datetime_manager: &DateTimeManager) {
+    ui.label(datetime_manager.get_time());
 }
 
 // endregion
