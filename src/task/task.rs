@@ -34,9 +34,13 @@ pub enum Task {
         velocity: f32,
         intent: Intent,
     },
-    Wait {
+    WaitDuration {
         pos: Pos2,
         duration: u32,
+        intent: Intent,
+    },
+    WaitInfinite {
+        pos: Pos2,
         intent: Intent,
     }
 }
@@ -71,10 +75,16 @@ impl Task {
             intent,
         }
     }
-    pub fn wait(pos: Pos2, duration: u32, intent: Intent) -> Self {
-        Task::Wait {
+    pub fn wait_duration(pos: Pos2, duration: u32, intent: Intent) -> Self {
+        Task::WaitDuration {
             pos,
             duration,
+            intent
+        }
+    }
+    pub fn wait_infinite(pos: Pos2, intent: Intent) -> Self {
+        Task::WaitInfinite {
+            pos,
             intent
         }
     }
@@ -84,7 +94,8 @@ impl Task {
             Task::Stationary {id, .. } => { Some(id) },
             Task::Moving {id, .. } => { Some(id) },
             Task::Travel {.. } => { None },
-            Task::Wait {.. } => { None },
+            Task::WaitDuration {.. } => { None },
+            Task::WaitInfinite {.. } => { None },
         }
     }
     pub fn get_path(&self) -> Vec<Pos2> {
@@ -92,7 +103,8 @@ impl Task {
             Task::Stationary {pos, .. } => { vec![*pos] },
             Task::Moving {path, .. } => { path.clone() },
             Task::Travel {path, .. } => { path.clone() },
-            Task::Wait { pos, .. } => { vec![*pos] },
+            Task::WaitDuration { pos, .. } => { vec![*pos] },
+            Task::WaitInfinite { pos, .. } => { vec![*pos] },
         }
     }
     pub fn get_first_pos(&self) -> &Pos2 {
@@ -100,7 +112,8 @@ impl Task {
             Task::Stationary {pos, .. } => { pos },
             Task::Moving {path, .. } => { &path[0] },
             Task::Travel {path, .. } => { &path[0] },
-            Task::Wait { pos, .. } => { pos },
+            Task::WaitDuration { pos, .. } => { pos },
+            Task::WaitInfinite { pos, .. } => { pos },
         }
     }
     pub fn get_velocity(&self) -> &f32 {
@@ -108,7 +121,8 @@ impl Task {
             Task::Stationary {..} => { &0.0 },
             Task::Moving {velocity, .. } => { velocity },
             Task::Travel {velocity, .. } => { velocity },
-            Task::Wait { .. } => { &0.0 },
+            Task::WaitDuration { .. } => { &0.0 },
+            Task::WaitInfinite { .. } => { &0.0 },
         }
     }
     pub fn get_intent(&self) -> &Intent {
@@ -116,7 +130,8 @@ impl Task {
             Task::Stationary { intent,.. } => { intent },
             Task::Moving { intent,.. } => { intent },
             Task::Travel { intent,.. } => { intent },
-            Task::Wait { intent,.. } => { intent },
+            Task::WaitDuration { intent,.. } => { intent },
+            Task::WaitInfinite { intent,.. } => { intent },
         }
     }
 
@@ -131,17 +146,18 @@ impl Task {
             Task::Stationary { .. } => true,
             Task::Moving { .. } => true,
             Task::Travel { .. } => false,
-            Task::Wait { .. } => false,
+            Task::WaitDuration { .. } => false,
+            Task::WaitInfinite { .. } => false,
         }
     }
     pub fn is_travel(&self) -> bool {
         matches!(self, Task::Travel { .. })
     }
     pub fn is_wait(&self) -> bool {
-        matches!(self, Task::Wait { .. })
+        matches!(self, Task::WaitDuration { .. } | Task::WaitInfinite { .. })
     }
 
     pub fn is_charge_intent(&self) -> bool {
-        matches!(self, Task::Wait { intent: Intent::Charge,.. })
+        matches!(self, Task::WaitDuration { intent: Intent::Charge,.. } | Task::WaitInfinite { intent: Intent::Charge,.. })
     }
 }

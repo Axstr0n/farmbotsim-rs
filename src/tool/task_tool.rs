@@ -73,7 +73,7 @@ impl Tool for TaskTool {
                     for agent in &mut self.env.agents {
                         if agent.id != i as u32 { continue; }
                         removed_from_station |= self.env.stations[0].release_agent(i as u32);
-                        self.task_manager.assign_work_task_to_agent(agent);
+                        self.task_manager.assign_work_tasks_to_agent(agent);
                     }
                     if removed_from_station { self.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
                 }
@@ -85,16 +85,43 @@ impl Tool for TaskTool {
                         }
                     }
                 }
+                if ui.button(format!("Agent {} ->  spawn", i)).clicked() {
+                    let mut removed_from_station = false;
+                    for agent in &mut self.env.agents {
+                        if agent.id != i as u32 { continue; }
+                        removed_from_station |= self.env.stations[0].release_agent(i as u32);
+                        self.task_manager.assign_idle_tasks_to_agent(agent);
+                    }
+                    if removed_from_station { self.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
+                }
             });
 
         }
-        if ui.button("All -> station 0").clicked() {
-            for agent in &mut self.env.agents {
-                if !self.env.stations[0].slots.contains(&agent.id) && !self.env.stations[0].queue.contains(&agent.id) {
-                    self.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
+        ui.horizontal(|ui| {
+            if ui.button("All -> work").clicked() {
+                let mut removed_from_station = false;
+                for agent in &mut self.env.agents {
+                    removed_from_station |= self.env.stations[0].release_agent(agent.id);
+                    self.task_manager.assign_work_tasks_to_agent(agent);
+                }
+                if removed_from_station { self.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
+            }
+            if ui.button("All -> station 0").clicked() {
+                for agent in &mut self.env.agents {
+                    if !self.env.stations[0].slots.contains(&agent.id) && !self.env.stations[0].queue.contains(&agent.id) {
+                        self.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
+                    }
                 }
             }
-        }
+            if ui.button("All ->  spawn").clicked() {
+                let mut removed_from_station = false;
+                for agent in &mut self.env.agents {
+                    removed_from_station |= self.env.stations[0].release_agent(agent.id);
+                    self.task_manager.assign_idle_tasks_to_agent(agent);
+                }
+                if removed_from_station { self.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
+            }
+        });
 
         ui.separator();
 

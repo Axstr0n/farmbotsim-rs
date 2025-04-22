@@ -18,6 +18,7 @@ pub struct Agent {
     pub velocity_lin: f32,
     pub velocity_ang: f32,
     pub color: Color32,
+    pub spawn_position: Pos2,
 
     pub work_schedule: WorkSchedule,
     pub current_task: Option<Task>,
@@ -41,6 +42,7 @@ impl Agent {
             velocity_lin: 0.0,
             velocity_ang: 0.0,
             color,
+            spawn_position: position,
 
             work_schedule: WorkSchedule::new(),
             current_task: None,
@@ -121,7 +123,7 @@ impl Agent {
                         }
                     }
                 }
-                Task::Wait { pos, duration , ..} => {
+                Task::WaitDuration { pos, duration , ..} => {
                     if self.position.is_close_to(*pos, TOLERANCE_DISTANCE) {
                         if *duration > 0 {
                             *duration -= 1;
@@ -130,6 +132,7 @@ impl Agent {
                         }
                     }
                 }
+                Task::WaitInfinite { .. } => { }
                 Task::Moving { path, .. } |
                 Task::Travel { path, .. } => {
                     while !path.is_empty() {

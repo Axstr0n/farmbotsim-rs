@@ -87,7 +87,9 @@ impl TaskManager {
                         station_ids_updated.push(station.id);
                     }
                 }
-                self.assign_work_task_to_agent(agent); // TO DO need to move to idle if no work because it was already released from station
+                if !self.assign_work_tasks_to_agent(agent) {
+                    self.assign_idle_tasks_to_agent(agent);
+                }
             }
         }
 
@@ -111,7 +113,7 @@ impl TaskManager {
             }
             // Agents that need to work
             else if agent.current_task.is_none() && agent.work_schedule.is_empty() {
-                self.assign_work_task_to_agent(agent);
+                self.assign_work_tasks_to_agent(agent);
             }
             self.update_completed_tasks(agent);
         }
@@ -143,7 +145,7 @@ impl TaskManager {
                         }
                         if let Some(path) = self.visibility_graph.find_path(agent.position, pos) {
                             let travel_task = Task::travel(path, MAX_VELOCITY, intent.clone());
-                            let wait_task = Task::wait(pos, u32::MAX, intent);
+                            let wait_task = Task::wait_infinite(pos, intent);
                             agent.work_schedule.clear();
                             agent.work_schedule.push_back(travel_task);
                             agent.work_schedule.push_back(wait_task);
@@ -183,8 +185,9 @@ impl TaskManager {
         agent.current_task = agent.work_schedule.pop_front();
     }
 
-    pub fn assign_work_task_to_agent(&mut self, agent: &mut Agent) {
+    pub fn assign_work_tasks_to_agent(&mut self, agent: &mut Agent) -> bool {
         let tasks = self.get_work_tasks(agent);
+        if tasks.is_empty() { return false }
         self.assign_tasks_to_agent(agent, tasks);
         if let Some(task) = &agent.current_task {
             if task.is_wait() {
@@ -194,7 +197,24 @@ impl TaskManager {
         if agent.current_task.is_none() {
             agent.current_task = agent.work_schedule.pop_front();
         }
+        true
     }
+
+    pub fn assign_idle_tasks_to_agent(&mut self, agent: &mut Agent) -> bool {
+        let tasks = self.get_idle_tasks(agent);
+        if tasks.is_empty() { return false }
+        self.assign_tasks_to_agent(agent, tasks);
+        if let Some(task) = &agent.current_task {
+            if task.is_wait() {
+                agent.current_task = agent.work_schedule.pop_front();
+            }
+        }
+        if agent.current_task.is_none() {
+            agent.current_task = agent.work_schedule.pop_front();
+        }
+        true
+    }
+
 
     pub fn get_station_tasks(&mut self, agent: &Agent, stations: &mut [Station]) -> Vec<Task> {
         let mut tasks: Vec<Task> = vec![];
@@ -206,7 +226,7 @@ impl TaskManager {
                 StationPosType::ChargingSlot => Intent::Charge,
                 StationPosType::QueueSlot => Intent::Queue,
             };
-            let task = Task::wait(pos,  u32::MAX, intent.clone());
+            let task = Task::wait_infinite(pos, intent.clone());
             let travel_task = Task::travel(path, MAX_VELOCITY, intent);
             tasks.push(travel_task);
             tasks.push(task);
@@ -285,6 +305,19 @@ impl TaskManager {
             } else {
                 self.work_list.push_front(task); // Add task back if path to it is None
             }
+        }
+
+        tasks
+    }
+
+    pub fn get_idle_tasks(&mut self, agent: &Agent) -> Vec<Task> {
+        let mut tasks: Vec<Task> = vec![];
+
+        let path = self.visibility_graph.find_path(agent.position, agent.spawn_position);
+        if let Some(path) = path {
+            let travel_task = Task::travel(path, MAX_VELOCITY, Intent::Idle);
+            let wait_task = Task::wait_infinite(agent.spawn_position, Intent::Idle);
+            tasks.extend([travel_task, wait_task]);
         }
 
         tasks

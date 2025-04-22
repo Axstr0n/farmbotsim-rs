@@ -40,7 +40,8 @@ impl AgentState {
                 Task::Stationary { power_w, .. } => *power_w,
                 Task::Moving { power_w, .. } => power_w + calculate_power_travel(agent),
                 Task::Travel { .. } => 0.0, // handled else
-                Task::Wait { .. } => 0.0,
+                Task::WaitDuration { .. } => 0.0,
+                Task::WaitInfinite { .. } => 0.0,
             }
         }
 

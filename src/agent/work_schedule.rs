@@ -39,8 +39,10 @@ impl WorkSchedule {
     pub fn has_charging(&self) -> bool {
         self.tasks.iter().any(|task| 
             matches!(task,
-                Task::Wait { intent: Intent::Charge, .. } |
-                Task::Wait { intent: Intent::Queue, .. } |
+                Task::WaitDuration { intent: Intent::Charge, .. } |
+                Task::WaitDuration { intent: Intent::Queue, .. } |
+                Task::WaitInfinite { intent: Intent::Charge, .. } |
+                Task::WaitInfinite { intent: Intent::Queue, .. } |
                 Task::Travel { intent: Intent::Charge, .. } |
                 Task::Travel { intent: Intent::Queue, .. }
             ))
