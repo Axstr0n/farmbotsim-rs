@@ -1,10 +1,10 @@
 #![deny(clippy::unwrap_used)]       // Disallow unwrap
-#![deny(clippy::expect_used)]       // Disallow expect
+// #![deny(clippy::expect_used)]       // Disallow expect
 #![deny(clippy::clone_on_copy)]     // Disallow cloning unnecessarily
 #![deny(clippy::redundant_clone)]   // Disallow redundant clones
 #![deny(clippy::manual_map)]        // Disallow manual map
 #![deny(clippy::manual_filter)]     // Disallow manual filter
-#![deny(clippy::panic)]             // Disallow panic!
+// #![deny(clippy::panic)]             // Disallow panic!
 #![deny(clippy::borrowed_box)]      // Disallow unnecessary borrowed Box
 #![deny(clippy::dbg_macro)]         // Disallow dbg!() in production code
 #![deny(clippy::vec_init_then_push)] // Disallow inefficient Vec initialization

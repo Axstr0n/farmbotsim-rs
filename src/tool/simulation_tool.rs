@@ -22,7 +22,7 @@ impl Default for SimulationTool {
         Self {
             tick: 0,
             running: false,
-            env: Env::new(4, Some(field_config.clone()), ""),
+            env: Env::new(4, Some(field_config.clone()), "01.01.2025 00:00:00"),
             camera: Camera::default(),
             task_manager: TaskManager::from_field_config(field_config)
         }

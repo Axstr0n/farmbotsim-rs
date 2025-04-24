@@ -1,5 +1,6 @@
 use egui::epaint::CircleShape;
-use egui::{Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
+use egui::{Align2, Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
+use egui_plot::{Line, Plot, PlotPoint, PlotPoints, Text};
 
 use super::camera::Camera;
 use crate::agent::agent::Agent;
@@ -283,12 +284,13 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
     .show(ui, |ui| {
         ui.label(" ");
         ui.label("Id");
-        ui.label("Position");
-        ui.label("Direction");
-        ui.label("State");
-        ui.label("Battery");
+        ui.label("Position            ");
+        ui.label("Direction         ");
+        ui.label("State             ");
+        // ui.label("Battery  ");
         ui.label("Current task");
         ui.label("Work Schedule");
+        ui.label("Battery");
         ui.end_row();
         
         for agent in agents {
@@ -297,7 +299,7 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
             ui.label(agent.position.fmt(2));
             ui.label(agent.direction.fmt(2));
             ui.label(format!("{:?}",agent.state));
-            ui.label(format!("{:.2}%",agent.battery.get_soc()));
+            // ui.label(format!("{:.2}%",agent.battery.get_soc()));
             match &agent.current_task {
                 Some(task) => {
                     ui.label(format!("{:?}", task.get_intent()));
@@ -305,6 +307,41 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
                 None => { ui.label("False"); }
             }
             ui.label(agent.work_schedule.len().to_string());
+
+            let points: PlotPoints = agent.battery.soc_history
+                .iter()
+                .enumerate()
+                .map(|(i, y)| [i as f64, f64::from(*y)])
+                .collect::<Vec<_>>()
+                .into();
+
+            let line = Line::new("soc", points);
+
+            Plot::new(format!("battery_plot_{}", agent.id))
+                .auto_bounds(false)
+                .show_x(false)
+                .show_y(false)
+                .allow_boxed_zoom(false)
+                .allow_double_click_reset(false)
+                .allow_drag(false)
+                .allow_scroll(false)
+                .allow_zoom(false)
+                .show_axes([false; 2])
+                .height(50.0)
+                .width(100.0)
+                .default_y_bounds(0.0, 100.0)
+                .default_x_bounds(0.0, 100.0)
+                .show(ui, |plot_ui| {
+                    plot_ui.line(line);
+
+                    
+                    let text = Text::new("soc", PlotPoint::new(3, 0), format!("{:.2}", agent.battery.soc))
+                        .anchor(Align2::LEFT_BOTTOM)
+                        .color(egui::Color32::LIGHT_RED);
+                    plot_ui.text(text);
+                    
+                });
+
             ui.end_row();
         }
     });

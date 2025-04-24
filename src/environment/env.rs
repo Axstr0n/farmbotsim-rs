@@ -84,7 +84,7 @@ impl Env {
         self.step_count += 1;
         self.date_time_manager.advance_time(1);
         for agent in &mut self.agents {
-            agent.update(1);
+            agent.update(1, &self.date_time_manager);
         }
     }
 }

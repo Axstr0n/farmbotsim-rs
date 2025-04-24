@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
 use super::agent::Agent;
 use super::battery::Battery;
 use crate::cfg::{POWER_CONSUMPTION_WAIT, POWER_CONSUMPTION_TRAVEL};
 use crate::cfg::MAX_VELOCITY;
 use crate::task::task::Task;
+use crate::utilities::datetime::DateTimeManager;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AgentState {
@@ -14,17 +17,22 @@ pub enum AgentState {
 }
 
 impl AgentState {
-    pub fn on_enter(&mut self, _agent: &mut Agent) {
+    pub fn on_enter(&mut self, agent: &mut Agent) {
         match self {
             AgentState::Wait => { },
             AgentState::Travel => { },
             AgentState::Work => { },
-            AgentState::Charging => { },
+            AgentState::Charging => {
+                agent.battery.start_index = HashMap::from([
+                    ("jan".to_string(), 1),
+                    ("jun".to_string(), 1),
+                ]);
+            },
             AgentState::Discharged => { },
         }
     }
 
-    pub fn update(&mut self, agent: &mut Agent) -> Option<AgentState> {
+    pub fn update(&mut self, agent: &mut Agent, date_time_manager: &DateTimeManager) -> Option<AgentState> {
 
         fn check_battery(agent: &Agent) -> Option<AgentState> {
             if agent.battery.get_soc() <= 0.0 {
@@ -39,9 +47,7 @@ impl AgentState {
             match task {
                 Task::Stationary { power_w, .. } => *power_w,
                 Task::Moving { power_w, .. } => power_w + calculate_power_travel(agent),
-                Task::Travel { .. } => 0.0, // handled else
-                Task::WaitDuration { .. } => 0.0,
-                Task::WaitInfinite { .. } => 0.0,
+                _ => 0.0
             }
         }
 
@@ -96,7 +102,7 @@ impl AgentState {
             },
             AgentState::Charging => {
                 // charge battery
-                agent.battery.charge(1000.0, 1);
+                agent.battery.charge(1, date_time_manager.get_month());
                 // transitions
                 if let Some(task) = &agent.current_task {
                     if !task.is_wait() && !task.is_charge_intent() { Some(AgentState::Travel) }

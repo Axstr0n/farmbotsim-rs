@@ -5,6 +5,7 @@ use super::battery::BatteryPack;
 use super::movement::{Movement, RombaMovement};
 use super::work_schedule::WorkSchedule;
 use crate::task::task::Task;
+use crate::utilities::datetime::DateTimeManager;
 use crate::utilities::pos2::ExtendedPos2;
 use crate::utilities::utils::TOLERANCE_DISTANCE;
 
@@ -49,22 +50,22 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: BatteryPack::new(24.0, 423.0, 70.0),
+            battery: BatteryPack::from_config("battery1".to_string(), Some(61.0)),
         }
     }
-    pub fn update(&mut self, simulation_step: u32) {
+    pub fn update(&mut self, simulation_step: u32, date_time_manager: &DateTimeManager) {
         if self.state == AgentState::Discharged { return }
-        self.update_state();
+        self.update_state(date_time_manager);
 
         self.update_task_and_path();
         let inputs = self._get_inputs();
         self._move(simulation_step, inputs);
     }
 
-    fn update_state(&mut self) {
+    fn update_state(&mut self, date_time_manager: &DateTimeManager) {
         let mut current_state = std::mem::replace(&mut self.state, AgentState::Wait); // placeholder
 
-        let maybe_new_state = current_state.update(self);
+        let maybe_new_state = current_state.update(self, date_time_manager);
 
         if let Some(mut new_state) = maybe_new_state {
             current_state.on_exit(self);

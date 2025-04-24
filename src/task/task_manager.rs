@@ -79,7 +79,7 @@ impl TaskManager {
                 // TO DO
             }
             // Charging agents that are full
-            else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 90.0 {
+            else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 100.0 {
                 agent_ids_updated.push(agent.id);
                 for station in &mut *stations {
                     if station.slots.contains(&agent.id) {

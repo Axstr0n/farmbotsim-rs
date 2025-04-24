@@ -8,6 +8,7 @@ use crate::tool::simulation_tool::SimulationTool;
 use crate::tool::path_tool::PathTool;
 use crate::tool::task_tool::TaskTool;
 use crate::tool::editor_tool::EditorTool;
+use crate::tool::battery_tool::BatteryTool;
 
 pub struct App {
     mode: AppMode,
@@ -17,6 +18,7 @@ pub struct App {
     path_tool: PathTool,
     task_tool: TaskTool,
     editor_tool: EditorTool,
+    battery_tool: BatteryTool,
 
     fps: f32,
     tps: f32,
@@ -42,6 +44,7 @@ impl Default for App {
             path_tool: PathTool::default(),
             task_tool: TaskTool::default(),
             editor_tool: EditorTool::default(),
+            battery_tool: BatteryTool::default(),
 
             fps: 0.0,
             tps: 0.0,
@@ -110,6 +113,7 @@ impl App {
             AppMode::Task => self.task_tool.update(),
             AppMode::Editor => self.editor_tool.update(),
             AppMode::ConfigEditor => {},
+            AppMode::Battery => {},
         }
         
     }
@@ -174,6 +178,7 @@ impl App {
                         AppMode::Task => self.task_tool.render_ui(ui),
                         AppMode::Editor => self.editor_tool.render_ui(ui),//self.editor_tool.render_ui(ui),
                         AppMode::ConfigEditor => {},
+                        AppMode::Battery => self.battery_tool.render_ui(ui),
                     }
                 });
         });
@@ -182,7 +187,7 @@ impl App {
         egui::CentralPanel::default().show(ctx, |ui| {
 
             match self.mode {
-                AppMode::Editor | AppMode::Simulation | AppMode::Path | AppMode::Task => {
+                AppMode::Editor | AppMode::Simulation | AppMode::Path | AppMode::Task | AppMode::Battery => {
                     // Tools with camera
                     egui::Frame::group(ui.style())
                         .inner_margin(0.0)
@@ -193,12 +198,13 @@ impl App {
                                 AppMode::Path => { self.path_tool.render_main(ui); }
                                 AppMode::Task => { self.task_tool.render_main(ui); }
                                 AppMode::ConfigEditor => {}
+                                AppMode::Battery => { self.battery_tool.render_main(ui); }
                             }
                         });
                 },
                 AppMode::ConfigEditor => {
                     // Tools with text editor
-                }
+                },
             }
         });
     }
