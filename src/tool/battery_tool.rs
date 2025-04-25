@@ -13,6 +13,8 @@ pub struct BatteryTool {
     selected: Option<String>,
     folder_names: Vec<String>,
     battery_map: HashMap<String, BatteryPack>,
+    month: u32,
+    morph_data: Option<Vec<(u32, f32)>>,
 }
 
 impl Default for BatteryTool {
@@ -35,6 +37,8 @@ impl Default for BatteryTool {
             selected: None,
             folder_names: folders,
             battery_map: HashMap::new(),
+            month: 1,
+            morph_data: None,
         }
     }
 }
@@ -67,6 +71,18 @@ impl Tool for BatteryTool {
                         .collect::<Vec<_>>()
                         .into();
                     let line_jun_max = Line::new("June Max", jun_max);
+
+                    let line_morph = match &self.morph_data {
+                        Some(data) => {
+                            let morph: PlotPoints = data
+                                .iter()
+                                .map(|(x, y)| [f64::from(*x), f64::from(*y)])
+                                .collect::<Vec<_>>()
+                                .into();
+                            Line::new("Morph", morph)
+                        }
+                        None => Line::new("Morph", vec![]), // fallback empty line
+                    };
             
             
                     Plot::new("battery_plot")
@@ -80,6 +96,7 @@ impl Tool for BatteryTool {
                             plot_ui.line(line_jan_max);
                             plot_ui.line(line_jan_min);
                             plot_ui.line(line_jun_max);
+                            plot_ui.line(line_morph);
                         });
                 }
         
@@ -122,6 +139,30 @@ impl Tool for BatteryTool {
                 );
                 if response.changed() {
                     battery.recalculate_energy();
+                }
+                let response = ui.add(Slider::new(
+                    &mut self.month,
+                    1..=12)
+                    .text("Month")
+                    .step_by(1.0)
+                );
+                if response.changed() || response.enabled() {
+                    let mut data = vec![];
+                    let mut i = 26.0;
+                    battery.start_index.insert("jan".to_string(), 1);
+                    battery.start_index.insert("jun".to_string(), 1);
+                    while i <= battery.capacity_wh {
+                        match battery.get_morph_x_y(i, self.month, 1) {
+                            Ok((time, energy)) => {
+                                data.push((time, energy));
+                            }
+                            Err(e) => {
+                                eprintln!("⚠️ Failed to get morph x/y for i = {}: {}", i, e);
+                            }
+                        }
+                        i += 5.0;
+                    }
+                    self.morph_data = Some(data);
                 }
             }
         }

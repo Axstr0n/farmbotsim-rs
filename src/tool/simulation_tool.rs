@@ -48,7 +48,11 @@ impl Tool for SimulationTool {
         ui.label(format!("Env_step: {}", self.env.step_count));
 
         if !self.running {
-            if ui.button("Start").clicked() {
+            if self.tick == 0 {
+                if ui.button("Start").clicked() {
+                    self.running = true;
+                } 
+            } else if ui.button("Resume").clicked() {
                 self.running = true;
             }
         } else if ui.button("Pause").clicked() {
