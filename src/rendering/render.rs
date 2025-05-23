@@ -180,9 +180,9 @@ pub fn render_stations(ui: &mut Ui, camera: &Camera, stations: &Vec<Station>) {
 pub fn render_spawn_area(ui: &mut Ui, camera: &Camera, spawn_area: &SpawnArea) {
     let painter = ui.painter();
     let ltp = spawn_area.left_top_pos;
-    let rtp = ltp + (Vec2::X * spawn_area.length).rotate_degrees(spawn_area.angle);
-    let rbp = rtp + (Vec2::Y * spawn_area.width).rotate_degrees(spawn_area.angle);
-    let lbp = ltp + (Vec2::Y * spawn_area.width).rotate_degrees(spawn_area.angle);
+    let rtp = ltp + (Vec2::X * spawn_area.width).rotate_degrees(spawn_area.angle);
+    let rbp = rtp + (Vec2::Y * spawn_area.height).rotate_degrees(spawn_area.angle);
+    let lbp = ltp + (Vec2::Y * spawn_area.height).rotate_degrees(spawn_area.angle);
     let points = [ltp, rtp, rbp, lbp];
     let points: Vec<Pos2> = points
         .iter()

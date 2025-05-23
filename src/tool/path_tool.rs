@@ -1,8 +1,10 @@
 
+use super::env_tool::EnvTool;
 use super::tool::Tool;
+use crate::cfg::DEFAULT_ENV_CONFIG_PATH;
 use crate::environment::env::Env;
 
-use crate::environment::field_config::FieldConfig;
+use crate::environment::env_config::EnvConfig;
 use crate::rendering::camera::Camera;
 use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph};
 use crate::rendering::render::{ui_render_agents_path, ui_render_mouse_screen_scene_pos};
@@ -11,18 +13,26 @@ use crate::task::task::Task;
 pub struct PathTool {
     tick: u32,
     running: bool,
-    env: Env,
+    pub env: Env,
     camera: Camera,
+    pub current_env_config_string: String,
 }
 
 impl Default for PathTool {
     fn default() -> Self {
-        Self {
+        let env_config_string = DEFAULT_ENV_CONFIG_PATH.to_string();
+        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string).expect("Error"));
+        let mut instance = Self {
             tick: 0,
             running: false,
-            env: Env::new(1, Some(FieldConfig::default()), ""),
+            env,
             camera: Camera::default(),
-        }
+            current_env_config_string: env_config_string,
+        };
+        instance.recalc_charging_stations();
+        instance.recalc_field_config_on_add_remove();
+        
+        instance
     }
 }
 
@@ -40,6 +50,9 @@ impl Tool for PathTool {
         render_agents(ui, &self.camera, &self.env.agents);
     }
     fn render_ui(&mut self, ui: &mut egui::Ui) {
+
+        self.config_select(ui);
+
         ui_render_mouse_screen_scene_pos(ui, &self.camera);
         
         ui.label(format!("Running: {}", self.running));

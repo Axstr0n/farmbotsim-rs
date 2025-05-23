@@ -1,2 +1,3 @@
 /target
-/configs
+configs/env_configs/*
+!configs/env_configs/default.json

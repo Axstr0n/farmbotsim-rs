@@ -1,29 +1,42 @@
+use std::fs::File;
+use std::io::Write;
+use chrono::{NaiveDate, NaiveTime, Timelike};
+use serde_json::to_string_pretty;
 use egui::{Slider, Ui};
 
+use crate::cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH};
+use crate::environment::env_config::EnvConfig;
 use crate::environment::station::Station;
 use crate::tool::tool::Tool;
 use crate::environment::env::Env;
-use crate::environment::field_config::{FieldConfig, LineFieldConfig, PointFieldConfig, VariantFieldConfig};
+use crate::environment::field_config::{LineFieldConfig, PointFieldConfig, VariantFieldConfig};
 
 use crate::rendering::camera::Camera;
 use crate::rendering::render::{render_coordinate_system, render_crops, render_drag_points, render_grid, render_obstacles, render_spawn_area, render_stations, render_variant_field_configs, render_visibility_graph, ui_render_mouse_screen_scene_pos};
+use crate::utilities::datetime::{DATE_FORMAT, TIME_FORMAT};
 use crate::utilities::pos2::ExtendedPos2;
-use crate::utilities::utils::generate_colors;
+
+use super::env_tool::EnvTool;
 
 
 pub struct EditorTool {
     tick: u32,
-    env: Env,
+    pub env: Env,
     camera: Camera,
+    save_file_name: String,
+    pub current_env_config_string: String,
 }
 
 impl Default for EditorTool {
     fn default() -> Self {
-        let env = Env::new(0, Some(FieldConfig::default()), "");
+        let env_config_string = DEFAULT_ENV_CONFIG_PATH.to_string();
+        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string).expect("Error"));
         let mut instance = Self {
             tick: 0,
             env,
             camera: Camera::default(),
+            save_file_name: String::new(),
+            current_env_config_string: env_config_string,
         };
         instance.recalc_charging_stations();
         instance.recalc_field_config_on_add_remove();
@@ -52,9 +65,43 @@ impl Tool for EditorTool {
     }
 
     fn render_ui(&mut self, ui: &mut Ui) {
-        if ui.button("Save").clicked() {
-            println!("Save not implemented");
-        }
+        ui.horizontal(|ui| {
+            ui.label(ENV_CONFIGS_PATH);
+            ui.add(egui::TextEdit::singleline(&mut self.save_file_name));
+            ui.label(".json");
+            ui.spacing();
+            if ui.button("Save env config").clicked() && !self.save_file_name.is_empty() {
+                let _ = self.save_as_json(&self.save_file_name);
+                self.current_env_config_string = format!("{}{}.json", ENV_CONFIGS_PATH, self.save_file_name.clone());
+                // self.env = Env::from_config(EnvConfig::from_json_file(&self.current_env_config_string).expect("Err"));
+                // self.recalc_charging_stations();
+                // self.recalc_field_config_on_add_remove();
+                // self.recalc_field_config_on_param_changed();
+                self.create_env(self.current_env_config_string.clone());
+            }
+        });
+
+        // egui::ComboBox::from_label("")
+        //     .selected_text(format!("{:?}", self.current_env_config_string))
+        //     .show_ui(ui, |ui| {
+        //         let json_files = get_json_files(ENV_CONFIGS_PATH).expect("Can't find json files");
+        //         let previous_value = self.current_env_config_string.clone();
+        //         for json_file in json_files {
+        //             ui.selectable_value(&mut self.current_env_config_string, format!("{}{}", ENV_CONFIGS_PATH, json_file.clone()), json_file);
+        //         }
+        //         if self.current_env_config_string != previous_value {
+        //             println!("Changed");
+        //             self.env = Env::from_config(EnvConfig::from_json_file(&self.current_env_config_string).expect("Err"));
+        //             println!("{:?}", self.env.date_time_manager);
+        //             self.recalc_charging_stations();
+        //             self.recalc_field_config_on_add_remove();
+        //             self.recalc_field_config_on_param_changed();
+        //         }
+        //     }
+        // );
+        self.config_select(ui);
+
+        ui.separator();
         
         ui_render_mouse_screen_scene_pos(ui, &self.camera);
 
@@ -62,6 +109,61 @@ impl Tool for EditorTool {
         // ui.label(format!("Zoom: {}", self.camera.zoom_level));
 
         ui.separator();
+
+        
+        egui::CollapsingHeader::new("n_agents")
+        .default_open(true)
+        .show(ui, |ui| {
+                ui.add(Slider::new(&mut self.env.n_agents, 0..=20).text("n_agents").step_by(1.0));
+        });
+        
+        egui::CollapsingHeader::new("Datetime")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.label(format!("{} {}", &self.env.datetime_config.date, &self.env.datetime_config.time));
+                let mut date = NaiveDate::parse_from_str(&self.env.datetime_config.date, DATE_FORMAT).expect("");
+                if ui.add(egui_extras::DatePickerButton::new(&mut date)).changed() {
+                    self.env.datetime_config.date = date.format(DATE_FORMAT).to_string();
+                }
+                
+                let time = NaiveTime::parse_from_str(&self.env.datetime_config.time, TIME_FORMAT).expect("Invalid time format");
+                let mut hours = time.hour();
+                let mut minutes = time.minute();
+                let mut seconds = time.second();
+                let mut changed = false;
+                ui.horizontal(|ui| {
+                    ui.label("Time:");
+                    changed |= ui.add(egui::Slider::new(&mut hours, 0..=23).text("h")).changed();
+                    changed |= ui.add(egui::Slider::new(&mut minutes, 0..=59).text("m")).changed();
+                    changed |= ui.add(egui::Slider::new(&mut seconds, 0..=59).text("s")).changed();
+                });
+                if changed {
+                    let combined = format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+                    self.env.datetime_config.time = combined;
+                }
+            });
+
+
+        // let mut date = NaiveDate::parse_from_str(&self.env.datetime_config.date, DATE_FORMAT).expect("");
+        // if ui.add(egui_extras::DatePickerButton::new(&mut date)).changed() {
+        //     self.env.datetime_config.date = date.format(DATE_FORMAT).to_string();
+        // }
+        
+        // let time = NaiveTime::parse_from_str(&self.env.datetime_config.time, TIME_FORMAT).expect("Invalid time format");
+        // let mut hours = time.hour();
+        // let mut minutes = time.minute();
+        // let mut seconds = time.second();
+        // let mut changed = false;
+        // ui.horizontal(|ui| {
+        //     ui.label("Time:");
+        //     changed |= ui.add(egui::Slider::new(&mut hours, 0..=23).text("h")).changed();
+        //     changed |= ui.add(egui::Slider::new(&mut minutes, 0..=59).text("m")).changed();
+        //     changed |= ui.add(egui::Slider::new(&mut seconds, 0..=59).text("s")).changed();
+        // });
+        // if changed {
+        //     let combined = format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+        //     self.env.datetime_config.time = combined;
+        // }
 
         egui::CollapsingHeader::new("Fields")
             .default_open(true)
@@ -185,9 +287,9 @@ impl Tool for EditorTool {
                     .step_by(1.0)
                 );
                 ui.add(Slider::new(
-                    &mut self.env.spawn_area.length,
+                    &mut self.env.spawn_area.height,
                     1.0..=10.0)
-                    .text("Length")
+                    .text("Height")
                     .step_by(0.1)
                 );
                 ui.add(Slider::new(
@@ -254,34 +356,6 @@ impl Tool for EditorTool {
 }
 
 impl EditorTool {
-
-    pub fn recalc_charging_stations(&mut self) {
-        let colors = generate_colors(self.env.stations.len(), 0.01);
-        for (i, station) in self.env.stations.iter_mut().enumerate() {
-            *station = Station::new(i as u32, station.position, station.queue_direction, station.waiting_offset, colors[i], station.n_slots);
-        }
-    }
-    pub fn recalc_field_config_on_add_remove(&mut self) {
-        let colors = generate_colors(self.env.field_config.configs.len(), 0.1);
-        for (i, config_variant) in self.env.field_config.configs.iter_mut().enumerate() {
-            match config_variant {
-                VariantFieldConfig::Line(config) => {
-                    config.id = i as u32;
-                    config.color = colors[i];
-                },
-                VariantFieldConfig::Point(config) => {
-                    config.id = i as u32;
-                    config.color = colors[i];
-                },
-            }
-        }
-        self.recalc_field_config_on_param_changed();
-    }
-    fn recalc_field_config_on_param_changed(&mut self) {
-        self.env.obstacles = self.env.field_config.get_obstacles();
-        self.env.visibility_graph.recalculate(&self.env.field_config.get_graph_points(), &self.env.obstacles);
-    }
-
     fn handle_dragging(&mut self, ui: &mut Ui) {
         
         let mut pts = vec![];
@@ -356,5 +430,20 @@ impl EditorTool {
             self.env.spawn_area.left_top_pos = new_scene_pos;
         }
 
+    }
+
+    fn save_as_json(&self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let env_config = self.env.to_config();
+        // Serialize data to pretty-printed JSON
+        let json = to_string_pretty(&env_config)?;
+        
+        // Create file
+        let mut file = File::create(format!("{}{}.json", ENV_CONFIGS_PATH, filename))?;
+        
+        // Write JSON to file
+        file.write_all(json.as_bytes())?;
+        
+        println!("Successfully saved to {}", filename);
+        Ok(())
     }
 }

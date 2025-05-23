@@ -7,7 +7,7 @@ use crate::{agent::{agent::Agent, agent_state::AgentState, battery::Battery}, cf
 use super::task::{Intent, Task};
 
 
-
+#[derive(Debug, Clone)]
 pub struct TaskManager {
     id_counter: u32,
     pub all_tasks: Vec<Task>,

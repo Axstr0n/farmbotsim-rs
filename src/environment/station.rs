@@ -1,6 +1,8 @@
 use egui::{Color32, Pos2, Vec2};
 use std::collections::VecDeque;
 
+use super::station_config::StationConfig;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StationPosType {
     ChargingSlot,
@@ -33,6 +35,24 @@ impl Default for Station {
             slots: Vec::new(),
             queue: VecDeque::new(),
         }
+    }
+}
+
+impl Station {
+    pub fn from_config(id: u32, color: Color32, config: StationConfig) -> Self {
+        Self {
+            id,
+            position: config.position,
+            queue_direction: config.queue_direction,
+            waiting_offset: 0.5,
+            color,
+            n_slots: config.n_slots,
+            slots: Vec::new(),
+            queue: VecDeque::new(),
+        }
+    }
+    pub fn to_config(&self) -> StationConfig {
+        StationConfig::new(self.position, self.queue_direction, self.n_slots)
     }
 }
 

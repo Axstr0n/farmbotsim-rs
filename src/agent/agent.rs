@@ -50,7 +50,7 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: BatteryPack::from_config("battery1".to_string(), Some(61.0)),
+            battery: BatteryPack::from_config("battery1".to_string(), Some(100.0)),
         }
     }
     pub fn update(&mut self, simulation_step: u32, date_time_manager: &DateTimeManager) {

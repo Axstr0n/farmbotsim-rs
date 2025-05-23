@@ -1,12 +1,16 @@
 use egui::{Pos2, Vec2};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::de;
 
 use crate::utilities::vec2::Vec2Rotate;
 use super::obstacle::Obstacle;
 
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct LineFieldConfig {
+    #[serde(skip)]
     pub id: u32,
+    #[serde(skip)]
     pub color: egui::Color32,
     pub left_top_pos: Pos2,
     pub angle: f32,
@@ -41,9 +45,11 @@ impl LineFieldConfig {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct PointFieldConfig {
+    #[serde(skip)]
     pub id: u32,
+    #[serde(skip)]
     pub color: egui::Color32,
     pub left_top_pos: Pos2,
     pub angle: f32,
@@ -87,23 +93,46 @@ pub enum VariantFieldConfig {
     Point(PointFieldConfig),
 }
 
+impl Serialize for VariantFieldConfig {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            VariantFieldConfig::Line(config) => config.serialize(serializer),
+            VariantFieldConfig::Point(config) => config.serialize(serializer),
+        }
+    }
+}
+impl<'de> Deserialize<'de> for VariantFieldConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // First deserialize into a generic Value
+        let value = serde_json::Value::deserialize(deserializer)?;
+        
+        // Try to deserialize as LineFieldConfig
+        if let Ok(config) = LineFieldConfig::deserialize(&value) {
+            return Ok(VariantFieldConfig::Line(config));
+        }
+        
+        // Try to deserialize as PointFieldConfig
+        if let Ok(config) = PointFieldConfig::deserialize(&value) {
+            return Ok(VariantFieldConfig::Point(config));
+        }
+        
+        Err(de::Error::custom(format!(
+            "Could not determine config type for variant field config from JSON: {}",
+            value
+        )))
+    }
+}
+
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct FieldConfig {
     pub configs: Vec<VariantFieldConfig>,
-}
-
-impl Default for FieldConfig {
-    fn default() -> Self {
-        Self {
-            configs: vec![
-                VariantFieldConfig::Line(LineFieldConfig::new(Pos2::new(3.0, 4.0), 0.0, 3, 5.0, 0.5)),
-                VariantFieldConfig::Line(LineFieldConfig::new(Pos2::new(12.0, 4.0), 0.0, 3, 5.0, 0.5)),
-                VariantFieldConfig::Point(PointFieldConfig::new(Pos2::new(7.0, 4.0), 0.0, 5, 8, 0.3, 0.3)),
-                VariantFieldConfig::Point(PointFieldConfig::new(Pos2::new(15.0, 4.0), 0.0, 5, 8, 0.3, 0.3)),
-            ]
-        }
-    }
 }
 
 impl FieldConfig {
