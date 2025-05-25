@@ -1,8 +1,8 @@
 use egui::Vec2;
 
-use crate::agent::agent::Agent;
-use crate::agent::movement::RombaMovement;
-use crate::task::task_manager::TaskManager;
+use crate::agent_module::agent::Agent;
+use crate::agent_module::movement::RombaMovement;
+use crate::task_module::task_manager::TaskManager;
 
 use super::env_config::EnvConfig;
 use super::field::Field;
@@ -10,7 +10,7 @@ use super::field_config::FieldConfig;
 use super::obstacle::Obstacle;
 use super::station::Station;
 use super::spawn_area::SpawnArea;
-use crate::path::visibility_graph::VisibilityGraph;
+use crate::path_finding_module::visibility_graph::VisibilityGraph;
 use crate::utilities::datetime::{DateTimeConfig, DateTimeManager};
 
 use crate::utilities::pos2::random_pos2_in_rect;

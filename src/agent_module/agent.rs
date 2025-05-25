@@ -4,10 +4,10 @@ use super::agent_state::AgentState;
 use super::battery::BatteryPack;
 use super::movement::{Movement, RombaMovement};
 use super::work_schedule::WorkSchedule;
-use crate::task::task::Task;
+use crate::task_module::task::Task;
 use crate::utilities::datetime::DateTimeManager;
 use crate::utilities::pos2::ExtendedPos2;
-use crate::utilities::utils::TOLERANCE_DISTANCE;
+use crate::cfg::TOLERANCE_DISTANCE;
 
 
 #[derive(Clone, Debug, PartialEq)]

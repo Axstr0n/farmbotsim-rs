@@ -33,11 +33,6 @@ pub trait EnvTool {
                 }
 
                 if *self.current_env_config_string() != previous_value {
-                    // let new_env_config = EnvConfig::from_json_file(self.current_env_config_string()).expect("Err");
-                    // *self.env_mut() = Env::from_config(new_env_config);
-                    // self.recalc_charging_stations();
-                    // self.recalc_field_config_on_add_remove();
-                    // self.recalc_field_config_on_param_changed();
                     let new_config_file_path = self.current_env_config_string();
                     self.create_env(new_config_file_path.clone());
                 }

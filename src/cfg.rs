@@ -1,3 +1,5 @@
+pub const TOLERANCE_DISTANCE: f32 = 0.005;
+pub const TOLERANCE_ANGLE: f32 = 0.1;
 
 pub const POWER_CONSUMPTION_WAIT: f32 = 10.0; // W/s
 pub const POWER_CONSUMPTION_TRAVEL: f32 = 2.0*350.0; // W/s

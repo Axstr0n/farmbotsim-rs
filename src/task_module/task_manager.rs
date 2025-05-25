@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 
 use egui::{Pos2, Vec2};
 
-use crate::{agent::{agent::Agent, agent_state::AgentState, battery::Battery}, cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS}, environment::{field_config::{FieldConfig, VariantFieldConfig}, station::{Station, StationPosType}}, path::visibility_graph::VisibilityGraph, utilities::vec2::Vec2Rotate};
-
+use crate::{agent_module::{agent::Agent, agent_state::AgentState, battery::Battery}, cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS}, environment::{field_config::{FieldConfig, VariantFieldConfig}, station::{Station, StationPosType}}, path_finding_module::visibility_graph::VisibilityGraph, utilities::vec2::Vec2Rotate};
+use crate::path_finding_module::path_finding::PathFinding;
 use super::task::{Intent, Task};
 
 

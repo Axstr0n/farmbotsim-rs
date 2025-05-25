@@ -1,6 +1,7 @@
 pub mod env;
 pub mod env_config;
 pub mod crop;
+pub mod crop_plan;
 pub mod row;
 pub mod field;
 pub mod field_config;

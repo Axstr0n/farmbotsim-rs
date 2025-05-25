@@ -4,7 +4,7 @@ use super::agent::Agent;
 use super::battery::Battery;
 use crate::cfg::{POWER_CONSUMPTION_WAIT, POWER_CONSUMPTION_TRAVEL};
 use crate::cfg::MAX_VELOCITY;
-use crate::task::task::Task;
+use crate::task_module::task::Task;
 use crate::utilities::datetime::DateTimeManager;
 
 #[derive(Clone, Debug, PartialEq)]

@@ -11,15 +11,15 @@
 #![deny(clippy::cast_lossless)]     // Disallow using `as` for conversions that could fail
 
 
-mod app;
-use crate::app::app::App;
+mod app_module;
+use crate::app_module::app::App;
 
-mod tool;
+mod tool_module;
 mod rendering;
-mod agent;
+mod agent_module;
 mod environment;
-mod path;
-mod task;
+mod path_finding_module;
+mod task_module;
 mod utilities;
 mod cfg;
 

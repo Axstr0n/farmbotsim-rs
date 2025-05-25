@@ -1,7 +1,4 @@
 
-pub const TOLERANCE_DISTANCE: f32 = 0.005;
-pub const TOLERANCE_ANGLE: f32 = 0.1;
-
 
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
     let h = (h % 1.0) * 6.0; // Hue in [0, 6)

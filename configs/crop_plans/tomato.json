@@ -1,0 +1,12 @@
+{
+    "name": "Tomato",
+    "plan": [
+        { "action_name": "plant", "duration": "2 min", "power": "200 W" },
+        { "action_name": "water", "duration": "15 s", "power": "200 W" },
+        { "action_name": "wait", "duration": "1 d" },
+        { "action_name": "water", "duration": "30 s", "power": "200 W" },
+        { "action_name": "fertilize", "duration": "30 s", "power": "200 W" },
+        { "action_name": "wait", "duration": "1 d" },
+        { "action_name": "harvest", "duration": "1 min", "power": "200 W" }
+    ]
+}

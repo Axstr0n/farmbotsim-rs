@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs};
 use egui::Slider;
 use egui_plot::{HLine, Legend, Line, Plot, PlotPoints};
 
-use crate::agent::battery::{Battery, BatteryPack};
+use crate::agent_module::battery::{Battery, BatteryPack};
 
 use super::tool::Tool;
 

@@ -8,6 +8,22 @@
 
 **farmbotsim-rs** was made to assist with real-world agricultural automation by providing a reliable simulation. In this simulation we can focus on charging strategies and productivity matrix.
 
+**Screenshots of application:**
+<table>
+  <tr>
+    <td><img src="media/tool_simulation.png" alt="simulation_tool" ></td>
+    <td><img src="media/tool_path.png" alt="path_tool" ></td>
+  </tr>
+  <tr>
+    <td><img src="media/tool_task.png" alt="task_tool" ></td>
+    <td><img src="media/tool_editor.png" alt="editor_tool"></td>
+  </tr>
+  <tr>
+    <td><img src="media/tool_battery.png" alt="battery_tool"></td>
+    <td></td>
+  </tr>
+</table>
+
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
@@ -51,18 +67,27 @@ cargo build --release
 
 The **farmbotsim-rs** project is organized into several directories that help separate functionality. Here's a high-level breakdown:
 
+`batteries/` - Contains battery configs.
+
+`configs/`
+- `crop_plans/` - Contains plans for crop growth.
+- `env_configs/` - Contains configs with all parameters for env creation.
+
+`media/`- Contains screenshots of app.
+
 `src/` - Contains the core logic of the application:
-- `agent/` - Contains the agent struct and its associated logic, such as movement, battery, state machine.
-- `app/` - Main app functionality.
+- `agent_module/` - Contains the agent struct and its associated logic, such as movement, battery, state machine.
+- `app_module/` - Main app functionality.
 - `environment/` - Contains all environment structs (Crop, Field, Station, Env, Config, ...).
-- `path/` - Includes code related to robot navigation and pathfinding algorithms.
-- `rendering/` - Responsible for rendering the simulation environment and visual feedback.
-- `tool/` - Contains files for app modes (simulation, editor, path, task, ...).
+- `path_finding_module/` - Includes code related to navigation and pathfinding algorithms.
+- `rendering/` - Responsible for rendering.
+- `task_module` - Includes files for task creation and task handling.
+- `tool_module/` - Contains files for app modes (simulation, editor, path, task, ...).
 - `utilities/` - Common utilities and helper functions used across the project.
 - `cfg.rs` - Contains constants.
 - `main.rs` - Contains entry point into application.
 
-`.gitignore` - Ignores /target.
+`.gitignore` - Ignores files/folders.
 
 `Cargo.lock` - Records the exact versions of dependencies used for this project.
 

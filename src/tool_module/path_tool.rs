@@ -8,7 +8,8 @@ use crate::environment::env_config::EnvConfig;
 use crate::rendering::camera::Camera;
 use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph};
 use crate::rendering::render::{ui_render_agents_path, ui_render_mouse_screen_scene_pos};
-use crate::task::task::Task;
+use crate::task_module::task::{Task, Intent};
+use crate::path_finding_module::path_finding::PathFinding;
 
 pub struct PathTool {
     tick: u32,
@@ -93,7 +94,7 @@ impl PathTool {
                 for agent in &mut self.env.agents {
                     let path = self.env.visibility_graph.find_path(agent.position, scene_pos);
                     if let Some(p) = path {
-                        let task = Task::travel(p, 2.0, crate::task::task::Intent::Idle);
+                        let task = Task::travel(p, 2.0, Intent::Idle);
                         agent.current_task = Some(task);
                     }
                 }

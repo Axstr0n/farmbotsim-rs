@@ -7,7 +7,7 @@ use egui::{Slider, Ui};
 use crate::cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH};
 use crate::environment::env_config::EnvConfig;
 use crate::environment::station::Station;
-use crate::tool::tool::Tool;
+use crate::tool_module::tool::Tool;
 use crate::environment::env::Env;
 use crate::environment::field_config::{LineFieldConfig, PointFieldConfig, VariantFieldConfig};
 
@@ -73,32 +73,10 @@ impl Tool for EditorTool {
             if ui.button("Save env config").clicked() && !self.save_file_name.is_empty() {
                 let _ = self.save_as_json(&self.save_file_name);
                 self.current_env_config_string = format!("{}{}.json", ENV_CONFIGS_PATH, self.save_file_name.clone());
-                // self.env = Env::from_config(EnvConfig::from_json_file(&self.current_env_config_string).expect("Err"));
-                // self.recalc_charging_stations();
-                // self.recalc_field_config_on_add_remove();
-                // self.recalc_field_config_on_param_changed();
                 self.create_env(self.current_env_config_string.clone());
             }
         });
 
-        // egui::ComboBox::from_label("")
-        //     .selected_text(format!("{:?}", self.current_env_config_string))
-        //     .show_ui(ui, |ui| {
-        //         let json_files = get_json_files(ENV_CONFIGS_PATH).expect("Can't find json files");
-        //         let previous_value = self.current_env_config_string.clone();
-        //         for json_file in json_files {
-        //             ui.selectable_value(&mut self.current_env_config_string, format!("{}{}", ENV_CONFIGS_PATH, json_file.clone()), json_file);
-        //         }
-        //         if self.current_env_config_string != previous_value {
-        //             println!("Changed");
-        //             self.env = Env::from_config(EnvConfig::from_json_file(&self.current_env_config_string).expect("Err"));
-        //             println!("{:?}", self.env.date_time_manager);
-        //             self.recalc_charging_stations();
-        //             self.recalc_field_config_on_add_remove();
-        //             self.recalc_field_config_on_param_changed();
-        //         }
-        //     }
-        // );
         self.config_select(ui);
 
         ui.separator();
@@ -142,28 +120,6 @@ impl Tool for EditorTool {
                     self.env.datetime_config.time = combined;
                 }
             });
-
-
-        // let mut date = NaiveDate::parse_from_str(&self.env.datetime_config.date, DATE_FORMAT).expect("");
-        // if ui.add(egui_extras::DatePickerButton::new(&mut date)).changed() {
-        //     self.env.datetime_config.date = date.format(DATE_FORMAT).to_string();
-        // }
-        
-        // let time = NaiveTime::parse_from_str(&self.env.datetime_config.time, TIME_FORMAT).expect("Invalid time format");
-        // let mut hours = time.hour();
-        // let mut minutes = time.minute();
-        // let mut seconds = time.second();
-        // let mut changed = false;
-        // ui.horizontal(|ui| {
-        //     ui.label("Time:");
-        //     changed |= ui.add(egui::Slider::new(&mut hours, 0..=23).text("h")).changed();
-        //     changed |= ui.add(egui::Slider::new(&mut minutes, 0..=59).text("m")).changed();
-        //     changed |= ui.add(egui::Slider::new(&mut seconds, 0..=59).text("s")).changed();
-        // });
-        // if changed {
-        //     let combined = format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
-        //     self.env.datetime_config.time = combined;
-        // }
 
         egui::CollapsingHeader::new("Fields")
             .default_open(true)

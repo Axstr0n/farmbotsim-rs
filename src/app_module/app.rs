@@ -3,12 +3,12 @@ use std::time::{Duration, Instant};
 
 
 use super::app_mode::AppMode;
-use crate::tool::tool::Tool;
-use crate::tool::simulation_tool::SimulationTool;
-use crate::tool::path_tool::PathTool;
-use crate::tool::task_tool::TaskTool;
-use crate::tool::editor_tool::EditorTool;
-use crate::tool::battery_tool::BatteryTool;
+use crate::tool_module::tool::Tool;
+use crate::tool_module::simulation_tool::SimulationTool;
+use crate::tool_module::path_tool::PathTool;
+use crate::tool_module::task_tool::TaskTool;
+use crate::tool_module::editor_tool::EditorTool;
+use crate::tool_module::battery_tool::BatteryTool;
 
 pub struct App {
     mode: AppMode,

@@ -1,0 +1,12 @@
+{
+    "name": "Wheat",
+    "plan": [
+        { "action_name": "plant", "velocity": "2 km/h", "power": "200 W" },
+        { "action_name": "water", "velocity": "2 km/h", "power": "200 W" },
+        { "action_name": "wait", "duration": "1 d" },
+        { "action_name": "water", "velocity": "2 km/h", "power": "200 W" },
+        { "action_name": "fertilize", "velocity": "2 km/h", "power": "200 W" },
+        { "action_name": "wait", "duration": "1 d" },
+        { "action_name": "harvest", "velocity": "2 km/h", "power": "200 W" }
+    ]
+}

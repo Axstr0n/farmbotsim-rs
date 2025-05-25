@@ -1,3 +1,5 @@
 /target
+bin/
+src/lib.rs
 configs/env_configs/*
 !configs/env_configs/default.json

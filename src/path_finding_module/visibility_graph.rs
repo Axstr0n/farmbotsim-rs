@@ -4,11 +4,58 @@ use petgraph::algo::astar;
 
 use crate::environment::obstacle::Obstacle;
 
+use super::path_finding::PathFinding;
+
 
 #[derive(Clone, Debug)]
 pub struct VisibilityGraph {
     pub graph: UnGraph<Pos2, ()>,
     obstacles: Vec<Obstacle>
+}
+
+impl PathFinding for VisibilityGraph {
+    fn find_path(&mut self, start: Pos2, end: Pos2) -> Option<Vec<Pos2>> {
+        let mut added_nodes: Vec<_> = Vec::new();
+        // Check if start/end are already in graph
+        let start_node = match self.find_existing_node(start) {
+            Some(node) => node,
+            None => {
+                let node = self.add_node_with_connections(start);
+                added_nodes.push(node);
+                node
+            }
+        };
+        
+        let end_node = match self.find_existing_node(end) {
+            Some(node) => node,
+            None => {
+                let node = self.add_node_with_connections(end);
+                added_nodes.push(node);
+                node
+            }
+        };
+
+        // Run A* algorithm
+        let result = astar(
+            &self.graph,
+            start_node,
+            |n| n == end_node,
+            |e| {
+                // Safely handle Option from edge_endpoints
+                self.graph.edge_endpoints(e.id()).map_or(f32::INFINITY, |(a, b)| {
+                    self.graph[a].distance(self.graph[b])
+                })
+            },
+            |n| self.graph[n].distance(end),
+        )
+        .map(|(_, path)| path.into_iter().map(|n| self.graph[n]).collect());
+
+        // Cleanup any temporary nodes added
+        for node in added_nodes.iter().rev() {
+            self.graph.remove_node(*node);
+        }
+        result
+    }
 }
 
 impl VisibilityGraph {
@@ -91,49 +138,6 @@ impl VisibilityGraph {
         ((d1 * d2) < 0.0) && ((d3 * d4) < 0.0)
     }
     
-    pub fn find_path(&mut self, start: Pos2, end: Pos2) -> Option<Vec<Pos2>> {
-        let mut added_nodes: Vec<_> = Vec::new();
-        // Check if start/end are already in graph
-        let start_node = match self.find_existing_node(start) {
-            Some(node) => node,
-            None => {
-                let node = self.add_node_with_connections(start);
-                added_nodes.push(node);
-                node
-            }
-        };
-        
-        let end_node = match self.find_existing_node(end) {
-            Some(node) => node,
-            None => {
-                let node = self.add_node_with_connections(end);
-                added_nodes.push(node);
-                node
-            }
-        };
-
-        // Run A* algorithm
-        let result = astar(
-            &self.graph,
-            start_node,
-            |n| n == end_node,
-            |e| {
-                // Safely handle Option from edge_endpoints
-                self.graph.edge_endpoints(e.id()).map_or(f32::INFINITY, |(a, b)| {
-                    self.graph[a].distance(self.graph[b])
-                })
-            },
-            |n| self.graph[n].distance(end),
-        )
-        .map(|(_, path)| path.into_iter().map(|n| self.graph[n]).collect());
-
-        // Cleanup any temporary nodes added
-        for node in added_nodes.iter().rev() {
-            self.graph.remove_node(*node);
-        }
-        result
-    }
-
     fn find_existing_node(&self, pos: Pos2) -> Option<NodeIndex> {
         self.graph.node_indices()
             .find(|&n| self.graph[n] == pos)

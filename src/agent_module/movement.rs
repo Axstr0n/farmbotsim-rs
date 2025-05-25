@@ -1,7 +1,7 @@
 use egui::{Pos2, Vec2};
 use std::f32::consts::PI;
 
-use crate::utilities::utils::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE};
+use crate::cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE};
 use crate::utilities:: vec2::Vec2Rotate;
 
 
