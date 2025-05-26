@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PowerUnit {
     Watts,
     Kilowatts,
@@ -23,7 +23,7 @@ impl PowerUnit {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Power {
     pub value: f32,
     pub unit: PowerUnit,

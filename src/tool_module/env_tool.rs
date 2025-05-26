@@ -1,8 +1,6 @@
-use std::fs;
-
 use egui::Ui;
 
-use crate::{cfg::ENV_CONFIGS_PATH, environment::{env::Env, env_config::EnvConfig, field_config::VariantFieldConfig, station::Station}, utilities::utils::generate_colors};
+use crate::{cfg::ENV_CONFIGS_PATH, environment::{env::Env, env_config::EnvConfig, field_config::VariantFieldConfig, station::Station}, utilities::utils::{generate_colors, get_json_files_in_folder}};
 
 
 pub trait EnvTool {
@@ -24,7 +22,7 @@ pub trait EnvTool {
         egui::ComboBox::from_label("")
             .selected_text(format!("{:?}", self.current_env_config_string()))
             .show_ui(ui, |ui| {
-                let json_files = get_json_files(ENV_CONFIGS_PATH).expect("Can't find json files");
+                let json_files = get_json_files_in_folder(ENV_CONFIGS_PATH).expect("Can't find json files");
                 let previous_value = self.current_env_config_string().clone();
 
                 for json_file in json_files {
@@ -68,24 +66,6 @@ pub trait EnvTool {
     }
 
 }
-
-fn get_json_files(path: &str) -> Result<Vec<String>, std::io::Error> {
-    let mut json_files = Vec::new();
-    
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
-        
-        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
-            if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
-                json_files.push(file_name.to_string());
-            }
-        }
-    }
-    
-    Ok(json_files)
-}
-
 
 macro_rules! impl_env_tool {
     ($t:ty) => {

@@ -1,0 +1,13 @@
+{
+    "name": "default_line",
+    "type": "line",
+    "plan": [
+        { "Line": { "action_name": "plant", "velocity": "2 km/h", "power": "200 W" }},
+        { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},
+        { "Wait": { "action_name": "wait", "duration": "1 d" }},
+        { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},
+        { "Line": { "action_name": "fertilize", "velocity": "2 km/h", "power": "200 W" }},
+        { "Wait": { "action_name": "wait", "duration": "1 d" }},
+        { "Line": { "action_name": "harvest", "velocity": "2 km/h", "power": "200 W" }}
+    ]
+}

@@ -1,3 +1,4 @@
+use std::fs;
 
 
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
@@ -35,4 +36,21 @@ pub fn generate_colors(n: usize, hue_offset: f32) -> Vec<egui::Color32> {
     }
 
     colors
+}
+
+pub fn get_json_files_in_folder(path: &str) -> Result<Vec<String>, std::io::Error> {
+    let mut json_files = Vec::new();
+    
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+        
+        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
+            if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
+                json_files.push(file_name.to_string());
+            }
+        }
+    }
+    
+    Ok(json_files)
 }

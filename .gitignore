@@ -3,3 +3,6 @@ bin/
 src/lib.rs
 configs/env_configs/*
 !configs/env_configs/default.json
+configs/crop_plans/*
+!configs/crop_plans/default_line.json
+!configs/crop_plans/default_point.json

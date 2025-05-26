@@ -2,11 +2,13 @@ use egui::{Pos2, Vec2};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de;
 
+use crate::task_module::task::Task;
 use crate::utilities::vec2::Vec2Rotate;
+use super::crop_plan::CropPlan;
 use super::obstacle::Obstacle;
 
 
-#[derive(PartialEq, Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct LineFieldConfig {
     #[serde(skip)]
     pub id: u32,
@@ -17,6 +19,7 @@ pub struct LineFieldConfig {
     pub n_lines: u32,
     pub length: f32,
     pub line_spacing: f32,
+    pub crop_plan: CropPlan,
 }
 impl Default for LineFieldConfig {
     fn default() -> Self {
@@ -28,11 +31,12 @@ impl Default for LineFieldConfig {
             n_lines: 3,
             length: 4.0,
             line_spacing: 0.4,
+            crop_plan: CropPlan::default_line(),
         }
     }
 }
 impl LineFieldConfig {
-    pub fn new(left_top_pos: Pos2, angle: f32, n_lines: u32, length: f32, line_spacing: f32) -> Self {
+    pub fn new(left_top_pos: Pos2, angle: f32, n_lines: u32, length: f32, line_spacing: f32, crop_plan_path: &str) -> Self {
         Self {
             id: 0,
             color: egui::Color32::WHITE,
@@ -41,11 +45,12 @@ impl LineFieldConfig {
             n_lines,
             length,
             line_spacing,
+            crop_plan: CropPlan::from_json_file(crop_plan_path),
         }
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct PointFieldConfig {
     #[serde(skip)]
     pub id: u32,
@@ -57,6 +62,7 @@ pub struct PointFieldConfig {
     pub n_points_per_line: u32,
     pub line_spacing: f32,
     pub point_spacing: f32,
+    pub crop_plan: CropPlan,
 }
 impl Default for PointFieldConfig {
     fn default() -> Self {
@@ -69,11 +75,12 @@ impl Default for PointFieldConfig {
             n_points_per_line: 6,
             line_spacing: 0.4,
             point_spacing: 0.3,
+            crop_plan: CropPlan::default_point(),
         }
     }
 }
 impl PointFieldConfig {
-    pub fn new(left_top_pos: Pos2, angle: f32, n_lines: u32, n_points_per_line: u32, line_spacing: f32, point_spacing: f32) -> Self {
+    pub fn new(left_top_pos: Pos2, angle: f32, n_lines: u32, n_points_per_line: u32, line_spacing: f32, point_spacing: f32, crop_plan_path: &str) -> Self {
         Self {
             id: 0,
             color: egui::Color32::WHITE,
@@ -83,6 +90,7 @@ impl PointFieldConfig {
             n_points_per_line,
             line_spacing,
             point_spacing,
+            crop_plan: CropPlan::from_json_file(crop_plan_path),
         }
     }
 }
@@ -206,5 +214,9 @@ impl FieldConfig {
             }
         }
         points
+    }
+
+    pub fn get_tasks(&self) -> Vec<Task> {
+        todo!()
     }
 }

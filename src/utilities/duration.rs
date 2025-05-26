@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TimeUnit {
     Seconds,
     Minutes,
@@ -29,7 +29,7 @@ impl TimeUnit {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Duration {
     pub value: u32,
     pub unit: TimeUnit,

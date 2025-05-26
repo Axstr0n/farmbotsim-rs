@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 
 use super::app_mode::AppMode;
+use crate::tool_module::crop_plan_editor_tool::CropPlanEditorTool;
 use crate::tool_module::tool::Tool;
 use crate::tool_module::simulation_tool::SimulationTool;
 use crate::tool_module::path_tool::PathTool;
@@ -19,6 +20,7 @@ pub struct App {
     task_tool: TaskTool,
     editor_tool: EditorTool,
     battery_tool: BatteryTool,
+    crop_plan_editor_tool: CropPlanEditorTool,
 
     fps: f32,
     tps: f32,
@@ -45,6 +47,7 @@ impl Default for App {
             task_tool: TaskTool::default(),
             editor_tool: EditorTool::default(),
             battery_tool: BatteryTool::default(),
+            crop_plan_editor_tool: CropPlanEditorTool::default(),
 
             fps: 0.0,
             tps: 0.0,
@@ -112,8 +115,8 @@ impl App {
             AppMode::Path => self.path_tool.update(),
             AppMode::Task => self.task_tool.update(),
             AppMode::Editor => self.editor_tool.update(),
-            AppMode::ConfigEditor => {},
             AppMode::Battery => {},
+            AppMode::CropPlanEditor => {}
         }
         
     }
@@ -176,9 +179,9 @@ impl App {
                         AppMode::Simulation => self.simulation_tool.render_ui(ui),
                         AppMode::Path => self.path_tool.render_ui(ui),
                         AppMode::Task => self.task_tool.render_ui(ui),
-                        AppMode::Editor => self.editor_tool.render_ui(ui),//self.editor_tool.render_ui(ui),
-                        AppMode::ConfigEditor => {},
+                        AppMode::Editor => self.editor_tool.render_ui(ui),
                         AppMode::Battery => self.battery_tool.render_ui(ui),
+                        AppMode::CropPlanEditor => self.crop_plan_editor_tool.render_ui(ui),
                     }
                 });
         });
@@ -197,13 +200,17 @@ impl App {
                                 AppMode::Simulation => { self.simulation_tool.render_main(ui); }
                                 AppMode::Path => { self.path_tool.render_main(ui); }
                                 AppMode::Task => { self.task_tool.render_main(ui); }
-                                AppMode::ConfigEditor => {}
                                 AppMode::Battery => { self.battery_tool.render_main(ui); }
+                                _ => {},
                             }
                         });
                 },
-                AppMode::ConfigEditor => {
+                AppMode::CropPlanEditor => {
                     // Tools with text editor
+                    match self.mode {
+                        AppMode::CropPlanEditor => self.crop_plan_editor_tool.render_main(ui),
+                        _ => {}
+                    }
                 },
             }
         });

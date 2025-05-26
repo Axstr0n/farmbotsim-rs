@@ -1,10 +1,11 @@
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::Write;
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use serde_json::to_string_pretty;
 use egui::{Slider, Ui};
 
-use crate::cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH};
+use crate::cfg::{CROP_PLANS_PATH, DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH};
+use crate::environment::crop_plan::CropPlan;
 use crate::environment::env_config::EnvConfig;
 use crate::environment::station::Station;
 use crate::tool_module::tool::Tool;
@@ -15,6 +16,7 @@ use crate::rendering::camera::Camera;
 use crate::rendering::render::{render_coordinate_system, render_crops, render_drag_points, render_grid, render_obstacles, render_spawn_area, render_stations, render_variant_field_configs, render_visibility_graph, ui_render_mouse_screen_scene_pos};
 use crate::utilities::datetime::{DATE_FORMAT, TIME_FORMAT};
 use crate::utilities::pos2::ExtendedPos2;
+use crate::utilities::utils::get_json_files_in_folder;
 
 use super::env_tool::EnvTool;
 
@@ -67,7 +69,7 @@ impl Tool for EditorTool {
     fn render_ui(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.label(ENV_CONFIGS_PATH);
-            ui.add(egui::TextEdit::singleline(&mut self.save_file_name));
+            ui.add(egui::TextEdit::singleline(&mut self.save_file_name).desired_width(100.0));
             ui.label(".json");
             ui.spacing();
             if ui.button("Save env config").clicked() && !self.save_file_name.is_empty() {
@@ -169,6 +171,7 @@ impl Tool for EditorTool {
                                     let n_lines_response = ui.add(Slider::new(&mut config.n_lines, 1..=10).text("N_lines").step_by(1.0));
                                     let line_spacing_response = ui.add(Slider::new(&mut config.line_spacing, 0.2..=0.8).text("Line spacing").step_by(0.05));
                                     let length_response = ui.add(Slider::new(&mut config.length, 1.0..=10.0).text("Length").step_by(0.05));
+                                    ui.label(&config.crop_plan.crop_name);
                                     if ui.button("Remove").clicked() {
                                         to_remove = Some(i);
                                     }
@@ -401,5 +404,17 @@ impl EditorTool {
         
         println!("Successfully saved to {}", filename);
         Ok(())
+    }
+
+    fn get_all_crop_plans() -> Vec<CropPlan> {
+        let files = get_json_files_in_folder(CROP_PLANS_PATH).expect("Error in getting crop plans files.");
+        let mut crop_plans: Vec<CropPlan> = vec![];
+        for file in files {
+            let path = format!("{}{}", CROP_PLANS_PATH, file);
+            let json_str = fs::read_to_string(path).expect("File not found");
+            let plan: CropPlan = serde_json::from_str(&json_str).expect("Can't deserialize crop plan");
+            crop_plans.push(plan)
+        }
+        crop_plans
     }
 }

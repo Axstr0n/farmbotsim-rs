@@ -3,8 +3,8 @@ pub enum AppMode {
     Path,
     Task,
     Editor,
-    ConfigEditor,
     Battery,
+    CropPlanEditor
 }
 impl AppMode {
     pub fn variants() -> Vec<AppMode> {
@@ -13,8 +13,8 @@ impl AppMode {
             AppMode::Path,
             AppMode::Task,
             AppMode::Editor,
-            AppMode::ConfigEditor,
             AppMode::Battery,
+            AppMode::CropPlanEditor,
         ]
     }
     pub fn to_string(&self) -> &str {
@@ -23,8 +23,8 @@ impl AppMode {
             AppMode::Path => "Path",
             AppMode::Task => "Task",
             AppMode::Editor => "Editor",
-            AppMode::ConfigEditor => "ConfigEditor",
             AppMode::Battery => "Battery",
+            AppMode::CropPlanEditor => "CropPlanEditor"
         }
     }
 }

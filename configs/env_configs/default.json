@@ -13,17 +13,20 @@
             "angle": 0.0,
             "n_lines": 3,
             "length": 5.0,
-            "line_spacing": 0.5
-        },
-        {
-            "left_top_pos": {
-                "x": 12.0,
-                "y": 4.0
-            },
-            "angle": 0.0,
-            "n_lines": 3,
-            "length": 5.0,
-            "line_spacing": 0.5
+            "line_spacing": 0.5,
+            "crop_plan": {
+                "name": "default_line",
+                "type": "line",
+                "plan": [
+                    { "Line": { "action_name": "plant", "velocity": "2 km/h", "power": "200 W" }},
+                    { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},
+                    { "Wait": { "action_name": "wait", "duration": "1 d" }},
+                    { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},
+                    { "Line": { "action_name": "fertilize", "velocity": "2 km/h", "power": "200 W" }},
+                    { "Wait": { "action_name": "wait", "duration": "1 d" }},
+                    { "Line": { "action_name": "harvest", "velocity": "2 km/h", "power": "200 W" }}
+                ]
+            }
         },
         {
             "left_top_pos": {
@@ -34,18 +37,20 @@
             "n_lines": 5,
             "n_points_per_line": 8,
             "line_spacing": 0.3,
-            "point_spacing": 0.3
-        },
-        {
-            "left_top_pos": {
-                "x": 15.0,
-                "y": 4.0
-            },
-            "angle": 0.0,
-            "n_lines": 5,
-            "n_points_per_line": 8,
-            "line_spacing": 0.3,
-            "point_spacing": 0.3
+            "point_spacing": 0.3,
+            "crop_plan": {
+                "name": "default_point",
+                "type": "point",
+                "plan": [
+                    { "Point": { "action_name": "plant", "duration": "2 min", "power": "200 W" }},
+                    { "Point": { "action_name": "water", "duration": "15 s", "power": "200 W" }},
+                    { "Wait": { "action_name": "wait", "duration": "1 d" }},
+                    { "Point": { "action_name": "water", "duration": "30 s", "power": "200 W" }},
+                    { "Point": { "action_name": "fertilize", "duration": "30 s", "power": "200 W" }},
+                    { "Wait": { "action_name": "wait", "duration": "1 d" }},
+                    { "Point": { "action_name": "harvest", "duration": "1 min", "power": "200 W" }}
+                ]
+            }
         }
     ],
     "spawn_area": {

@@ -5,3 +5,4 @@ pub mod path_tool;
 pub mod editor_tool;
 pub mod task_tool;
 pub mod battery_tool;
+pub mod crop_plan_editor_tool;

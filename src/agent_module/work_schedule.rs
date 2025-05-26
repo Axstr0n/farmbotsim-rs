@@ -4,18 +4,13 @@ use crate::task_module::task::{Intent, Task};
 
 
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct WorkSchedule {
     pub tasks: VecDeque<Task>,
 }
 
-impl WorkSchedule {
-    pub fn new() -> Self {
-        Self {
-            tasks: VecDeque::new(),
-        }
-    }
 
+impl WorkSchedule {
     pub fn push_back(&mut self, task: Task) {
         self.tasks.push_back(task);
     }

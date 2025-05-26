@@ -45,7 +45,7 @@ impl Agent {
             color,
             spawn_position: position,
 
-            work_schedule: WorkSchedule::new(),
+            work_schedule: WorkSchedule::default(),
             current_task: None,
             completed_task_ids: vec![],
 
