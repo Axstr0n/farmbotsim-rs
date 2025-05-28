@@ -1,7 +1,7 @@
 
 use super::env_tool::EnvTool;
 use super::tool::Tool;
-use crate::cfg::DEFAULT_ENV_CONFIG_PATH;
+use crate::cfg::{DEFAULT_ENV_CONFIG_PATH, MAX_VELOCITY};
 use crate::environment::env::Env;
 
 use crate::environment::env_config::EnvConfig;
@@ -94,7 +94,7 @@ impl PathTool {
                 for agent in &mut self.env.agents {
                     let path = self.env.visibility_graph.find_path(agent.position, scene_pos);
                     if let Some(p) = path {
-                        let task = Task::travel(p, 2.0, Intent::Idle);
+                        let task = Task::travel(p, MAX_VELOCITY, Intent::Idle);
                         agent.current_task = Some(task);
                     }
                 }

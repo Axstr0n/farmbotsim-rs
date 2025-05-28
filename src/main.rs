@@ -21,6 +21,7 @@ mod environment;
 mod path_finding_module;
 mod task_module;
 mod utilities;
+mod units;
 mod cfg;
 
 fn main() -> Result<(), eframe::Error> {

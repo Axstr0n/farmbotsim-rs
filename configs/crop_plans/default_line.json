@@ -1,6 +1,7 @@
 {
     "name": "default_line",
     "type": "line",
+    "cycle": 0,
     "plan": [
         { "Line": { "action_name": "plant", "velocity": "2 km/h", "power": "200 W" }},
         { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},

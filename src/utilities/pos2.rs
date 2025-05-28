@@ -1,7 +1,9 @@
 use egui::{Pos2, Rect};
 use rand::Rng;
 
-pub fn random_pos2_in_rect(rect: Rect, angle: f32) -> Pos2 {
+use crate::units::{angle::Angle, length::Length};
+
+pub fn random_pos2_in_rect(rect: Rect, angle: Angle) -> Pos2 {
     let mut rng = rand::rng(); // Random number generator
 
     // Generate random x and y coordinates within the bounds of the rectangle
@@ -22,7 +24,7 @@ pub fn random_pos2_in_rect(rect: Rect, angle: f32) -> Pos2 {
 
 pub trait ExtendedPos2 {
     fn fmt(&self, n_decimals: usize) -> String;
-    fn is_close_to(&self, other: Pos2, tolerance: f32) -> bool;
+    fn is_close_to(&self, other: Pos2, tolerance: Length) -> bool;
 }
 
 impl ExtendedPos2 for Pos2 {
@@ -30,7 +32,7 @@ impl ExtendedPos2 for Pos2 {
         format!("({:.*}, {:.*})", n_decimals, self.x, n_decimals, self.y)
     }
 
-    fn is_close_to(&self, other: Pos2, tolerance: f32) -> bool {
-        self.distance(other) <= tolerance
+    fn is_close_to(&self, other: Pos2, tolerance: Length) -> bool {
+        self.distance(other) <= tolerance.to_base_unit()
     }
 }

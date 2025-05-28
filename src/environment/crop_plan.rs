@@ -2,8 +2,8 @@ use std::{fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
-use crate::utilities::{duration::Duration, power::Power, velocity::Velocity};
-use crate::cfg::{DEFAULT_LINE_CROP_PLAN_PATH, DEFAULT_POINT_CROP_PLAN_PATH};
+
+use crate::{cfg::{DEFAULT_LINE_CROP_PLAN_PATH, DEFAULT_POINT_CROP_PLAN_PATH}, units::{duration::Duration, linear_velocity::LinearVelocity, power::Power}};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -13,15 +13,15 @@ pub enum CropAction {
         action_name: String,
         #[serde(rename = "duration")]
         duration: Duration,
-        #[serde(rename = "power", default)]
+        #[serde(rename = "power")]
         power: Power,
     },
     Line {
         #[serde(rename = "action_name")]
         action_name: String,
         #[serde(rename = "velocity")]
-        velocity: Velocity,
-        #[serde(rename = "power", default)]
+        velocity: LinearVelocity,
+        #[serde(rename = "power")]
         power: Power,
     },
     Wait {
@@ -40,7 +40,7 @@ pub struct CropPlan {
     #[serde(rename = "type")]
     pub type_ : String,
     #[serde(rename = "plan")]
-    schedule: Vec<CropAction>,
+    pub schedule: Vec<CropAction>,
 }
 
 impl CropPlan {

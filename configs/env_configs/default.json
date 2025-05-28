@@ -1,5 +1,5 @@
 {
-    "n_agents": 2,
+    "n_agents": 1,
     "date_time": {
         "date": "01.10.2025",
         "time": "04:00:00"
@@ -10,10 +10,10 @@
                 "x": 3.0,
                 "y": 4.0
             },
-            "angle": 0.0,
+            "angle": "0.0 deg",
             "n_lines": 3,
-            "length": 5.0,
-            "line_spacing": 0.5,
+            "length": "5.0 m",
+            "line_spacing": "0.5 m",
             "crop_plan": {
                 "name": "default_line",
                 "type": "line",
@@ -33,11 +33,11 @@
                 "x": 7.0,
                 "y": 4.0
             },
-            "angle": 0.0,
+            "angle": "0.0 deg",
             "n_lines": 5,
             "n_points_per_line": 8,
-            "line_spacing": 0.3,
-            "point_spacing": 0.3,
+            "line_spacing": "0.3 m",
+            "point_spacing": "0.3 m",
             "crop_plan": {
                 "name": "default_point",
                 "type": "point",
@@ -58,9 +58,9 @@
             "x": 2.0,
             "y": 1.0
         },
-        "angle": 5.0,
-        "width": 3.0,
-        "height": 1.0
+        "angle": "5.0 deg",
+        "width": "3.0 m",
+        "height": "1.0 m"
     },
     "stations": [
         {

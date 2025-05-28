@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs};
 use egui::Slider;
 use egui_plot::{HLine, Legend, Line, Plot, PlotPoints};
 
-use crate::agent_module::battery::{Battery, BatteryPack};
+use crate::{agent_module::battery::{Battery, BatteryConfig, BatteryPack}, cfg::BATTERIES_PATH};
 
 use super::tool::Tool;
 
@@ -19,9 +19,8 @@ pub struct BatteryTool {
 
 impl Default for BatteryTool {
     fn default() -> Self {
-        let root = "batteries";
         let mut folders: Vec<String> = vec![];
-        for entry in fs::read_dir(root).unwrap_or_else(|_| panic!("No folder named {}", root)) {
+        for entry in fs::read_dir(BATTERIES_PATH).unwrap_or_else(|_| panic!("No folder named {}", BATTERIES_PATH)) {
             let entry = entry.expect("No subfolders found");
             let path = entry.path();
             
@@ -91,7 +90,7 @@ impl Tool for BatteryTool {
                         .x_axis_label("Time (s)")
                         .y_axis_label("Energy (Wh)")
                         .show(ui, |plot_ui| {
-                            let line = HLine::new("Current energy", battery.energy_wh);
+                            let line = HLine::new("Current energy", battery.energy.value);
                             plot_ui.hline(line);
                             plot_ui.line(line_jan_max);
                             plot_ui.line(line_jan_min);
@@ -112,7 +111,7 @@ impl Tool for BatteryTool {
             if ui.button(folder).clicked() {
                 self.selected = Some(folder.clone());
                 self.battery_map.entry(folder.clone()).or_insert_with(|| {
-                    BatteryPack::from_config(folder.clone(), Some(70.0))
+                    BatteryPack::from_config(BatteryConfig::from_file(folder.clone()), 70.0)
                 });
             }
         }
@@ -127,9 +126,9 @@ impl Tool for BatteryTool {
                 ui.label("Double click on plot to reset");
                 ui.spacing();
                 ui.heading(selected);
-                ui.label(format!("Voltage (V): {}", battery.voltage));
-                ui.label(format!("Capacity (Wh): {}", battery.capacity_wh));
-                ui.label(format!("Energy (Wh): {}", battery.energy_wh));
+                ui.label(format!("Voltage: {}", battery.voltage));
+                ui.label(format!("Capacity: {}", battery.capacity));
+                ui.label(format!("Energy: {}", battery.energy));
 
                 let response = ui.add(Slider::new(
                     &mut battery.soc,
@@ -151,7 +150,7 @@ impl Tool for BatteryTool {
                     let mut i = 26.0;
                     battery.start_index.insert("jan".to_string(), 1);
                     battery.start_index.insert("jun".to_string(), 1);
-                    while i <= battery.capacity_wh {
+                    while i <= battery.capacity.value {
                         match battery.get_morph_x_y(i, self.month, 1) {
                             Ok((time, energy)) => {
                                 data.push((time, energy));

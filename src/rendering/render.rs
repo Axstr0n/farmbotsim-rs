@@ -1,6 +1,7 @@
 use egui::epaint::CircleShape;
 use egui::{Align2, Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
 use egui_plot::{Line, Plot, PlotPoint, PlotPoints, Text};
+//use std::fmt::Display;
 
 use super::camera::Camera;
 use crate::agent_module::agent::Agent;
@@ -13,6 +14,7 @@ use crate::environment::station::Station;
 use crate::path_finding_module::visibility_graph::VisibilityGraph;
 use crate::task_module::task::Task;
 use crate::task_module::task_manager::TaskManager;
+use crate::units::power::Power;
 use crate::utilities::datetime::DateTimeManager;
 use crate::utilities::vec2::{ExtendedVec2, Vec2Rotate};
 use crate::utilities::pos2::ExtendedPos2;
@@ -120,7 +122,9 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
         
         if let Some(task) = &agent.current_task {
             let mut path = vec![agent.position];
-            path.extend(task.get_path());
+            if let Some(path_) = task.get_path() {
+                path.extend(path_);
+            }
         
             if path.len() > 1 {
                 for i in 0..path.len() - 1 {
@@ -180,9 +184,9 @@ pub fn render_stations(ui: &mut Ui, camera: &Camera, stations: &Vec<Station>) {
 pub fn render_spawn_area(ui: &mut Ui, camera: &Camera, spawn_area: &SpawnArea) {
     let painter = ui.painter();
     let ltp = spawn_area.left_top_pos;
-    let rtp = ltp + (Vec2::X * spawn_area.width).rotate_degrees(spawn_area.angle);
-    let rbp = rtp + (Vec2::Y * spawn_area.height).rotate_degrees(spawn_area.angle);
-    let lbp = ltp + (Vec2::Y * spawn_area.height).rotate_degrees(spawn_area.angle);
+    let rtp = ltp + (Vec2::X * spawn_area.width).rotate(spawn_area.angle);
+    let rbp = rtp + (Vec2::Y * spawn_area.height).rotate(spawn_area.angle);
+    let lbp = ltp + (Vec2::Y * spawn_area.height).rotate(spawn_area.angle);
     let points = [ltp, rtp, rbp, lbp];
     let points: Vec<Pos2> = points
         .iter()
@@ -215,8 +219,8 @@ pub fn render_variant_field_configs(ui: &mut Ui, camera: &Camera, configs: &Vec<
         match config_variant {
             VariantFieldConfig::Line(config) => {
                 for i in 0..config.n_lines {
-                    let p1 = config.left_top_pos + Vec2::new( i as f32*config.line_spacing, 0.0).rotate_degrees(config.angle);
-                    let p2 = p1 + Vec2::new(0.0, config.length).rotate_degrees(config.angle);
+                    let p1 = config.left_top_pos + Vec2::new( i as f32*config.line_spacing.to_base_unit(), 0.0).rotate(config.angle);
+                    let p2 = p1 + Vec2::new(0.0, config.length.to_base_unit()).rotate(config.angle);
                     let p1 = camera.scene_to_screen_pos(p1);
                     let p2 = camera.scene_to_screen_pos(p2);
                     let stroke = Stroke {
@@ -229,7 +233,7 @@ pub fn render_variant_field_configs(ui: &mut Ui, camera: &Camera, configs: &Vec<
             VariantFieldConfig::Point(config) => {
                 for i in 0..config.n_lines {
                     for j in 0..config.n_points_per_line {
-                        let pos = config.left_top_pos + Vec2::new(config.line_spacing*i as f32, config.point_spacing*j as f32).rotate_degrees(config.angle);
+                        let pos = config.left_top_pos + Vec2::new(config.line_spacing.to_base_unit()*i as f32, config.point_spacing.to_base_unit()*j as f32).rotate(config.angle);
                         let center = camera.scene_to_screen_pos(pos);
                         let radius = camera.scene_to_screen_val(0.10);
                         painter.add(CircleShape {
@@ -249,26 +253,27 @@ pub fn render_tasks_on_field(ui: &mut Ui, camera: &Camera, tasks: &Vec<Task>) {
     let painter = ui.painter();
     let color = Color32::LIGHT_BLUE;
     for task in tasks {
-        let path = task.get_path().clone();
-        let screen_path: Vec<Pos2> = path.iter().map(|pos| {
-            camera.scene_to_screen_pos(*pos)
-        }).collect();
-        if screen_path.len() == 1 {
-            painter.add(CircleShape {
-                center: path[0],
-                radius: camera.scene_to_screen_val(0.1),
-                fill: color,
-                stroke: Stroke::default(),
-            });
-        } else {
-            path.windows(2).for_each(|window| {
-                if let [p1, p2] = window {
-                    painter.line(
-                        vec![*p1, *p2], 
-                        Stroke::new(camera.scene_to_screen_val(0.05), color),
-                    );
-                }
-            });
+        if let Some(path) = task.get_path() {
+            let screen_path: Vec<Pos2> = path.iter().map(|pos| {
+                camera.scene_to_screen_pos(*pos)
+            }).collect();
+            if screen_path.len() == 1 {
+                painter.add(CircleShape {
+                    center: path[0],
+                    radius: camera.scene_to_screen_val(0.1),
+                    fill: color,
+                    stroke: Stroke::default(),
+                });
+            } else {
+                path.windows(2).for_each(|window| {
+                    if let [p1, p2] = window {
+                        painter.line(
+                            vec![*p1, *p2], 
+                            Stroke::new(camera.scene_to_screen_val(0.05), color),
+                        );
+                    }
+                });
+            }
         }
     }
 }
@@ -298,7 +303,7 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
             ui.label(agent.id.to_string());
             ui.label(agent.position.fmt(2));
             ui.label(agent.direction.fmt(2));
-            ui.label(format!("{:?}",agent.state));
+            ui.label(format!("{:?}", agent.state));
             // ui.label(format!("{:.2}%",agent.battery.get_soc()));
             match &agent.current_task {
                 Some(task) => {
@@ -356,8 +361,10 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
 
         let mut path_str = String::new();
         if let Some(task) = &agent.current_task {
-            for p in task.get_path() {
-                path_str += p.fmt(2).as_str();
+            if let Some(path) = task.get_path() {
+                for p in path {
+                    path_str += &format!("{:?}",p);
+                }
             }
         } else {
             path_str = "None".to_string();
@@ -423,7 +430,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                     ui.end_row();
 
                     struct TaskInfo {
-                        id: u32, task_type: String, path: Vec<String>, vel: String, dur: String, fid: u32, lid: u32, power: f32
+                        id: u32, task_type: String, path: Vec<String>, vel: String, dur: String, fid: u32, lid: u32, power: Power
                     }
 
                     fn display_task_info(ui: &mut Ui, task_info: TaskInfo) {
@@ -434,33 +441,33 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                         ui.label(task_info.dur);
                         ui.label(task_info.fid.to_string());
                         ui.label(task_info.lid.to_string());
-                        ui.label(task_info.power.to_string());
+                        ui.label(format!("{}", task_info.power));
                         ui.end_row();
                     }
 
                     for task in vec {
                         match task {
-                            Task::Stationary { id, pos, duration, field_id, line_id, power_w ,..} => {
+                            Task::Stationary { id, data ,..} => {
                                 let task_type = "Stationary";
-                                let path = vec![pos.fmt(2)];
+                                let path = vec![data.pos.fmt(2)];
                                 let vel = "-".to_string();
-                                let dur = duration.to_string();
-                                let fid = field_id;
-                                let lid = line_id;
-                                let power = power_w;
+                                let dur = format!("{}", data.duration);
+                                let fid = data.work_data.field_id;
+                                let lid = data.work_data.line_id;
+                                let power = data.work_data.power;
                                 
                                 display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power } );
                             }
-                            Task::Moving { id, path, velocity, field_id, line_id, power_w ,..} => {
+                            Task::Moving { id, data ,..} => {
                                 let task_type = "Moving";
-                                let path: Vec<String> = path.iter()
+                                let path: Vec<String> = data.path.iter()
                                     .map(|pos| pos.fmt(2))
                                     .collect();
-                                let vel = velocity.to_string();
+                                let vel = format!("{}", data.velocity);
                                 let dur = "-".to_string();
-                                let fid = field_id;
-                                let lid = line_id;
-                                let power = power_w;
+                                let fid = data.work_data.field_id;
+                                let lid = data.work_data.line_id;
+                                let power = data.work_data.power;
                                 
                                 display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power } );
                             }

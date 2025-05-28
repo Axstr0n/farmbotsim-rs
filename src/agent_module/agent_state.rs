@@ -5,6 +5,8 @@ use super::battery::Battery;
 use crate::cfg::{POWER_CONSUMPTION_WAIT, POWER_CONSUMPTION_TRAVEL};
 use crate::cfg::MAX_VELOCITY;
 use crate::task_module::task::Task;
+use crate::units::duration::Duration;
+use crate::units::power::Power;
 use crate::utilities::datetime::DateTimeManager;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -40,21 +42,21 @@ impl AgentState {
             }
             None
         }
-        fn calculate_power_travel(agent: &Agent) -> f32 {
+        fn calculate_power_travel(agent: &Agent) -> Power {
             POWER_CONSUMPTION_TRAVEL * (agent.velocity_lin / MAX_VELOCITY)
         }
-        fn calculate_power_work(agent: &Agent, task: &Task) -> f32 {
+        fn calculate_power_work(agent: &Agent, task: &Task) -> Power {
             match task {
-                Task::Stationary { power_w, .. } => *power_w,
-                Task::Moving { power_w, .. } => power_w + calculate_power_travel(agent),
-                _ => 0.0
+                Task::Stationary { data, .. } => data.work_data.power,
+                Task::Moving { data, .. } => data.work_data.power + calculate_power_travel(agent),
+                _ => Power::watts(0.0)
             }
         }
 
         match self {
             AgentState::Wait => {
                 // discharge battery
-                agent.battery.discharge(POWER_CONSUMPTION_WAIT, 1);
+                agent.battery.discharge(POWER_CONSUMPTION_WAIT, Duration::seconds(1.0));
                 // check battery
                 if let Some(discharge) = check_battery(agent) { return Some(discharge); }
                 // transitions
@@ -68,7 +70,7 @@ impl AgentState {
             AgentState::Travel => {
                 // discharge battery
                 let power = calculate_power_travel(agent);
-                agent.battery.discharge(power, 1);
+                agent.battery.discharge(power, Duration::seconds(1.0));
                 // check battery
                 if let Some(discharge) = check_battery(agent) { return Some(discharge); }
                 // transitions
@@ -87,10 +89,10 @@ impl AgentState {
                         calculate_power_work(agent, task)
                     },
                     None => {
-                        0.0 // when task is complete and removed but state is still Work instead of other
+                        Power::watts(0.0) // when task is complete and removed but state is still Work instead of other
                     }
                 };
-                agent.battery.discharge(power, 1);
+                agent.battery.discharge(power, Duration::seconds(1.0));
                 // check battery
                 if let Some(discharge) = check_battery(agent) { return Some(discharge); }
                 // transitions
@@ -102,7 +104,7 @@ impl AgentState {
             },
             AgentState::Charging => {
                 // charge battery
-                agent.battery.charge(1, date_time_manager.get_month());
+                agent.battery.charge(Duration::seconds(1.0), date_time_manager.get_month());
                 // transitions
                 if let Some(task) = &agent.current_task {
                     if !task.is_wait() && !task.is_charge_intent() { Some(AgentState::Travel) }

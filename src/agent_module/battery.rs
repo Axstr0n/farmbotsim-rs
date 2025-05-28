@@ -3,9 +3,15 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::collections::{HashMap, VecDeque};
 
+use crate::cfg::BATTERIES_PATH;
+use crate::units::duration::Duration;
+use crate::units::energy::Energy;
+use crate::units::power::Power;
+use crate::units::voltage::Voltage;
+
 pub trait Battery {
-    fn discharge(&mut self, power: f32, time: u32);
-    fn charge(&mut self, time: u32, month: u32);
+    fn discharge(&mut self, power: Power, duration: Duration);
+    fn charge(&mut self, duration: Duration, month: u32);
     fn get_soc(&self) -> f32;
 
     fn recalculate_energy(&mut self);
@@ -13,10 +19,10 @@ pub trait Battery {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BatteryPack {
-    pub voltage: f32,
-    pub capacity_wh: f32,
+    pub voltage: Voltage,
+    pub capacity: Energy,
     pub soc: f32,
-    pub energy_wh: f32,
+    pub energy: Energy,
     pub jan_max_data: Vec<(u32, f32)>,
     pub jan_min_data: Vec<(u32, f32)>,
     pub jun_max_data: Vec<(u32, f32)>,
@@ -27,23 +33,40 @@ pub struct BatteryPack {
 }
 
 impl BatteryPack {
-    pub fn from_config(folder_path: String, state_of_charge: Option<f32>) -> Self {
-        let loader = BatteryLoader::new(folder_path);
-        let soc = state_of_charge.unwrap_or(100.0);
+    pub fn from_config(config: BatteryConfig, initial_soc: f32) -> Self {
+        let soc = initial_soc.clamp(0.0, 100.0);
+        let path = format!("{}/{}/", BATTERIES_PATH, config.name);
         Self {
-            voltage: loader.voltage,
-            capacity_wh: loader.capacity_wh,
+            voltage: config.voltage,
+            capacity: config.capacity,
             soc,
-            energy_wh: (soc / 100.0) * loader.capacity_wh,
-            jan_max_data: loader.jan_max_data,
-            jan_min_data: loader.jan_min_data,
-            jun_max_data: loader.jun_max_data,
+            energy: (soc / 100.0) * config.capacity,
+            jan_max_data: Self::get_month_data_points(format!("{}{}", path, config.jan_max)),
+            jan_min_data: Self::get_month_data_points(format!("{}{}", path, config.jan_min)),
+            jun_max_data: Self::get_month_data_points(format!("{}{}", path, config.jun_max)),
             start_index: [("jan".to_string(), 1), ("jun".to_string(), 1)]
                 .iter().cloned().collect(),
             
             update_count: 0,
             soc_history: VecDeque::from(vec![soc; 100]),
         }
+    }
+    fn get_month_data_points<P: AsRef<Path>>(file_path: P) -> Vec<(u32, f32)> {
+        let file = File::open(file_path).expect("Failed to open month data file");
+        let reader = BufReader::new(file);
+        let mut points = Vec::new();
+
+        for line in reader.lines().skip(1).map_while(Result::ok) {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if let (Some(t), Some(v)) = (parts.first(), parts.last()) {
+                if let (Ok(t), Ok(v)) = (t.parse::<f32>(), v.parse::<f32>()) {
+                    // Time (s) - Energy (Wh)
+                    points.push(((t * 3600.0) as u32, v));
+                }
+            }
+        }
+        points
+        
     }
 
     fn update(&mut self) {
@@ -120,24 +143,28 @@ impl BatteryPack {
 }
 
 impl Battery for BatteryPack {
-    fn discharge(&mut self, power: f32, time: u32) {
-        if self.energy_wh <= 0.0 { return } // is empty
-        let energy_removed_wh = (power * time as f32) / 3600.0;  // Convert W to Wh
-        self.energy_wh = 0_f32.max(self.energy_wh - energy_removed_wh);
-        self.soc = (self.energy_wh / self.capacity_wh) * 100.0;  // Update SoC
+    fn discharge(&mut self, power: Power, duration: Duration) {
+        if self.energy <= Energy::joules(0.0) { return } // is empty
+        let energy_removed = power * duration;
+        let new_energy = self.energy - energy_removed;
+        if new_energy < Energy::joules(0.0) { self.energy = Energy::joules(0.0); }
+        else { self.energy = new_energy; }
+        self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
 
         self.update();
     }
     
-    fn charge(&mut self, time: u32, month: u32) {
-        if self.energy_wh >= self.capacity_wh {
+    fn charge(&mut self, duration: Duration, month: u32) {
+        if self.energy >= self.capacity {
             return; // Battery is full
         }
 
-        match self.get_morph_x_y(self.energy_wh, month, time) {
-            Ok((_, new_wh)) => {
-                self.energy_wh = self.capacity_wh.min(new_wh);
-                self.soc = (self.energy_wh / self.capacity_wh) * 100.0;  // Update SoC
+        match self.get_morph_x_y(self.energy.to_watt_hour(), month, duration.to_base_unit() as u32) {
+            Ok((_, new_energy)) => {
+                let new_energy = Energy::watt_hours(new_energy);
+                if new_energy < self.capacity { self.energy = new_energy; }
+                else { self.energy = self.capacity; }
+                self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
     
                 self.update();
             }
@@ -148,78 +175,32 @@ impl Battery for BatteryPack {
     }
 
     fn get_soc(&self) -> f32 {
-        (self.energy_wh / self.capacity_wh) * 100.0
+        (self.energy / self.capacity) * 100.0
     }
 
     fn recalculate_energy(&mut self) {
-        self.energy_wh = self.capacity_wh * self.soc * 0.01;
+        self.energy = self.capacity * self.soc * 0.01;
     }
 }
 
-pub struct BatteryLoader {
-    pub folder_path: String,
-    pub capacity_wh: f32,
-    pub voltage: f32,
-    pub jan_max_data: Vec<(u32, f32)>,
-    pub jan_min_data: Vec<(u32, f32)>,
-    pub jun_max_data: Vec<(u32, f32)>,
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct BatteryConfig {
+    pub name: String,
+    pub capacity: Energy,
+    pub voltage: Voltage,
+    pub jan_max: String,
+    pub jan_min: String,
+    pub jun_max: String,
 }
-
-impl BatteryLoader {
-    pub fn new(folder_name: String) -> Self {
-        let mut loader = BatteryLoader {
-            folder_path: format!("batteries/{}", folder_name),
-            capacity_wh: 0.0,
-            voltage: 0.0,
-            jan_max_data: Vec::new(),
-            jan_min_data: Vec::new(),
-            jun_max_data: Vec::new(),
-        };
-        loader.initialize_battery_params();
-        loader
+impl BatteryConfig {
+    pub fn from_file(folder_name: String) -> Self {
+        let path_str = format!("{}{}/config.json", BATTERIES_PATH, folder_name);
+        let path = Path::new(&path_str);
+        let json_str = std::fs::read_to_string(path).expect("File not found");
+        let config: BatteryConfig = serde_json::from_str(&json_str).expect("Can't deserialize to BatteryConfig");
+        config
     }
-
-    fn initialize_battery_params(&mut self) {
-        let config_path = format!("{}/config.txt", self.folder_path);
-        let file = File::open(&config_path).unwrap_or_else(|_| panic!("Failed to open {}", config_path));
-        let reader = BufReader::new(file);
-
-        for line in reader.lines().map_while(Result::ok) {
-            let parts: Vec<&str> = line.split(": ").collect();
-            if parts.len() != 2 {
-                continue;
-            }
-            let key = parts[0];
-            let value = parts[1].trim();
-
-            match key {
-                "capacity_wh" => self.capacity_wh = value.parse().unwrap_or(0.0),
-                "voltage" => self.voltage = value.parse().unwrap_or(0.0),
-                "jan_max" => self.jan_max_data = Self::get_month_data_points(format!("{}/{}", self.folder_path, value)),
-                "jan_min" => self.jan_min_data = Self::get_month_data_points(format!("{}/{}", self.folder_path, value)),
-                "jun_max" => self.jun_max_data = Self::get_month_data_points(format!("{}/{}", self.folder_path, value)),
-                _ => {}
-            }
-        }
-    }
-
-    fn get_month_data_points<P: AsRef<Path>>(file_path: P) -> Vec<(u32, f32)> {
-        let file = File::open(file_path).expect("Failed to open month data file");
-        let reader = BufReader::new(file);
-        let mut points = Vec::new();
-
-        for line in reader.lines().skip(1).map_while(Result::ok) {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if let (Some(t), Some(v)) = (parts.first(), parts.last()) {
-                if let (Ok(t), Ok(v)) = (t.parse::<f32>(), v.parse::<f32>()) {
-                    points.push(((t * 3600.0) as u32, v));
-                }
-            }
-        }
-        points
-        
-    }
-
 }
 
 

@@ -1,10 +1,13 @@
 use egui::{Color32, Pos2, Vec2};
 
 use super::agent_state::AgentState;
-use super::battery::BatteryPack;
+use super::battery::{BatteryConfig, BatteryPack};
 use super::movement::{Movement, RombaMovement};
 use super::work_schedule::WorkSchedule;
 use crate::task_module::task::Task;
+use crate::units::angular_velocity::AngularVelocity;
+use crate::units::duration::Duration;
+use crate::units::linear_velocity::LinearVelocity;
 use crate::utilities::datetime::DateTimeManager;
 use crate::utilities::pos2::ExtendedPos2;
 use crate::cfg::TOLERANCE_DISTANCE;
@@ -16,8 +19,8 @@ pub struct Agent {
     pub position: Pos2,
     pub direction: Vec2,
     pub movement: RombaMovement,
-    pub velocity_lin: f32,
-    pub velocity_ang: f32,
+    pub velocity_lin: LinearVelocity,
+    pub velocity_ang: AngularVelocity,
     pub color: Color32,
     pub spawn_position: Pos2,
 
@@ -40,8 +43,8 @@ impl Agent {
             position,
             direction,
             movement,
-            velocity_lin: 0.0,
-            velocity_ang: 0.0,
+            velocity_lin: LinearVelocity::meters_per_second(0.0),
+            velocity_ang: AngularVelocity::radians_per_second(0.0),
             color,
             spawn_position: position,
 
@@ -50,10 +53,10 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: BatteryPack::from_config("battery1".to_string(), Some(100.0)),
+            battery: BatteryPack::from_config(BatteryConfig::from_file("default".to_string()), 100.0),
         }
     }
-    pub fn update(&mut self, simulation_step: u32, date_time_manager: &DateTimeManager) {
+    pub fn update(&mut self, simulation_step: Duration, date_time_manager: &DateTimeManager) {
         if self.state == AgentState::Discharged { return }
         self.update_state(date_time_manager);
 
@@ -76,9 +79,9 @@ impl Agent {
         }
     }
     
-    fn _move(&mut self, simulation_step: u32, inputs: Vec<f32>) {
-        let current_task_velocity = self.current_task.as_ref().map(|task| *task.get_velocity()).unwrap_or_default();
-        let (new_position, new_direction, new_velocity_l, new_velocity_r) = self.movement.calculate_new_pose_from_inputs(
+    fn _move(&mut self, simulation_step: Duration, inputs: Vec<f32>) {
+        let current_task_velocity = self.current_task.as_ref().map(|task| task.get_velocity()).unwrap_or(LinearVelocity::meters_per_second(0.0));
+        let (new_position, new_direction, new_velocity_l, new_velocity_a) = self.movement.calculate_new_pose_from_inputs(
             simulation_step, inputs, self.position, self.direction, current_task_velocity
         );
     
@@ -86,7 +89,7 @@ impl Agent {
         self.position = new_position;
         self.direction = new_direction;
         self.velocity_lin = new_velocity_l;
-        self.velocity_ang = new_velocity_r;
+        self.velocity_ang = new_velocity_a;
     }
     
     fn _get_inputs(&self) -> Vec<f32> {
@@ -94,10 +97,10 @@ impl Agent {
 
         let next_position = match &self.current_task {
             Some(task) => {
-                if !task.get_path().is_empty() {
-                    // Follow path normally
-                    task.get_path()[0]
-                } else {
+                if let Some(pos) = task.get_first_pos() {
+                    *pos
+                }
+                else {
                     self.position
                 }
                 
@@ -114,27 +117,39 @@ impl Agent {
     fn update_task_and_path(&mut self) {
         if let Some(task) = &mut self.current_task {
             match task {
-                Task::Stationary { pos, duration, .. } => {
-                    if self.position.is_close_to(*pos, TOLERANCE_DISTANCE) {
-                        if *duration > 0 {
-                            *duration -= 1;
+                Task::Stationary { data, .. } => {
+                    if self.position.is_close_to(data.pos, TOLERANCE_DISTANCE) {
+                        if data.duration > Duration::seconds(0.0) {
+                            data.duration = data.duration - Duration::seconds(1.0);
                         } else if let Some(id) = task.get_id() {
                             self.completed_task_ids.push(*id);
                             self.current_task = self.work_schedule.pop_front();
                         }
                     }
                 }
-                Task::WaitDuration { pos, duration , ..} => {
-                    if self.position.is_close_to(*pos, TOLERANCE_DISTANCE) {
-                        if *duration > 0 {
-                            *duration -= 1;
-                        } else {
-                            self.current_task = self.work_schedule.pop_front();
-                        }
+                Task::WaitDuration { duration , ..} => {
+                    if *duration > Duration::seconds(0.0) {
+                        *duration = *duration - Duration::seconds(0.0);
+                    } else {
+                        self.current_task = self.work_schedule.pop_front();
                     }
                 }
                 Task::WaitInfinite { .. } => { }
-                Task::Moving { path, .. } |
+                Task::Moving { data, .. } => {
+                    while !data.path.is_empty() {
+                        if self.position.is_close_to(data.path[0], TOLERANCE_DISTANCE) {
+                            data.path.remove(0);
+                        } else {
+                            break;
+                        }
+                    }
+                    if data.path.is_empty() {
+                        if let Some(id) = task.get_id() {
+                            self.completed_task_ids.push(*id);
+                        }
+                        self.current_task = self.work_schedule.pop_front();
+                    }
+                }
                 Task::Travel { path, .. } => {
                     while !path.is_empty() {
                         if self.position.is_close_to(path[0], TOLERANCE_DISTANCE) {

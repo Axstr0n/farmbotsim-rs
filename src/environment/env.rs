@@ -3,6 +3,7 @@ use egui::Vec2;
 use crate::agent_module::agent::Agent;
 use crate::agent_module::movement::RombaMovement;
 use crate::task_module::task_manager::TaskManager;
+use crate::units::duration::Duration;
 
 use super::env_config::EnvConfig;
 use super::field::Field;
@@ -43,7 +44,7 @@ impl Env {
         for i in 0..n_agents {
             agents.push(
                 Agent::new(i,
-                    random_pos2_in_rect(egui::Rect { min: spawn_area.left_top_pos, max: spawn_area.left_top_pos+Vec2::new(spawn_area.width, spawn_area.height) }, spawn_area.angle),
+                    random_pos2_in_rect(egui::Rect { min: spawn_area.left_top_pos, max: spawn_area.left_top_pos+Vec2::new(spawn_area.width.to_base_unit(), spawn_area.height.to_base_unit()) }, spawn_area.angle),
                     random_vec2(),
                     RombaMovement::default(),
                 agent_colors[i as usize])
@@ -98,7 +99,7 @@ impl Env {
         for i in 0..self.n_agents {
             self.agents.push(
                 Agent::new(i,
-                    random_pos2_in_rect(egui::Rect { min: self.spawn_area.left_top_pos, max: self.spawn_area.left_top_pos+Vec2::new(self.spawn_area.width, self.spawn_area.height) }, self.spawn_area.angle),
+                    random_pos2_in_rect(egui::Rect { min: self.spawn_area.left_top_pos, max: self.spawn_area.left_top_pos+Vec2::new(self.spawn_area.width.to_base_unit(), self.spawn_area.height.to_base_unit()) }, self.spawn_area.angle),
                     random_vec2(),
                     RombaMovement::default(),
                     colors[i as usize])
@@ -115,7 +116,7 @@ impl Env {
         self.step_count += 1;
         self.date_time_manager.advance_time(1);
         for agent in &mut self.agents {
-            agent.update(1, &self.date_time_manager);
+            agent.update(Duration::seconds(1.0), &self.date_time_manager);
         }
     }
 }

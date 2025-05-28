@@ -1,14 +1,16 @@
 use egui::Pos2;
 
+use crate::units::{angle::Angle, length::Length};
+
 use super::spawn_area_config::SpawnAreaConfig;
 
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpawnArea {
     pub left_top_pos: Pos2,
-    pub angle: f32,
-    pub width: f32,
-    pub height: f32,
+    pub angle: Angle,
+    pub width: Length,
+    pub height: Length,
 }
 
 impl SpawnArea {
@@ -34,9 +36,9 @@ impl Default for SpawnArea {
     fn default() -> Self {
         Self {
             left_top_pos: Pos2::new(2.0, 1.0),
-            angle: 5.0,
-            width: 3.0,
-            height: 1.0,
+            angle: Angle::degrees(5.0),
+            width: Length::meters(3.0),
+            height: Length::meters(1.0),
         }
     }
 }

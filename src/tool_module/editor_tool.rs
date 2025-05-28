@@ -167,10 +167,10 @@ impl Tool for EditorTool {
                                 .default_open(false)
                                 .show(ui, |ui| {
                                     ui.label(format!("Left top pos {}", config.left_top_pos.fmt(2)));
-                                    let angle_response = ui.add(Slider::new(&mut config.angle, 0.0..=360.0).text("Angle").step_by(1.0));
+                                    let angle_response = ui.add(Slider::new(&mut config.angle.value, 0.0..=360.0).text(format!("Angle [{}]", config.angle.unit)).step_by(1.0));
                                     let n_lines_response = ui.add(Slider::new(&mut config.n_lines, 1..=10).text("N_lines").step_by(1.0));
-                                    let line_spacing_response = ui.add(Slider::new(&mut config.line_spacing, 0.2..=0.8).text("Line spacing").step_by(0.05));
-                                    let length_response = ui.add(Slider::new(&mut config.length, 1.0..=10.0).text("Length").step_by(0.05));
+                                    let line_spacing_response = ui.add(Slider::new(&mut config.line_spacing.value, 0.2..=0.8).text(format!("Line spacing [{}]", config.line_spacing.unit)).step_by(0.05));
+                                    let length_response = ui.add(Slider::new(&mut config.length.value, 1.0..=10.0).text(format!("Length [{}]", config.length.unit)).step_by(0.05));
                                     ui.label(&config.crop_plan.crop_name);
                                     if ui.button("Remove").clicked() {
                                         to_remove = Some(i);
@@ -205,11 +205,12 @@ impl Tool for EditorTool {
                                 .default_open(false)
                                 .show(ui, |ui| {
                                     ui.label(format!("Left top pos {}", config.left_top_pos.fmt(2)));
-                                    let angle_response = ui.add(Slider::new(&mut config.angle, 0.0..=360.0).text("Angle").step_by(1.0));
+                                    let angle_response = ui.add(Slider::new(&mut config.angle.value, 0.0..=360.0).text(format!("Angle [{}]", config.angle.unit)).step_by(1.0));
                                     let n_lines_response = ui.add(Slider::new(&mut config.n_lines, 1..=10).text("N_lines").step_by(1.0));
-                                    let line_spacing_response = ui.add(Slider::new(&mut config.line_spacing, 0.2..=0.8).text("Line spacing").step_by(0.05));
+                                    let line_spacing_response = ui.add(Slider::new(&mut config.line_spacing.value, 0.2..=0.8).text(format!("Line spacing [{}]", config.line_spacing.unit)).step_by(0.05));
                                     let n_points_per_line_response = ui.add(Slider::new(&mut config.n_points_per_line, 1..=10).text("N points per line").step_by(1.0));
-                                    let point_spacing_response = ui.add(Slider::new(&mut config.point_spacing, 0.2..=0.8).text("Point spacing").step_by(0.05));
+                                    let point_spacing_response = ui.add(Slider::new(&mut config.point_spacing.value, 0.2..=0.8).text(format!("Point spacing [{}]", config.point_spacing.unit)).step_by(0.05));
+                                    ui.label(&config.crop_plan.crop_name);
                                     if ui.button("Remove").clicked() {
                                         to_remove = Some(i);
                                     }
@@ -240,21 +241,21 @@ impl Tool for EditorTool {
                 ui.label(format!("Left top pos {}", self.env.spawn_area.left_top_pos.fmt(2)));
 
                 ui.add(Slider::new(
-                    &mut self.env.spawn_area.angle,
+                    &mut self.env.spawn_area.angle.value,
                     0.0..=360.0)
-                    .text("Angle")
+                    .text(format!("Angle [{}]", self.env.spawn_area.angle.unit))
                     .step_by(1.0)
                 );
                 ui.add(Slider::new(
-                    &mut self.env.spawn_area.height,
+                    &mut self.env.spawn_area.height.value,
                     1.0..=10.0)
-                    .text("Height")
+                    .text(format!("Height [{}]", self.env.spawn_area.height.unit))
                     .step_by(0.1)
                 );
                 ui.add(Slider::new(
-                    &mut self.env.spawn_area.width,
+                    &mut self.env.spawn_area.width.value,
                     1.0..=10.0)
-                    .text("Width")
+                    .text(format!("Width [{}]", self.env.spawn_area.width.unit))
                     .step_by(0.1)
                 );
             });

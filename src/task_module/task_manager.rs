@@ -2,19 +2,22 @@ use std::collections::VecDeque;
 
 use egui::{Pos2, Vec2};
 
-use crate::{agent_module::{agent::Agent, agent_state::AgentState, battery::Battery}, cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS}, environment::{field_config::{FieldConfig, VariantFieldConfig}, station::{Station, StationPosType}}, path_finding_module::visibility_graph::VisibilityGraph, utilities::vec2::Vec2Rotate};
+use crate::{agent_module::{agent::Agent, agent_state::AgentState, battery::Battery}, cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS}, environment::{field_config::{FieldConfig, VariantFieldConfig}, station::{Station, StationPosType}}, path_finding_module::visibility_graph::VisibilityGraph, units::{duration::Duration, linear_velocity::LinearVelocity, power::Power}, utilities::vec2::Vec2Rotate};
 use crate::path_finding_module::path_finding::PathFinding;
-use super::task::{Intent, Task};
+use super::task::{Intent, MovingData, StationaryData, Task, WorkData};
 
 
 #[derive(Debug, Clone)]
 pub struct TaskManager {
     id_counter: u32,
+    //pub fields: HashMap<u32, >
     pub all_tasks: Vec<Task>,
     pub work_list: VecDeque<Task>,
     pub assigned_tasks: Vec<Task>,
     pub completed_tasks: Vec<Task>,
     visibility_graph: VisibilityGraph,
+
+
 }
 
 impl TaskManager {
@@ -47,17 +50,22 @@ impl TaskManager {
             let field_id = n as u32;
             match config_variant {
                 VariantFieldConfig::Line(c) => {
+                    let ls_val = c.line_spacing.value;
                     for i in 0..c.n_lines {
-                        let path = vec![c.left_top_pos+Vec2::new(i as f32*c.line_spacing, 0.0).rotate_degrees(c.angle), c.left_top_pos+Vec2::new(i as f32*c.line_spacing, c.length).rotate_degrees(c.angle)];
-                        work_list.push(Task::moving(id_counter, path, 5.0, field_id, i, 100.0));
+                        let path = vec![c.left_top_pos+Vec2::new(i as f32*ls_val, 0.0).rotate(c.angle), c.left_top_pos+Vec2::new(i as f32*ls_val, c.length.to_base_unit()).rotate(c.angle)];
+                        let work_data = WorkData::new(field_id, i, Power::watts(100.0));
+                        let moving_data = MovingData::new(path, LinearVelocity::kilometers_per_hour(5.0), work_data);
+                        work_list.push(Task::moving(id_counter, moving_data));
                         id_counter += 1;
                     }
                 },
                 VariantFieldConfig::Point(c) => {
                     for i in 0..c.n_lines {
                         for j in 0..c.n_points_per_line {
-                            let pos = c.left_top_pos + Vec2::new(c.line_spacing*i as f32, c.point_spacing*j as f32).rotate_degrees(c.angle);
-                            work_list.push(Task::stationary(id_counter, pos, 400, field_id, i, 50.0));
+                            let pos = c.left_top_pos + Vec2::new(c.line_spacing.to_base_unit()*i as f32, c.point_spacing.to_base_unit()*j as f32).rotate(c.angle);
+                            let work_data = WorkData::new(field_id, i, Power::watts(50.0));
+                            let stationary_data = StationaryData::new(pos, Duration::seconds(400.0), work_data);
+                            work_list.push(Task::stationary(id_counter, stationary_data));
                             id_counter += 1;
                         }
                     }
@@ -145,7 +153,7 @@ impl TaskManager {
                         }
                         if let Some(path) = self.visibility_graph.find_path(agent.position, pos) {
                             let travel_task = Task::travel(path, MAX_VELOCITY, intent.clone());
-                            let wait_task = Task::wait_infinite(pos, intent);
+                            let wait_task = Task::wait_infinite(intent);
                             agent.work_schedule.clear();
                             agent.work_schedule.push_back(travel_task);
                             agent.work_schedule.push_back(wait_task);
@@ -226,7 +234,7 @@ impl TaskManager {
                 StationPosType::ChargingSlot => Intent::Charge,
                 StationPosType::QueueSlot => Intent::Queue,
             };
-            let task = Task::wait_infinite(pos, intent.clone());
+            let task = Task::wait_infinite(intent.clone());
             let travel_task = Task::travel(path, MAX_VELOCITY, intent);
             tasks.push(travel_task);
             tasks.push(task);
@@ -246,17 +254,17 @@ impl TaskManager {
                 .iter()
                 .filter_map(|other| {
                     match other {
-                        Task::Stationary { field_id, line_id, .. } => {
-                            if let Task::Stationary { field_id: fid, line_id: lid, .. } = task {
-                                if field_id == &fid && line_id == &lid {
+                        Task::Stationary { data, .. } => {
+                            if let Task::Stationary { data: data_, .. } = task.clone() {
+                                if data.work_data.field_id == data_.work_data.field_id && data.work_data.line_id == data_.work_data.line_id {
                                     return Some(other.clone());
                                 }
                             }
                             None
                         },
-                        Task::Moving { field_id, line_id,.. } => {
-                            if let Task::Moving { field_id: fid, line_id: lid,.. } = task {
-                                if field_id == &fid && line_id == &lid {
+                        Task::Moving { data,.. } => {
+                            if let Task::Stationary { data: data_, .. } = task.clone() {
+                                if data.work_data.field_id == data_.work_data.field_id && data.work_data.line_id == data_.work_data.line_id {
                                     return Some(other.clone());
                                 }
                             }
@@ -270,12 +278,12 @@ impl TaskManager {
             let reference_pos = agent.position;
             related_tasks.sort_by(|a, b| {
                 let a_pos = match a {
-                    Task::Stationary { pos, .. } => pos,
-                    _ => &Pos2::ZERO, // shouldn't happen
+                    Task::Stationary { data, .. } => data.pos,
+                    _ => Pos2::ZERO, // shouldn't happen
                 };
                 let b_pos = match b {
-                    Task::Stationary { pos, .. } => pos,
-                    _ => &Pos2::ZERO, // shouldn't happen
+                    Task::Stationary { data, .. } => data.pos,
+                    _ => Pos2::ZERO, // shouldn't happen
                 };
                 
                 let a_distance = (a_pos.x - reference_pos.x).powi(2) + (a_pos.y - reference_pos.y).powi(2);
@@ -284,26 +292,32 @@ impl TaskManager {
                 a_distance.partial_cmp(&b_distance).unwrap_or(std::cmp::Ordering::Equal)
             });
             let target_pos = related_tasks[0].get_first_pos();
-            let path = self.visibility_graph.find_path(agent.position, *target_pos);
-            if let Some(path) = path {
-                for (i,task) in related_tasks.iter().enumerate() {
-                    let (velocity, path_) = match i {
-                        0 => (MAX_VELOCITY, path.clone()),
-                        _ => (MAX_VELOCITY_BETWEEN_POINTS,vec![*task.get_first_pos()]),
-                    };
-                    tasks.push(Task::travel(path_, velocity, Intent::Work)); // Travel to task
-                    tasks.push(task.clone()); // Task
+            if let Some(target_pos) = target_pos {
+
+                let path = self.visibility_graph.find_path(agent.position, *target_pos);
+                if let Some(path) = path {
+                    for (i,task) in related_tasks.iter().enumerate() {
+                        let (velocity, path_) = match i {
+                            0 => (MAX_VELOCITY, path.clone()),
+                            _ => {
+                                if let Some(pos) = task.get_first_pos() {(MAX_VELOCITY_BETWEEN_POINTS,vec![*pos])}
+                                else {(MAX_VELOCITY_BETWEEN_POINTS,vec![])}
+                            },
+                        };
+                        tasks.push(Task::travel(path_, velocity, Intent::Work)); // Travel to task
+                        tasks.push(task.clone()); // Task
+                    }
+                    for task_ in tasks.clone() {
+                        if task_.is_work() { self.assigned_tasks.push(task_); }
+                    }
+                    
+                    // Remove related tasks from work_list
+                    self.work_list.retain(|task| {
+                        !tasks.clone().iter().any(|related| task == related)
+                    });
+                } else {
+                    self.work_list.push_front(task); // Add task back if path to it is None
                 }
-                for task_ in tasks.clone() {
-                    if task_.is_work() { self.assigned_tasks.push(task_); }
-                }
-                
-                // Remove related tasks from work_list
-                self.work_list.retain(|task| {
-                    !tasks.clone().iter().any(|related| task == related)
-                });
-            } else {
-                self.work_list.push_front(task); // Add task back if path to it is None
             }
         }
 
@@ -316,7 +330,7 @@ impl TaskManager {
         let path = self.visibility_graph.find_path(agent.position, agent.spawn_position);
         if let Some(path) = path {
             let travel_task = Task::travel(path, MAX_VELOCITY, Intent::Idle);
-            let wait_task = Task::wait_infinite(agent.spawn_position, Intent::Idle);
+            let wait_task = Task::wait_infinite(Intent::Idle);
             tasks.extend([travel_task, wait_task]);
         }
 
