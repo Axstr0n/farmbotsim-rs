@@ -47,8 +47,8 @@ impl AgentState {
         }
         fn calculate_power_work(agent: &Agent, task: &Task) -> Power {
             match task {
-                Task::Stationary { data, .. } => data.work_data.power,
-                Task::Moving { data, .. } => data.work_data.power + calculate_power_travel(agent),
+                Task::Stationary { power, .. } => *power,
+                Task::Moving { power, .. } => *power + calculate_power_travel(agent),
                 _ => Power::watts(0.0)
             }
         }

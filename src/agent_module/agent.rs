@@ -117,10 +117,10 @@ impl Agent {
     fn update_task_and_path(&mut self) {
         if let Some(task) = &mut self.current_task {
             match task {
-                Task::Stationary { data, .. } => {
-                    if self.position.is_close_to(data.pos, TOLERANCE_DISTANCE) {
-                        if data.duration > Duration::seconds(0.0) {
-                            data.duration = data.duration - Duration::seconds(1.0);
+                Task::Stationary { pos, duration, .. } => {
+                    if self.position.is_close_to(*pos, TOLERANCE_DISTANCE) {
+                        if duration > &mut Duration::seconds(0.0) {
+                            *duration = *duration - Duration::seconds(1.0);
                         } else if let Some(id) = task.get_id() {
                             self.completed_task_ids.push(*id);
                             self.current_task = self.work_schedule.pop_front();
@@ -135,15 +135,15 @@ impl Agent {
                     }
                 }
                 Task::WaitInfinite { .. } => { }
-                Task::Moving { data, .. } => {
-                    while !data.path.is_empty() {
-                        if self.position.is_close_to(data.path[0], TOLERANCE_DISTANCE) {
-                            data.path.remove(0);
+                Task::Moving { path, .. } => {
+                    while !path.is_empty() {
+                        if self.position.is_close_to(path[0], TOLERANCE_DISTANCE) {
+                            path.remove(0);
                         } else {
                             break;
                         }
                     }
-                    if data.path.is_empty() {
+                    if path.is_empty() {
                         if let Some(id) = task.get_id() {
                             self.completed_task_ids.push(*id);
                         }

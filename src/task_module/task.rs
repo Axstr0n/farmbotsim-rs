@@ -1,6 +1,8 @@
 use egui::Pos2;
 
-use crate::units::{duration::Duration, linear_velocity::LinearVelocity, power::Power};
+use crate::{
+    units::{duration::Duration, linear_velocity::LinearVelocity, power::Power}
+};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Intent {
@@ -11,60 +13,27 @@ pub enum Intent {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct WorkData {
-    pub field_id: u32,
-    pub line_id: u32,
-    pub power: Power,
-}
-impl WorkData {
-    pub fn new(field_id: u32, line_id: u32, power: Power) -> Self {
-        Self {
-            field_id,
-            line_id,
-            power
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct StationaryData {
-    pub pos: Pos2,
-    pub duration: Duration,
-    pub work_data: WorkData,
-    pub intent: Intent,
-}
-impl StationaryData {
-    pub fn new(pos: Pos2, duration: Duration, work_data: WorkData) -> Self {
-        Self {
-            pos, duration, work_data, intent: Intent::Work
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct MovingData {
-    pub path: Vec<Pos2>,
-    pub velocity: LinearVelocity,
-    pub work_data: WorkData,
-    pub intent: Intent,
-}
-impl MovingData {
-    pub fn new(path: Vec<Pos2>, velocity: LinearVelocity, work_data: WorkData) -> Self {
-        Self {
-            path, velocity, work_data, intent: Intent::Work
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
 pub enum Task {
     Stationary {
         id: u32,
-        data: StationaryData,
+        pos: Pos2,
+        duration: Duration,
+        intent: Intent,
+        crop_id: u32,
+        field_id: u32,
+        line_id: u32,
+        power: Power,
+        info: String,
     },
     Moving {
         id: u32,
-        data: MovingData,
+        path: Vec<Pos2>,
+        velocity: LinearVelocity,
+        intent: Intent,
+        field_id: u32,
+        line_id: u32,
+        power: Power,
+        info: String,
     },
     Travel {
         path: Vec<Pos2>,
@@ -81,19 +50,6 @@ pub enum Task {
 }
 
 impl Task {
-    pub fn stationary(id: u32, data: StationaryData,) -> Self {
-        Task::Stationary {
-            id,
-            data,
-        }
-    }
-    pub fn moving(id: u32, data: MovingData) -> Self {
-        Task::Moving {
-            id,
-            data,
-        }
-    }
-
     pub fn travel(path: Vec<Pos2>, velocity: LinearVelocity, intent: Intent) -> Self {
         Task::Travel {
             path,
@@ -124,8 +80,8 @@ impl Task {
     }
     pub fn get_path(&self) -> Option<Vec<Pos2>> {
         match self {
-            Task::Stationary {data, .. } => { Some(vec![data.pos]) },
-            Task::Moving {data, .. } => { Some(data.path.clone()) },
+            Task::Stationary {pos, .. } => { Some(vec![*pos]) },
+            Task::Moving {path, .. } => { Some(path.clone()) },
             Task::Travel {path, .. } => { Some(path.clone()) },
             Task::WaitDuration { .. } => { None },
             Task::WaitInfinite { .. } => { None },
@@ -133,8 +89,8 @@ impl Task {
     }
     pub fn get_first_pos(&self) -> Option<&Pos2> {
         match self {
-            Task::Stationary {data, .. } => { Some(&data.pos) },
-            Task::Moving {data, .. } => { Some(&data.path[0]) },
+            Task::Stationary {pos, .. } => { Some(pos) },
+            Task::Moving {path, .. } => { Some(&path[0]) },
             Task::Travel {path, .. } => { Some(&path[0]) },
             Task::WaitDuration { .. } => { None },
             Task::WaitInfinite { .. } => { None },
@@ -144,7 +100,7 @@ impl Task {
         let vel_zero = LinearVelocity::kilometers_per_hour(0.0);
         match self {
             Task::Stationary {..} => { vel_zero },
-            Task::Moving {data, .. } => { data.velocity },
+            Task::Moving {velocity, .. } => { *velocity },
             Task::Travel {velocity, .. } => { *velocity },
             Task::WaitDuration { .. } => { vel_zero },
             Task::WaitInfinite { .. } => { vel_zero },
@@ -152,8 +108,8 @@ impl Task {
     }
     pub fn get_intent(&self) -> &Intent {
         match self {
-            Task::Stationary { data,.. } => { &data.intent },
-            Task::Moving { data,.. } => { &data.intent },
+            Task::Stationary { intent,.. } => { intent },
+            Task::Moving { intent,.. } => { intent },
             Task::Travel { intent,.. } => { intent },
             Task::WaitDuration { intent,.. } => { intent },
             Task::WaitInfinite { intent,.. } => { intent },

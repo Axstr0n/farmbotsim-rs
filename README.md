@@ -67,9 +67,9 @@ cargo build --release
 
 The **farmbotsim-rs** project is organized into several directories that help separate functionality. Here's a high-level breakdown:
 
-`batteries/` - Contains battery configs.
 
 `configs/`
+- `batteries/` - Contains battery configs.
 - `crop_plans/` - Contains plans for crop growth.
 - `env_configs/` - Contains configs with all parameters for env creation.
 

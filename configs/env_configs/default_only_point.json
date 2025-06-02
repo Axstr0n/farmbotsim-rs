@@ -1,5 +1,5 @@
 {
-    "n_agents": 3,
+    "n_agents": 1,
     "date_time": {
         "date": "01.10.2025",
         "time": "04:00:00"
@@ -27,30 +27,6 @@
                     { "Point": { "action_name": "fertilize", "duration": "30 s", "power": "200 W" }},
                     { "Wait": { "action_name": "wait", "duration": "10 min" }},
                     { "Point": { "action_name": "harvest", "duration": "1 min", "power": "200 W" }}
-                ]
-            }
-        },
-        {
-            "left_top_pos": {
-                "x": 3.0,
-                "y": 4.0
-            },
-            "angle": "0.0 deg",
-            "n_lines": 3,
-            "length": "5.0 m",
-            "line_spacing": "0.5 m",
-            "crop_plan": {
-                "name": "default_line",
-                "type": "line",
-                "cycle": 0,
-                "plan": [
-                    { "Line": { "action_name": "plant", "velocity": "2 km/h", "power": "200 W" }},
-                    { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},
-                    { "Wait": { "action_name": "wait", "duration": "10 min" }},
-                    { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},
-                    { "Line": { "action_name": "fertilize", "velocity": "2 km/h", "power": "200 W" }},
-                    { "Wait": { "action_name": "wait", "duration": "10 min" }},
-                    { "Line": { "action_name": "harvest", "velocity": "2 km/h", "power": "200 W" }}
                 ]
             }
         }

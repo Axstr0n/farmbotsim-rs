@@ -249,22 +249,29 @@ pub fn render_variant_field_configs(ui: &mut Ui, camera: &Camera, configs: &Vec<
     }
 }
 
-pub fn render_tasks_on_field(ui: &mut Ui, camera: &Camera, tasks: &Vec<Task>) {
-    let painter = ui.painter();
-    let color = Color32::LIGHT_BLUE;
-    for task in tasks {
-        if let Some(path) = task.get_path() {
-            let screen_path: Vec<Pos2> = path.iter().map(|pos| {
-                camera.scene_to_screen_pos(*pos)
-            }).collect();
-            if screen_path.len() == 1 {
+pub fn render_task_manager_on_field(ui: &mut Ui, camera: &Camera, task_manager: &TaskManager) {
+    let assigned_color = Color32::LIGHT_BLUE;
+    let todo_color = Color32::ORANGE;
+    for task in &task_manager.work_list {
+        render_task(ui, camera, task, todo_color);
+    }
+    for task in &task_manager.assigned_tasks {
+        render_task(ui, camera, task, assigned_color);
+    }
+
+    fn render_task(ui: &mut Ui, camera: &Camera, task: &Task, color: Color32) {
+        let painter = ui.painter();
+        match task {
+            Task::Stationary { pos, .. } => {
                 painter.add(CircleShape {
-                    center: path[0],
+                    center: camera.scene_to_screen_pos(*pos),
                     radius: camera.scene_to_screen_val(0.1),
                     fill: color,
                     stroke: Stroke::default(),
                 });
-            } else {
+            },
+            Task::Moving { path, .. } => {
+                let path: Vec<Pos2> = path.iter().map(|pos| camera.scene_to_screen_pos(*pos)).collect();
                 path.windows(2).for_each(|window| {
                     if let [p1, p2] = window {
                         painter.line(
@@ -273,7 +280,8 @@ pub fn render_tasks_on_field(ui: &mut Ui, camera: &Camera, tasks: &Vec<Task>) {
                         );
                     }
                 });
-            }
+            },
+            _ => {}
         }
     }
 }
@@ -426,11 +434,12 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                     ui.label("Duration");
                     ui.label("Field id");
                     ui.label("Line id");
-                    ui.label("Power w");
+                    ui.label("Power");
+                    ui.label("Info");
                     ui.end_row();
 
                     struct TaskInfo {
-                        id: u32, task_type: String, path: Vec<String>, vel: String, dur: String, fid: u32, lid: u32, power: Power
+                        id: u32, task_type: String, path: Vec<String>, vel: String, dur: String, fid: u32, lid: u32, power: Power, info: String
                     }
 
                     fn display_task_info(ui: &mut Ui, task_info: TaskInfo) {
@@ -442,34 +451,33 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                         ui.label(task_info.fid.to_string());
                         ui.label(task_info.lid.to_string());
                         ui.label(format!("{}", task_info.power));
+                        ui.label(task_info.info);
                         ui.end_row();
                     }
 
                     for task in vec {
                         match task {
-                            Task::Stationary { id, data ,..} => {
+                            Task::Stationary { id, field_id, line_id, pos, duration, power , info,..} => {
                                 let task_type = "Stationary";
-                                let path = vec![data.pos.fmt(2)];
+                                let path = vec![pos.fmt(2)];
                                 let vel = "-".to_string();
-                                let dur = format!("{}", data.duration);
-                                let fid = data.work_data.field_id;
-                                let lid = data.work_data.line_id;
-                                let power = data.work_data.power;
+                                let dur = format!("{}", duration);
+                                let fid = field_id;
+                                let lid = line_id;
                                 
-                                display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power } );
+                                display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power, info } );
                             }
-                            Task::Moving { id, data ,..} => {
+                            Task::Moving { id, field_id, line_id, path, velocity, power ,info,..} => {
                                 let task_type = "Moving";
-                                let path: Vec<String> = data.path.iter()
+                                let path: Vec<String> = path.iter()
                                     .map(|pos| pos.fmt(2))
                                     .collect();
-                                let vel = format!("{}", data.velocity);
+                                let vel = format!("{}", velocity);
                                 let dur = "-".to_string();
-                                let fid = data.work_data.field_id;
-                                let lid = data.work_data.line_id;
-                                let power = data.work_data.power;
+                                let fid = field_id;
+                                let lid = line_id;
                                 
-                                display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power } );
+                                display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power, info } );
                             }
                             _ => {}
                         }

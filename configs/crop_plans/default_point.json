@@ -1,14 +1,14 @@
 {
     "name": "default_point",
     "type": "point",
-    "cycle": 0,
+    "cycle": null,
     "plan": [
         { "Point": { "action_name": "plant", "duration": "2 min", "power": "200 W" }},
         { "Point": { "action_name": "water", "duration": "15 s", "power": "200 W" }},
-        { "Wait": { "action_name": "wait", "duration": "1 d" }},
+        { "Wait": { "action_name": "wait", "duration": "10 min" }},
         { "Point": { "action_name": "water", "duration": "30 s", "power": "200 W" }},
         { "Point": { "action_name": "fertilize", "duration": "30 s", "power": "200 W" }},
-        { "Wait": { "action_name": "wait", "duration": "1 d" }},
+        { "Wait": { "action_name": "wait", "duration": "10 min" }},
         { "Point": { "action_name": "harvest", "duration": "1 min", "power": "200 W" }}
     ]
 }

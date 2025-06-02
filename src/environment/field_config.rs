@@ -1,13 +1,15 @@
+use std::collections::HashMap;
 use egui::{Pos2, Vec2};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de;
 
-use crate::task_module::task::Task;
 use crate::units::angle::Angle;
 use crate::units::length::Length;
 use crate::utilities::vec2::Vec2Rotate;
+use super::crop::Crop;
 use super::crop_plan::CropPlan;
 use super::obstacle::Obstacle;
+use super::row::Row;
 
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
@@ -221,8 +223,36 @@ impl FieldConfig {
         }
         points
     }
+    
+    pub fn get_crops_rows(&self) -> (HashMap<u32, Crop>, HashMap<u32, Row>) {
+        let mut crops = HashMap::new();
+        let mut rows = HashMap::new();
 
-    pub fn get_tasks(&self) -> Vec<Task> {
-        todo!()
+        let mut id_counter = 0;
+
+        for (n, config_variant) in self.configs.iter().enumerate() {
+            let field_id = n as u32;
+            match config_variant {
+                VariantFieldConfig::Line(c) => {
+                    let ls_val = c.line_spacing.value;
+                    for i in 0..c.n_lines {
+                        let path = vec![c.left_top_pos+Vec2::new(i as f32*ls_val, 0.0).rotate(c.angle), c.left_top_pos+Vec2::new(i as f32*ls_val, c.length.to_base_unit()).rotate(c.angle)];
+                        rows.insert(id_counter, Row::new(id_counter, field_id, path, c.crop_plan.clone()));
+                        id_counter += 1;
+                    }
+                },
+                VariantFieldConfig::Point(c) => {
+                    for i in 0..c.n_lines {
+                        for j in 0..c.n_points_per_line {
+                            let pos = c.left_top_pos + Vec2::new(c.line_spacing.to_base_unit()*i as f32, c.point_spacing.to_base_unit()*j as f32).rotate(c.angle);
+                            crops.insert(id_counter, Crop::new(id_counter, field_id, i, pos, c.crop_plan.clone()));
+                            id_counter += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        (crops, rows)
     }
 }

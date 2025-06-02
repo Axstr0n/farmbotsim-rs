@@ -1,33 +1,57 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
-use egui::{Pos2, Vec2};
+use egui::Pos2;
 
-use crate::{agent_module::{agent::Agent, agent_state::AgentState, battery::Battery}, cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS}, environment::{field_config::{FieldConfig, VariantFieldConfig}, station::{Station, StationPosType}}, path_finding_module::visibility_graph::VisibilityGraph, units::{duration::Duration, linear_velocity::LinearVelocity, power::Power}, utilities::vec2::Vec2Rotate};
-use crate::path_finding_module::path_finding::PathFinding;
-use super::task::{Intent, MovingData, StationaryData, Task, WorkData};
+use crate::{
+    agent_module::{
+        agent::Agent,
+        agent_state::AgentState,
+        battery::Battery
+    },
+    cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS},
+    environment::{
+        crop::Crop,
+        crop_plan::CropActionInstance,
+        field_config::FieldConfig,
+        row::Row,
+        station::{Station, StationPosType}
+    },
+    path_finding_module::{
+        path_finding::PathFinding,
+        visibility_graph::VisibilityGraph,
+    },
+    units::duration::Duration};
+use super::task::{Intent, Task};
+
 
 
 #[derive(Debug, Clone)]
 pub struct TaskManager {
     id_counter: u32,
-    //pub fields: HashMap<u32, >
-    pub all_tasks: Vec<Task>,
+    field_config: FieldConfig,
+    
+    pub crops: HashMap<u32, Crop>, // stores all crops
+    pub rows: HashMap<u32, Row>, // stores all rows
+    pub waiting: HashMap<u32, Duration>, // stores and decremend all waiting actions
+
     pub work_list: VecDeque<Task>,
     pub assigned_tasks: Vec<Task>,
     pub completed_tasks: Vec<Task>,
     visibility_graph: VisibilityGraph,
-
-
 }
 
 impl TaskManager {
     pub fn from_field_config(field_config: FieldConfig) -> Self {
-        let (id_counter, all_tasks, work_list) = Self::generate_tasks(&field_config);
+        let (crops, rows) = field_config.get_crops_rows();
+        let (id_counter, work_list) = Self::get_initial_work_list(&crops, &rows);
         let obstacles = field_config.get_obstacles();
         let visibility_graph = VisibilityGraph::new(&field_config.get_graph_points(), obstacles);
         Self {
             id_counter,
-            all_tasks,
+            field_config,
+            crops,
+            rows,
+            waiting: HashMap::new(),
             work_list,
             assigned_tasks: vec![],
             completed_tasks: vec![],
@@ -36,45 +60,110 @@ impl TaskManager {
     }
 
     pub fn reset(&mut self) {
-        self.work_list.clear();
-        self.work_list = self.all_tasks.clone().into();
+        let (crops, rows) = self.field_config.get_crops_rows();
+        let (id_counter, work_list) = Self::get_initial_work_list(&crops, &rows);
+        self.id_counter = id_counter;
+        self.work_list = work_list;
         self.assigned_tasks.clear();
         self.completed_tasks.clear();
     }
 
-    fn generate_tasks(config: &FieldConfig) -> (u32, Vec<Task>, VecDeque<Task>) {
-        let mut work_list: Vec<Task> = vec![];
-        let mut id_counter = 0;
+    fn get_initial_work_list(crops: &HashMap<u32, Crop>, rows: &HashMap<u32, Row>) -> (u32, VecDeque<Task>) {
+        let mut work_list = VecDeque::new();
+        let mut task_id_counter = 0;
+        for crop in crops.values() {
+            let task = crop.stages[0].to_stationary_task(task_id_counter);
+            if let Some(task) = task {
+                work_list.push_back(task);
+                task_id_counter += 1;
+            }
+        }
+        for row in rows.values() {
+            let task = row.stages[0].to_moving_task(task_id_counter);
+            if let Some(task) = task {
+                work_list.push_back(task);
+                task_id_counter += 1;
+            }
+        }
 
-        for (n, config_variant) in config.configs.iter().enumerate() {
-            let field_id = n as u32;
-            match config_variant {
-                VariantFieldConfig::Line(c) => {
-                    let ls_val = c.line_spacing.value;
-                    for i in 0..c.n_lines {
-                        let path = vec![c.left_top_pos+Vec2::new(i as f32*ls_val, 0.0).rotate(c.angle), c.left_top_pos+Vec2::new(i as f32*ls_val, c.length.to_base_unit()).rotate(c.angle)];
-                        let work_data = WorkData::new(field_id, i, Power::watts(100.0));
-                        let moving_data = MovingData::new(path, LinearVelocity::kilometers_per_hour(5.0), work_data);
-                        work_list.push(Task::moving(id_counter, moving_data));
-                        id_counter += 1;
-                    }
-                },
-                VariantFieldConfig::Point(c) => {
-                    for i in 0..c.n_lines {
-                        for j in 0..c.n_points_per_line {
-                            let pos = c.left_top_pos + Vec2::new(c.line_spacing.to_base_unit()*i as f32, c.point_spacing.to_base_unit()*j as f32).rotate(c.angle);
-                            let work_data = WorkData::new(field_id, i, Power::watts(50.0));
-                            let stationary_data = StationaryData::new(pos, Duration::seconds(400.0), work_data);
-                            work_list.push(Task::stationary(id_counter, stationary_data));
-                            id_counter += 1;
+        (task_id_counter, work_list)
+    }
+
+    fn on_work_task_completed(&mut self, task: Task) {
+        match task {
+            Task::Stationary { crop_id, .. } => {
+                if let Some(crop) = self.crops.get_mut(&crop_id) {
+                    crop.increment_stage();
+                    if let Some(next_action_instance) = crop.get_next_action_instance() {
+                        let next_task = next_action_instance.to_stationary_task(self.id_counter);
+                        if let Some(next_task) = next_task {
+                            self.id_counter += 1;
+                            self.work_list.push_back(next_task);
+                        } else if let CropActionInstance::Wait { id, duration , ..} = next_action_instance {
+                            self.waiting.insert(id, duration);
                         }
                     }
                 }
+            },
+            Task::Moving { line_id, .. } => {
+                if let Some(row) = self.rows.get_mut(&line_id) {
+                    row.increment_stage();
+                    if let Some(next_action_instance) = row.get_next_action_instance() {
+                        let next_task = next_action_instance.to_moving_task(self.id_counter);
+                        if let Some(next_task) = next_task {
+                            self.id_counter += 1;
+                            self.work_list.push_back(next_task);
+                        } else if let CropActionInstance::Wait { id, duration , ..} = next_action_instance {
+                            self.waiting.insert(id, duration);
+                        }
+                    }
+                }
+            },
+            _ => {}
+        }
+    }
+
+    pub fn update_waiting_list(&mut self, duration_: Duration) {
+        let mut finished_ids = Vec::new();
+        for (&id, duration) in self.waiting.iter_mut() {
+            *duration = *duration - duration_;
+            if duration.value <= 0.0 {
+                finished_ids.push(id);
             }
         }
-        let all_tasks = work_list.clone();
-
-        (id_counter, all_tasks, work_list.into())
+        for id in finished_ids {
+            self.waiting.remove(&id);
+            self.add_new_task_for_id(id);
+        }
+    }
+    
+    fn add_new_task_for_id(&mut self, id: u32) {
+        if let Some(crop) = self.crops.get_mut(&id) {
+            crop.increment_stage();
+            let next_action_instance = crop.get_next_action_instance();
+            if let Some(next_action_instance) = next_action_instance {
+                let next_task = next_action_instance.to_stationary_task(self.id_counter);
+                if let Some(next_task) = next_task {
+                    self.id_counter += 1;
+                    self.work_list.push_back(next_task);
+                } else if let CropActionInstance::Wait { id, duration, .. } = next_action_instance {
+                    self.waiting.insert(id, duration);
+                }
+            }
+        }
+        else if let Some(row) = self.rows.get_mut(&id) {
+            row.increment_stage();
+            let next_action_instance = row.get_next_action_instance();
+            if let Some(next_action_instance) = next_action_instance {
+                let next_task = next_action_instance.to_moving_task(self.id_counter);
+                if let Some(next_task) = next_task {
+                    self.id_counter += 1;
+                    self.work_list.push_back(next_task);
+                } else if let CropActionInstance::Wait { id, duration, .. } = next_action_instance {
+                    self.waiting.insert(id, duration);
+                }
+            }
+        }
     }
 
     pub fn assign_tasks(&mut self, agents: &mut Vec<Agent>, stations: &mut [Station]) {
@@ -254,17 +343,17 @@ impl TaskManager {
                 .iter()
                 .filter_map(|other| {
                     match other {
-                        Task::Stationary { data, .. } => {
-                            if let Task::Stationary { data: data_, .. } = task.clone() {
-                                if data.work_data.field_id == data_.work_data.field_id && data.work_data.line_id == data_.work_data.line_id {
+                        Task::Stationary { field_id, line_id, .. } => {
+                            if let Task::Stationary { field_id: field_id_, line_id: line_id_, .. } = task.clone() {
+                                if *field_id == field_id_ && *line_id == line_id_ {
                                     return Some(other.clone());
                                 }
                             }
                             None
                         },
-                        Task::Moving { data,.. } => {
-                            if let Task::Stationary { data: data_, .. } = task.clone() {
-                                if data.work_data.field_id == data_.work_data.field_id && data.work_data.line_id == data_.work_data.line_id {
+                        Task::Moving { field_id, line_id, .. } => {
+                            if let Task::Stationary { field_id: field_id_, line_id: line_id_, .. } = task.clone() {
+                                if *field_id == field_id_ && *line_id == line_id_ {
                                     return Some(other.clone());
                                 }
                             }
@@ -278,11 +367,11 @@ impl TaskManager {
             let reference_pos = agent.position;
             related_tasks.sort_by(|a, b| {
                 let a_pos = match a {
-                    Task::Stationary { data, .. } => data.pos,
+                    Task::Stationary { pos, .. } => *pos,
                     _ => Pos2::ZERO, // shouldn't happen
                 };
                 let b_pos = match b {
-                    Task::Stationary { data, .. } => data.pos,
+                    Task::Stationary { pos, .. } => *pos,
                     _ => Pos2::ZERO, // shouldn't happen
                 };
                 
@@ -346,10 +435,12 @@ impl TaskManager {
 
     pub fn update_completed_tasks(&mut self, agent: &mut Agent) {
         if !agent.completed_task_ids.is_empty() {
+            let mut completed_task: Option<Task> = None;
             self.assigned_tasks.retain(|task| {
                 if let Some(id) = task.get_id() {
                     if agent.completed_task_ids.contains(id) {
                         self.completed_tasks.push(task.clone());
+                        completed_task = Some(task.clone());
                         false // Remove task from assigned_tasks
                     } else {
                         true  // Keep task in assigned_tasks
@@ -358,6 +449,9 @@ impl TaskManager {
                     true 
                 }
             });
+            if let Some(task) = completed_task {
+                self.on_work_task_completed(task);
+            }
             agent.completed_task_ids.clear();
         }
     }
