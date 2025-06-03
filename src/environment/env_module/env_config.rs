@@ -2,9 +2,15 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::utilities::datetime::DateTimeConfig;
+use crate::{
+    environment::{
+        datetime::DateTimeConfig,
+        field_config::VariantFieldConfig,
+        spawn_area_module::spawn_area_config::SpawnAreaConfig,
+        station_module::station_config::StationConfig
+    }
+};
 
-use super::{field_config::VariantFieldConfig, spawn_area_config::SpawnAreaConfig, station_config::StationConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnvConfig {

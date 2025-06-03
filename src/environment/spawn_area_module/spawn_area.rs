@@ -1,8 +1,9 @@
 use egui::Pos2;
 
-use crate::units::{angle::Angle, length::Length};
-
-use super::spawn_area_config::SpawnAreaConfig;
+use crate::{
+    environment::spawn_area_module::spawn_area_config::SpawnAreaConfig,
+    units::{angle::Angle, length::Length}
+};
 
 
 #[derive(Clone, Debug, PartialEq)]

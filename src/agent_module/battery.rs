@@ -1,13 +1,19 @@
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
-use std::collections::{HashMap, VecDeque};
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+    path::Path,
+    collections::{HashMap, VecDeque},
+};
 
-use crate::cfg::BATTERIES_PATH;
-use crate::units::duration::Duration;
-use crate::units::energy::Energy;
-use crate::units::power::Power;
-use crate::units::voltage::Voltage;
+use crate::{
+    units::{
+        duration::Duration,
+        energy::Energy,
+        power::Power,
+        voltage::Voltage
+    },
+    cfg::BATTERIES_PATH,
+};
 
 pub trait Battery {
     fn discharge(&mut self, power: Power, duration: Duration);

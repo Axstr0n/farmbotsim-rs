@@ -1,24 +1,30 @@
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::Write;
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use serde_json::to_string_pretty;
 use egui::{Slider, Ui};
 
-use crate::cfg::{CROP_PLANS_PATH, DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH};
-use crate::environment::crop_plan::CropPlan;
-use crate::environment::env_config::EnvConfig;
-use crate::environment::station::Station;
-use crate::tool_module::tool::Tool;
-use crate::environment::env::Env;
-use crate::environment::field_config::{LineFieldConfig, PointFieldConfig, VariantFieldConfig};
-
-use crate::rendering::camera::Camera;
-use crate::rendering::render::{render_coordinate_system, render_crops, render_drag_points, render_grid, render_obstacles, render_spawn_area, render_stations, render_variant_field_configs, render_visibility_graph, ui_render_mouse_screen_scene_pos};
-use crate::utilities::datetime::{DATE_FORMAT, TIME_FORMAT};
-use crate::utilities::pos2::ExtendedPos2;
-use crate::utilities::utils::get_json_files_in_folder;
 
 use super::env_tool::EnvTool;
+use crate::{
+    environment::{
+        datetime::{DATE_FORMAT, TIME_FORMAT},
+        env_module::{
+            env::Env,
+            env_config::EnvConfig,
+        },
+        station_module::station::Station,
+        field_config::{LineFieldConfig, PointFieldConfig, VariantFieldConfig},
+    },
+    rendering::{
+        camera::Camera,
+        render::{render_coordinate_system, render_drag_points, render_grid, render_obstacles, render_spawn_area, render_stations, render_field_config, render_visibility_graph},
+        render::{ui_render_mouse_screen_scene_pos},
+    },
+    tool_module::tool::Tool,
+    utilities::pos2::ExtendedPos2,
+    cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH},
+};
 
 
 pub struct EditorTool {
@@ -60,8 +66,7 @@ impl Tool for EditorTool {
         render_spawn_area(ui, &self.camera, &self.env.spawn_area);
         render_obstacles(ui, &self.camera, &self.env.obstacles);
         render_visibility_graph(ui, &self.camera, &self.env.visibility_graph);
-        render_crops(ui, &self.camera, &self.env.field.crops);
-        render_variant_field_configs(ui, &self.camera, &self.env.field_config.configs);
+        render_field_config(ui, &self.camera, &self.env.field_config);
         render_stations(ui, &self.camera, &self.env.stations);
         self.handle_dragging(ui);
     }
@@ -405,17 +410,5 @@ impl EditorTool {
         
         println!("Successfully saved to {}", filename);
         Ok(())
-    }
-
-    fn get_all_crop_plans() -> Vec<CropPlan> {
-        let files = get_json_files_in_folder(CROP_PLANS_PATH).expect("Error in getting crop plans files.");
-        let mut crop_plans: Vec<CropPlan> = vec![];
-        for file in files {
-            let path = format!("{}{}", CROP_PLANS_PATH, file);
-            let json_str = fs::read_to_string(path).expect("File not found");
-            let plan: CropPlan = serde_json::from_str(&json_str).expect("Can't deserialize crop plan");
-            crop_plans.push(plan)
-        }
-        crop_plans
     }
 }

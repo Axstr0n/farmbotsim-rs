@@ -1,10 +1,14 @@
 use egui::Pos2;
-use petgraph::{graph::{NodeIndex, UnGraph}, visit::EdgeRef};
-use petgraph::algo::astar;
+use petgraph::{
+    graph::{NodeIndex, UnGraph},
+    visit::EdgeRef,
+    algo::astar
+};
 
-use crate::environment::obstacle::Obstacle;
-
-use super::path_finding::PathFinding;
+use crate::{
+    environment::obstacle::Obstacle,
+    path_finding_module::path_finding::PathFinding,
+};
 
 
 #[derive(Clone, Debug)]

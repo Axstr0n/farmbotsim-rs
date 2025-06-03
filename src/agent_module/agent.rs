@@ -1,16 +1,22 @@
 use egui::{Color32, Pos2, Vec2};
 
-use super::agent_state::AgentState;
-use super::battery::{BatteryConfig, BatteryPack};
-use super::movement::{Movement, RombaMovement};
-use super::work_schedule::WorkSchedule;
-use crate::task_module::task::Task;
-use crate::units::angular_velocity::AngularVelocity;
-use crate::units::duration::Duration;
-use crate::units::linear_velocity::LinearVelocity;
-use crate::utilities::datetime::DateTimeManager;
-use crate::utilities::pos2::ExtendedPos2;
-use crate::cfg::TOLERANCE_DISTANCE;
+use crate::{
+    agent_module::{
+        agent_state::AgentState,
+        battery::{BatteryConfig, BatteryPack},
+        movement::{Movement, RombaMovement},
+        work_schedule::WorkSchedule,
+    },
+    environment::datetime::DateTimeManager,
+    task_module::task::Task,
+    units::{
+        angular_velocity::AngularVelocity,
+        duration::Duration,
+        linear_velocity::LinearVelocity,
+    },
+    utilities::pos2::ExtendedPos2,
+    cfg::TOLERANCE_DISTANCE,
+};
 
 
 #[derive(Clone, Debug, PartialEq)]

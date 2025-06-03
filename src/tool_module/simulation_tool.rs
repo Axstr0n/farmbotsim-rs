@@ -1,13 +1,18 @@
-
-use super::env_tool::EnvTool;
-use super::tool::Tool;
-use crate::cfg::DEFAULT_ENV_CONFIG_PATH;
-use crate::environment::env::Env;
-
-use crate::environment::env_config::EnvConfig;
-use crate::rendering::camera::Camera;
-use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_task_manager_on_field};
-use crate::rendering::render::{ui_render_agents, ui_render_stations, ui_render_task_manager, ui_render_datetime};
+use crate::{
+    environment::env_module::{
+        env::Env,
+        env_config::EnvConfig,
+    },
+    rendering::{
+        camera::Camera,
+        render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_task_manager_on_field},
+        render::{ui_render_agents, ui_render_datetime, ui_render_stations, ui_render_task_manager},
+    },
+    tool_module::{
+        env_tool::EnvTool, tool::Tool
+    },
+    cfg::DEFAULT_ENV_CONFIG_PATH,
+};
 
 pub struct SimulationTool {
     tick: u32,
@@ -43,7 +48,6 @@ impl Tool for SimulationTool {
         render_coordinate_system(ui, &self.camera);
         render_spawn_area(ui, &self.camera, &self.env.spawn_area);
         render_obstacles(ui, &self.camera, &self.env.obstacles);
-        render_crops(ui, &self.camera, &self.env.field.crops);
         render_task_manager_on_field(ui, &self.camera, &self.env.task_manager);
         render_stations(ui, &self.camera, &self.env.stations);
         render_agents(ui, &self.camera, &self.env.agents);

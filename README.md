@@ -70,8 +70,8 @@ The **farmbotsim-rs** project is organized into several directories that help se
 
 `configs/`
 - `batteries/` - Contains battery configs.
-- `crop_plans/` - Contains plans for crop growth.
 - `env_configs/` - Contains configs with all parameters for env creation.
+- `farm_entity_plans/` - Contains plans for farm entity growth.
 
 `media/`- Contains screenshots of app.
 
@@ -79,9 +79,15 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `agent_module/` - Contains the agent struct and its associated logic, such as movement, battery, state machine.
 - `app_module/` - Main app functionality.
 - `environment/` - Contains all environment structs (Crop, Field, Station, Env, Config, ...).
+  - `env_module/` - Contains logic for env.
+  - `farm_entity_module/` - Contains logic for farm entity.
+  - `spawn_area_module/` - Contains logic for spawn area.
+  - `station_module/` - Contains logic for station.
+  - `...`
 - `path_finding_module/` - Includes code related to navigation and pathfinding algorithms.
 - `rendering/` - Responsible for rendering.
-- `task_module` - Includes files for task creation and task handling.
+- `task_module/` - Includes files for task creation and task handling.
+- `units/` - Unit system.
 - `tool_module/` - Contains files for app modes (simulation, editor, path, task, ...).
 - `utilities/` - Common utilities and helper functions used across the project.
 - `cfg.rs` - Contains constants.

@@ -1,24 +1,33 @@
 use egui::epaint::CircleShape;
 use egui::{Align2, Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
 use egui_plot::{Line, Plot, PlotPoint, PlotPoints, Text};
-//use std::fmt::Display;
 
-use super::camera::Camera;
-use crate::agent_module::agent::Agent;
-use crate::agent_module::battery::Battery;
-use crate::environment::crop::Crop;
-use crate::environment::field_config::VariantFieldConfig;
-use crate::environment::obstacle::Obstacle;
-use crate::environment::spawn_area::SpawnArea;
-use crate::environment::station::Station;
-use crate::path_finding_module::visibility_graph::VisibilityGraph;
-use crate::task_module::task::Task;
-use crate::task_module::task_manager::TaskManager;
-use crate::units::power::Power;
-use crate::utilities::datetime::DateTimeManager;
-use crate::utilities::vec2::{ExtendedVec2, Vec2Rotate};
-use crate::utilities::pos2::ExtendedPos2;
-
+use crate::environment::farm_entity_module::farm_entity::FarmEntity;
+use crate::environment::field_config::FieldConfig;
+use crate::{
+    agent_module::{
+        agent::Agent,
+        battery::Battery,
+    },
+    environment::{
+        datetime::DateTimeManager,
+        field_config::VariantFieldConfig,
+        obstacle::Obstacle,
+        spawn_area_module::spawn_area::SpawnArea,
+        station_module::station::Station,
+    },
+    path_finding_module::visibility_graph::VisibilityGraph,
+    rendering::camera::Camera,
+    task_module::{
+        task::Task,
+        task_manager::TaskManager,
+    },
+    units::power::Power,
+    utilities::{
+        vec2::{ExtendedVec2, Vec2Rotate},
+        pos2::ExtendedPos2,
+    }
+};
 
 
 // region: SCENE
@@ -73,20 +82,6 @@ pub fn render_obstacles(ui: &mut Ui, camera: &Camera, obstacles: &Vec<Obstacle>)
             Color32::from_rgb(0, 0, 0),
             Stroke::NONE,
         ));
-    }
-}
-
-pub fn render_crops(ui: &mut Ui, camera: &Camera, crops: &Vec<Crop>) {
-    let painter = ui.painter();
-    for crop in crops {
-        let center = camera.scene_to_screen_pos(crop.position);
-        let radius = camera.scene_to_screen_val(0.1);
-        painter.add(CircleShape {
-            center,
-            radius,
-            fill: Color32::GREEN,
-            stroke: Stroke::default(),
-        });
     }
 }
 
@@ -213,9 +208,9 @@ pub fn render_drag_points(ui: &mut Ui, camera: &Camera, points: &Vec<Pos2>) {
     }
 }
 
-pub fn render_variant_field_configs(ui: &mut Ui, camera: &Camera, configs: &Vec<VariantFieldConfig>) {
+pub fn render_field_config(ui: &mut Ui, camera: &Camera, config: &FieldConfig) {
     let painter = ui.painter();
-    for config_variant in configs {
+    for config_variant in &config.configs {
         match config_variant {
             VariantFieldConfig::Line(config) => {
                 for i in 0..config.n_lines {
@@ -467,7 +462,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                                 
                                 display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power, info } );
                             }
-                            Task::Moving { id, field_id, line_id, path, velocity, power ,info,..} => {
+                            Task::Moving { id, field_id, farm_entity_id, path, velocity, power ,info,..} => {
                                 let task_type = "Moving";
                                 let path: Vec<String> = path.iter()
                                     .map(|pos| pos.fmt(2))
@@ -475,7 +470,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                                 let vel = format!("{}", velocity);
                                 let dur = "-".to_string();
                                 let fid = field_id;
-                                let lid = line_id;
+                                let lid = farm_entity_id;
                                 
                                 display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power, info } );
                             }

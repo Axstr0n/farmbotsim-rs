@@ -1,6 +1,13 @@
 use egui::Ui;
 
-use crate::{cfg::ENV_CONFIGS_PATH, environment::{env::Env, env_config::EnvConfig, field_config::VariantFieldConfig, station::Station}, utilities::utils::{generate_colors, get_json_files_in_folder}};
+use crate::{
+    environment::{
+        env_module::{env::Env, env_config::EnvConfig},
+        field_config::VariantFieldConfig, station_module::station::Station
+    },
+    utilities::utils::{generate_colors, get_json_files_in_folder},
+    cfg::ENV_CONFIGS_PATH,
+};
 
 
 pub trait EnvTool {

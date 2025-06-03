@@ -1,14 +1,17 @@
 use egui::{Pos2, Vec2};
 use std::f32::consts::PI;
 
-use crate::cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE};
-use crate::units::angle::Angle;
-use crate::units::angular_velocity::AngularVelocity;
-use crate::units::duration::Duration;
-use crate::units::length::Length;
-use crate::units::linear_velocity::LinearVelocity;
-use crate::utilities:: vec2::Vec2Rotate;
-
+use crate::{
+    units::{
+        angle::Angle,
+        angular_velocity::AngularVelocity,
+        duration::Duration,
+        length::Length,
+        linear_velocity::LinearVelocity,
+    },
+    utilities::vec2::Vec2Rotate,
+    cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE},
+};
 
 pub trait Movement {
     fn calculate_inputs_for_target(self, position: Pos2, direction: Vec2, target_position: Pos2, target_direction: Option<Vec2>) -> Vec<f32>;

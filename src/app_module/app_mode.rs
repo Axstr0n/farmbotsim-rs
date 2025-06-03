@@ -4,7 +4,7 @@ pub enum AppMode {
     Task,
     Editor,
     Battery,
-    CropPlanEditor
+    FarmEntityPlanEditor
 }
 impl AppMode {
     pub fn variants() -> Vec<AppMode> {
@@ -14,7 +14,7 @@ impl AppMode {
             AppMode::Task,
             AppMode::Editor,
             AppMode::Battery,
-            AppMode::CropPlanEditor,
+            AppMode::FarmEntityPlanEditor,
         ]
     }
     pub fn to_string(&self) -> &str {
@@ -24,7 +24,7 @@ impl AppMode {
             AppMode::Task => "Task",
             AppMode::Editor => "Editor",
             AppMode::Battery => "Battery",
-            AppMode::CropPlanEditor => "CropPlanEditor"
+            AppMode::FarmEntityPlanEditor => "FarmEntityPlanEditor"
         }
     }
 }

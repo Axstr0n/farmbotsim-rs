@@ -1,29 +1,33 @@
 use egui::Vec2;
 
-use crate::agent_module::agent::Agent;
-use crate::agent_module::movement::RombaMovement;
-use crate::task_module::task_manager::TaskManager;
-use crate::units::duration::Duration;
-
-use super::env_config::EnvConfig;
-use super::field::Field;
-use super::field_config::FieldConfig;
-use super::obstacle::Obstacle;
-use super::station::Station;
-use super::spawn_area::SpawnArea;
-use crate::path_finding_module::visibility_graph::VisibilityGraph;
-use crate::utilities::datetime::{DateTimeConfig, DateTimeManager};
-
-use crate::utilities::pos2::random_pos2_in_rect;
-use crate::utilities::vec2::random_vec2;
-use crate::utilities::utils::generate_colors;
+use crate::{
+    agent_module::{
+        agent::Agent,
+        movement::RombaMovement,
+    },
+    environment::{
+        env_module::env_config::EnvConfig,
+        datetime::{DateTimeConfig, DateTimeManager},
+        field_config::FieldConfig,
+        obstacle::Obstacle,
+        spawn_area_module::spawn_area::SpawnArea,
+        station_module::station::Station,
+    },
+    path_finding_module::visibility_graph::VisibilityGraph,
+    task_module::task_manager::TaskManager,
+    units::duration::Duration,
+    utilities::{
+        pos2::random_pos2_in_rect,
+        vec2::random_vec2,
+        utils::generate_colors,
+    }
+};
 
 #[derive(Debug, Clone)]
 pub struct Env {
     pub step_count: u32,
     pub n_agents: u32,
     pub agents: Vec<Agent>,
-    pub field: Field,
     pub field_config: FieldConfig,
     pub stations: Vec<Station>,
     pub spawn_area: SpawnArea,
@@ -67,7 +71,6 @@ impl Env {
             step_count: 0,
             n_agents,
             agents,
-            field: Field::default(),
             field_config,
             stations,
             spawn_area,

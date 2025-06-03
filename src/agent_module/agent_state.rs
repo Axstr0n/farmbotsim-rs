@@ -1,13 +1,20 @@
 use std::collections::HashMap;
 
-use super::agent::Agent;
-use super::battery::Battery;
-use crate::cfg::{POWER_CONSUMPTION_WAIT, POWER_CONSUMPTION_TRAVEL};
-use crate::cfg::MAX_VELOCITY;
-use crate::task_module::task::Task;
-use crate::units::duration::Duration;
-use crate::units::power::Power;
-use crate::utilities::datetime::DateTimeManager;
+use crate::{
+    agent_module::{
+        agent::Agent,
+        battery::Battery,
+    },
+    environment::datetime::DateTimeManager,
+    task_module::task::Task,
+    units::{
+        duration::Duration,
+        power::Power,
+    },
+    cfg::{
+        POWER_CONSUMPTION_WAIT, POWER_CONSUMPTION_TRAVEL, MAX_VELOCITY,
+    },
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AgentState {

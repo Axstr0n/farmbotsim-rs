@@ -1,11 +1,12 @@
 use std::{collections::HashMap, fs};
-
 use egui::Slider;
 use egui_plot::{HLine, Legend, Line, Plot, PlotPoints};
 
-use crate::{agent_module::battery::{Battery, BatteryConfig, BatteryPack}, cfg::BATTERIES_PATH};
-
-use super::tool::Tool;
+use crate::{
+    agent_module::battery::{Battery, BatteryConfig, BatteryPack},
+    tool_module::tool::Tool,
+    cfg::BATTERIES_PATH
+};
 
 
 #[derive(Debug)]

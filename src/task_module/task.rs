@@ -19,7 +19,7 @@ pub enum Task {
         pos: Pos2,
         duration: Duration,
         intent: Intent,
-        crop_id: u32,
+        farm_entity_id: u32,
         field_id: u32,
         line_id: u32,
         power: Power,
@@ -31,7 +31,7 @@ pub enum Task {
         velocity: LinearVelocity,
         intent: Intent,
         field_id: u32,
-        line_id: u32,
+        farm_entity_id: u32,
         power: Power,
         info: String,
     },
@@ -76,6 +76,13 @@ impl Task {
             Task::Travel {.. } => { None },
             Task::WaitDuration {.. } => { None },
             Task::WaitInfinite {.. } => { None },
+        }
+    }
+    pub fn get_farm_entity_id(&self) -> Option<u32> {
+        match self {
+            Task::Stationary { farm_entity_id,.. } => Some(*farm_entity_id),
+            Task::Moving { farm_entity_id,.. } => Some(*farm_entity_id),
+            _ => None,
         }
     }
     pub fn get_path(&self) -> Option<Vec<Pos2>> {

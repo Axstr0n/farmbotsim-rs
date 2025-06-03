@@ -1,15 +1,18 @@
 use eframe::egui;
 use std::time::{Duration, Instant};
 
-
-use super::app_mode::AppMode;
-use crate::tool_module::crop_plan_editor_tool::CropPlanEditorTool;
-use crate::tool_module::tool::Tool;
-use crate::tool_module::simulation_tool::SimulationTool;
-use crate::tool_module::path_tool::PathTool;
-use crate::tool_module::task_tool::TaskTool;
-use crate::tool_module::editor_tool::EditorTool;
-use crate::tool_module::battery_tool::BatteryTool;
+use crate::{
+    app_module::app_mode::AppMode,
+    tool_module::{
+        battery_tool::BatteryTool,
+        editor_tool::EditorTool,
+        farm_entity_plan_editor_tool::FarmEntityPlanEditorTool,
+        path_tool::PathTool,
+        simulation_tool::SimulationTool,
+        task_tool::TaskTool,
+        tool::Tool,
+    },
+};
 
 pub struct App {
     mode: AppMode,
@@ -20,7 +23,7 @@ pub struct App {
     task_tool: TaskTool,
     editor_tool: EditorTool,
     battery_tool: BatteryTool,
-    crop_plan_editor_tool: CropPlanEditorTool,
+    farm_entity_plan_editor_tool: FarmEntityPlanEditorTool,
 
     fps: f32,
     tps: f32,
@@ -47,7 +50,7 @@ impl Default for App {
             task_tool: TaskTool::default(),
             editor_tool: EditorTool::default(),
             battery_tool: BatteryTool::default(),
-            crop_plan_editor_tool: CropPlanEditorTool::default(),
+            farm_entity_plan_editor_tool: FarmEntityPlanEditorTool::default(),
 
             fps: 0.0,
             tps: 0.0,
@@ -116,7 +119,7 @@ impl App {
             AppMode::Task => self.task_tool.update(),
             AppMode::Editor => self.editor_tool.update(),
             AppMode::Battery => {},
-            AppMode::CropPlanEditor => {}
+            AppMode::FarmEntityPlanEditor => {}
         }
         
     }
@@ -181,7 +184,7 @@ impl App {
                         AppMode::Task => self.task_tool.render_ui(ui),
                         AppMode::Editor => self.editor_tool.render_ui(ui),
                         AppMode::Battery => self.battery_tool.render_ui(ui),
-                        AppMode::CropPlanEditor => self.crop_plan_editor_tool.render_ui(ui),
+                        AppMode::FarmEntityPlanEditor => self.farm_entity_plan_editor_tool.render_ui(ui),
                     }
                 });
         });
@@ -205,10 +208,10 @@ impl App {
                             }
                         });
                 },
-                AppMode::CropPlanEditor => {
+                AppMode::FarmEntityPlanEditor => {
                     // Tools with text editor
                     match self.mode {
-                        AppMode::CropPlanEditor => self.crop_plan_editor_tool.render_main(ui),
+                        AppMode::FarmEntityPlanEditor => self.farm_entity_plan_editor_tool.render_main(ui),
                         _ => {}
                     }
                 },

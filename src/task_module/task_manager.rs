@@ -10,11 +10,13 @@ use crate::{
     },
     cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS},
     environment::{
-        crop::Crop,
-        crop_plan::CropActionInstance,
+        farm_entity_module::{
+            farm_entity::FarmEntity,
+            farm_entity_action::FarmEntityActionInstance,
+            farm_stages::FarmStages
+        },
         field_config::FieldConfig,
-        row::Row,
-        station::{Station, StationPosType}
+        station_module::station::{Station, StationPosType}
     },
     path_finding_module::{
         path_finding::PathFinding,
@@ -30,8 +32,7 @@ pub struct TaskManager {
     id_counter: u32,
     field_config: FieldConfig,
     
-    pub crops: HashMap<u32, Crop>, // stores all crops
-    pub rows: HashMap<u32, Row>, // stores all rows
+    pub farm_entities: HashMap<u32, FarmEntity>,
     pub waiting: HashMap<u32, Duration>, // stores and decremend all waiting actions
 
     pub work_list: VecDeque<Task>,
@@ -42,15 +43,14 @@ pub struct TaskManager {
 
 impl TaskManager {
     pub fn from_field_config(field_config: FieldConfig) -> Self {
-        let (crops, rows) = field_config.get_crops_rows();
-        let (id_counter, work_list) = Self::get_initial_work_list(&crops, &rows);
+        let farm_entities = field_config.get_farm_entities();
+        let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
         let obstacles = field_config.get_obstacles();
         let visibility_graph = VisibilityGraph::new(&field_config.get_graph_points(), obstacles);
         Self {
             id_counter,
             field_config,
-            crops,
-            rows,
+            farm_entities,
             waiting: HashMap::new(),
             work_list,
             assigned_tasks: vec![],
@@ -60,26 +60,19 @@ impl TaskManager {
     }
 
     pub fn reset(&mut self) {
-        let (crops, rows) = self.field_config.get_crops_rows();
-        let (id_counter, work_list) = Self::get_initial_work_list(&crops, &rows);
+        let farm_entities = self.field_config.get_farm_entities();
+        let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
         self.id_counter = id_counter;
         self.work_list = work_list;
         self.assigned_tasks.clear();
         self.completed_tasks.clear();
     }
 
-    fn get_initial_work_list(crops: &HashMap<u32, Crop>, rows: &HashMap<u32, Row>) -> (u32, VecDeque<Task>) {
+    fn get_initial_work_list(farm_entities: &HashMap<u32, FarmEntity>) -> (u32, VecDeque<Task>) {
         let mut work_list = VecDeque::new();
         let mut task_id_counter = 0;
-        for crop in crops.values() {
-            let task = crop.stages[0].to_stationary_task(task_id_counter);
-            if let Some(task) = task {
-                work_list.push_back(task);
-                task_id_counter += 1;
-            }
-        }
-        for row in rows.values() {
-            let task = row.stages[0].to_moving_task(task_id_counter);
+        for entity in farm_entities.values() {
+            let task = entity.stages()[0].to_task(task_id_counter);
             if let Some(task) = task {
                 work_list.push_back(task);
                 task_id_counter += 1;
@@ -90,36 +83,19 @@ impl TaskManager {
     }
 
     fn on_work_task_completed(&mut self, task: Task) {
-        match task {
-            Task::Stationary { crop_id, .. } => {
-                if let Some(crop) = self.crops.get_mut(&crop_id) {
-                    crop.increment_stage();
-                    if let Some(next_action_instance) = crop.get_next_action_instance() {
-                        let next_task = next_action_instance.to_stationary_task(self.id_counter);
-                        if let Some(next_task) = next_task {
-                            self.id_counter += 1;
-                            self.work_list.push_back(next_task);
-                        } else if let CropActionInstance::Wait { id, duration , ..} = next_action_instance {
-                            self.waiting.insert(id, duration);
-                        }
+        if let Some(farm_entity_id) = task.get_farm_entity_id() {
+            if let Some(entity) = self.farm_entities.get_mut(&farm_entity_id) {
+                entity.increment_stage();
+                if let Some(next_action_instance) = entity.get_next_action_instance() {
+                    let next_task = next_action_instance.to_task(self.id_counter);
+                    if let Some(next_task) = next_task {
+                        self.id_counter += 1;
+                        self.work_list.push_back(next_task);
+                    } else if let FarmEntityActionInstance::Wait { id, duration , ..} = next_action_instance {
+                        self.waiting.insert(id, duration);
                     }
                 }
-            },
-            Task::Moving { line_id, .. } => {
-                if let Some(row) = self.rows.get_mut(&line_id) {
-                    row.increment_stage();
-                    if let Some(next_action_instance) = row.get_next_action_instance() {
-                        let next_task = next_action_instance.to_moving_task(self.id_counter);
-                        if let Some(next_task) = next_task {
-                            self.id_counter += 1;
-                            self.work_list.push_back(next_task);
-                        } else if let CropActionInstance::Wait { id, duration , ..} = next_action_instance {
-                            self.waiting.insert(id, duration);
-                        }
-                    }
-                }
-            },
-            _ => {}
+            }
         }
     }
 
@@ -138,28 +114,15 @@ impl TaskManager {
     }
     
     fn add_new_task_for_id(&mut self, id: u32) {
-        if let Some(crop) = self.crops.get_mut(&id) {
-            crop.increment_stage();
-            let next_action_instance = crop.get_next_action_instance();
+        if let Some(entity) = self.farm_entities.get_mut(&id) {
+            entity.increment_stage();
+            let next_action_instance = entity.get_next_action_instance();
             if let Some(next_action_instance) = next_action_instance {
-                let next_task = next_action_instance.to_stationary_task(self.id_counter);
+                let next_task = next_action_instance.to_task(self.id_counter);
                 if let Some(next_task) = next_task {
                     self.id_counter += 1;
                     self.work_list.push_back(next_task);
-                } else if let CropActionInstance::Wait { id, duration, .. } = next_action_instance {
-                    self.waiting.insert(id, duration);
-                }
-            }
-        }
-        else if let Some(row) = self.rows.get_mut(&id) {
-            row.increment_stage();
-            let next_action_instance = row.get_next_action_instance();
-            if let Some(next_action_instance) = next_action_instance {
-                let next_task = next_action_instance.to_moving_task(self.id_counter);
-                if let Some(next_task) = next_task {
-                    self.id_counter += 1;
-                    self.work_list.push_back(next_task);
-                } else if let CropActionInstance::Wait { id, duration, .. } = next_action_instance {
+                } else if let FarmEntityActionInstance::Wait { id, duration, .. } = next_action_instance {
                     self.waiting.insert(id, duration);
                 }
             }
@@ -351,9 +314,9 @@ impl TaskManager {
                             }
                             None
                         },
-                        Task::Moving { field_id, line_id, .. } => {
-                            if let Task::Stationary { field_id: field_id_, line_id: line_id_, .. } = task.clone() {
-                                if *field_id == field_id_ && *line_id == line_id_ {
+                        Task::Moving { field_id, farm_entity_id, .. } => {
+                            if let Task::Stationary { field_id: field_id_, farm_entity_id: farm_entity_id_, .. } = task.clone() {
+                                if *field_id == field_id_ && *farm_entity_id == farm_entity_id_ {
                                     return Some(other.clone());
                                 }
                             }

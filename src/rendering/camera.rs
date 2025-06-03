@@ -1,7 +1,6 @@
 use egui::{Pos2, Ui};
 
 
-
 pub struct Camera {
     pub zoom_level: f32,
     zoom_factor: f32,

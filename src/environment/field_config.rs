@@ -1,15 +1,23 @@
 use std::collections::HashMap;
 use egui::{Pos2, Vec2};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde::de;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::units::angle::Angle;
-use crate::units::length::Length;
-use crate::utilities::vec2::Vec2Rotate;
-use super::crop::Crop;
-use super::crop_plan::CropPlan;
-use super::obstacle::Obstacle;
-use super::row::Row;
+use crate::{
+    environment::{
+        farm_entity_module::{
+            crop::Crop,
+            farm_entity::FarmEntity,
+            farm_entity_plan::FarmEntityPlan,
+            row::Row,
+        },
+        obstacle::Obstacle,
+    },
+    units::{
+        angle::Angle,
+        length::Length,
+    },
+    utilities::vec2::Vec2Rotate,
+};
 
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
@@ -23,7 +31,7 @@ pub struct LineFieldConfig {
     pub n_lines: u32,
     pub length: Length,
     pub line_spacing: Length,
-    pub crop_plan: CropPlan,
+    pub crop_plan: FarmEntityPlan,
 }
 impl Default for LineFieldConfig {
     fn default() -> Self {
@@ -35,7 +43,7 @@ impl Default for LineFieldConfig {
             n_lines: 3,
             length: Length::meters(4.0),
             line_spacing: Length::meters(0.4),
-            crop_plan: CropPlan::default_line(),
+            crop_plan: FarmEntityPlan::default_line(),
         }
     }
 }
@@ -49,7 +57,7 @@ impl LineFieldConfig {
             n_lines,
             length,
             line_spacing,
-            crop_plan: CropPlan::from_json_file(crop_plan_path),
+            crop_plan: FarmEntityPlan::from_json_file(crop_plan_path),
         }
     }
 }
@@ -66,7 +74,7 @@ pub struct PointFieldConfig {
     pub n_points_per_line: u32,
     pub line_spacing: Length,
     pub point_spacing: Length,
-    pub crop_plan: CropPlan,
+    pub crop_plan: FarmEntityPlan,
 }
 impl Default for PointFieldConfig {
     fn default() -> Self {
@@ -79,7 +87,7 @@ impl Default for PointFieldConfig {
             n_points_per_line: 6,
             line_spacing: Length::meters(0.4),
             point_spacing: Length::meters(0.3),
-            crop_plan: CropPlan::default_point(),
+            crop_plan: FarmEntityPlan::default_point(),
         }
     }
 }
@@ -94,7 +102,7 @@ impl PointFieldConfig {
             n_points_per_line,
             line_spacing,
             point_spacing,
-            crop_plan: CropPlan::from_json_file(crop_plan_path),
+            crop_plan: FarmEntityPlan::from_json_file(crop_plan_path),
         }
     }
 }
@@ -224,9 +232,8 @@ impl FieldConfig {
         points
     }
     
-    pub fn get_crops_rows(&self) -> (HashMap<u32, Crop>, HashMap<u32, Row>) {
-        let mut crops = HashMap::new();
-        let mut rows = HashMap::new();
+    pub fn get_farm_entities(&self) -> HashMap<u32, FarmEntity> {
+        let mut farm_entities = HashMap::new();
 
         let mut id_counter = 0;
 
@@ -237,7 +244,8 @@ impl FieldConfig {
                     let ls_val = c.line_spacing.value;
                     for i in 0..c.n_lines {
                         let path = vec![c.left_top_pos+Vec2::new(i as f32*ls_val, 0.0).rotate(c.angle), c.left_top_pos+Vec2::new(i as f32*ls_val, c.length.to_base_unit()).rotate(c.angle)];
-                        rows.insert(id_counter, Row::new(id_counter, field_id, path, c.crop_plan.clone()));
+                        let row = Row::new(id_counter, field_id, path, c.crop_plan.clone());
+                        farm_entities.insert(id_counter, FarmEntity::Row(row));
                         id_counter += 1;
                     }
                 },
@@ -245,7 +253,8 @@ impl FieldConfig {
                     for i in 0..c.n_lines {
                         for j in 0..c.n_points_per_line {
                             let pos = c.left_top_pos + Vec2::new(c.line_spacing.to_base_unit()*i as f32, c.point_spacing.to_base_unit()*j as f32).rotate(c.angle);
-                            crops.insert(id_counter, Crop::new(id_counter, field_id, i, pos, c.crop_plan.clone()));
+                            let crop = Crop::new(id_counter, field_id, i, pos, c.crop_plan.clone());
+                            farm_entities.insert(id_counter, FarmEntity::Crop(crop));
                             id_counter += 1;
                         }
                     }
@@ -253,6 +262,7 @@ impl FieldConfig {
             }
         }
 
-        (crops, rows)
+        farm_entities
     }
+
 }

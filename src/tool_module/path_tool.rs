@@ -1,15 +1,22 @@
+use crate::{
+    environment::env_module::{
+        env::Env,
+        env_config::EnvConfig,
+    },
+    path_finding_module::path_finding::PathFinding,
+    rendering::{
+        camera::Camera,
+        render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph},
+        render::{ui_render_agents_path, ui_render_mouse_screen_scene_pos},
+    },
+    task_module::task::{Task, Intent},
+    tool_module::{
+        tool::Tool,
+        env_tool::EnvTool,
+    },
+    cfg::{DEFAULT_ENV_CONFIG_PATH, MAX_VELOCITY},
+};
 
-use super::env_tool::EnvTool;
-use super::tool::Tool;
-use crate::cfg::{DEFAULT_ENV_CONFIG_PATH, MAX_VELOCITY};
-use crate::environment::env::Env;
-
-use crate::environment::env_config::EnvConfig;
-use crate::rendering::camera::Camera;
-use crate::rendering::render::{render_agents, render_coordinate_system, render_crops, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph};
-use crate::rendering::render::{ui_render_agents_path, ui_render_mouse_screen_scene_pos};
-use crate::task_module::task::{Task, Intent};
-use crate::path_finding_module::path_finding::PathFinding;
 
 pub struct PathTool {
     tick: u32,
@@ -46,7 +53,6 @@ impl Tool for PathTool {
         render_spawn_area(ui, &self.camera, &self.env.spawn_area);
         render_visibility_graph(ui, &self.camera, &self.env.visibility_graph);
         render_obstacles(ui, &self.camera, &self.env.obstacles);
-        render_crops(ui, &self.camera, &self.env.field.crops);
         render_stations(ui, &self.camera, &self.env.stations);
         render_agents(ui, &self.camera, &self.env.agents);
     }
