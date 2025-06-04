@@ -174,7 +174,7 @@ impl App {
             .max_width(650.0)
             .show(ctx, |ui| {
                 
-                ui.heading(self.mode.to_string());
+                ui.label(egui::RichText::new(self.mode.to_string()).strong().size(20.0));
                 ui.separator();
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     

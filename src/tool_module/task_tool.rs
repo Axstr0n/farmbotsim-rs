@@ -6,19 +6,20 @@ use crate::{
     },
     rendering::{
         camera::Camera,
-        render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_task_manager_on_field, render_visibility_graph, ui_render_agents, ui_render_mouse_screen_scene_pos, ui_render_stations, ui_render_task_manager},
+        render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_task_manager_on_field, render_visibility_graph, ui_render_agents, ui_render_datetime, ui_render_stations, ui_render_task_manager},
     },
     tool_module::{
-        env_tool::EnvTool, tool::Tool
+        has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
     }
 };
 
 pub struct TaskTool {
-    tick: u32,
-    running: bool,
+    pub tick: u32,
+    pub running: bool,
     pub env: Env,
-    camera: Camera,
+    pub camera: Camera,
     pub current_env_config_string: String,
+    pub help_open: bool,
 }
 
 impl Default for TaskTool {
@@ -31,6 +32,7 @@ impl Default for TaskTool {
             env,
             camera: Camera::default(),
             current_env_config_string: env_config_string,
+            help_open: false,
         };
         instance.recalc_charging_stations();
         instance.recalc_field_config_on_add_remove();
@@ -52,26 +54,18 @@ impl Tool for TaskTool {
         render_agents(ui, &self.camera, &self.env.agents);
     }
     fn render_ui(&mut self, ui: &mut egui::Ui) {
-        self.config_select(ui);
-        
-        ui_render_mouse_screen_scene_pos(ui, &self.camera);
-        
-        ui.label(format!("Running: {}", self.running));
-        ui.label(format!("Env_step: {}", self.env.step_count));
+        self.render_help_button(ui);
+        ui.separator();
 
-        if !self.running {
-            if ui.button("Start").clicked() {
-                self.running = true;
-            }
-        } else if ui.button("Pause").clicked() {
-            self.running = false;
-        }
-        if ui.button("Reset").clicked() {
-            self.reset();
-        }
-
+        self.ui_config_select(ui);
+        
+        self.ui_mouse_position(ui);
         ui.separator();
         
+        self.ui_render_controls(ui);
+        ui.separator();
+        
+        ui.label(egui::RichText::new("Manuall task assignment:").size(16.0));
         for i in 0..=self.env.agents.len()-1 {
             ui.horizontal(|ui| {
                 if ui.button(format!("Agent {} ->  work", i)).clicked() {
@@ -131,11 +125,14 @@ impl Tool for TaskTool {
 
         ui.separator();
 
+        ui.label(egui::RichText::new("Env information:").size(16.0));
+        ui_render_datetime(ui, &self.env.date_time_manager);
         ui_render_agents(ui, &self.env.agents);
-        ui.separator();
         ui_render_stations(ui, &self.env.stations);
-        ui.separator();
         ui_render_task_manager(ui, &self.env.task_manager);
+        ui.separator();
+
+        self.render_help(ui);
     }
     fn update(&mut self) {
         if self.running {
@@ -148,10 +145,31 @@ impl Tool for TaskTool {
     }
 }
 
-impl TaskTool {
-    fn reset(&mut self) {
-        self.tick = 0;
-        self.running = false;
-        self.env.reset();
+impl HasHelp for TaskTool {
+    fn help_modal(&self) -> egui::Modal {
+        egui::Modal::new(egui::Id::new("Task Tool Help"))
+    }
+    fn render_help_contents(&self, ui: &mut egui::Ui) {
+        ui.heading("Task Tool Help");
+        ui.label("This is a Task tool where you can manually control what agents do.");
+        ui.separator();
+
+        ui.label("Env config:");
+        ui.label("In dropdown you can select env config.");
+        ui.separator();
+
+        ui.label("Env controls:");
+        ui.label("Then you have start/pause/resume/reset controls for env as well as current env step count.");
+        ui.separator();
+
+        ui.label("Manual task assignment:");
+        ui.label("For each agent you can send him to spawn, work or charge.");
+        ui.separator();
+
+        ui.label("Env information:");
+        ui.label("Date time to keep track of time progression.");
+        ui.label("Agents are represented with table with their information.");
+        ui.label("Stations are represented in table with information.");
+        ui.label("Task manager with available, assigned, completed tasks");
     }
 }

@@ -1,29 +1,23 @@
 use crate::{
-    environment::env_module::{
+    cfg::{DEFAULT_ENV_CONFIG_PATH, MAX_VELOCITY}, environment::env_module::{
         env::Env,
         env_config::EnvConfig,
-    },
-    path_finding_module::path_finding::PathFinding,
-    rendering::{
+    }, path_finding_module::path_finding::PathFinding, rendering::{
         camera::Camera,
-        render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph},
-        render::{ui_render_agents_path, ui_render_mouse_screen_scene_pos},
-    },
-    task_module::task::{Task, Intent},
-    tool_module::{
-        tool::Tool,
-        env_tool::EnvTool,
-    },
-    cfg::{DEFAULT_ENV_CONFIG_PATH, MAX_VELOCITY},
+        render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph, ui_render_agents_path},
+    }, task_module::task::{Intent, Task}, tool_module::{
+        has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
+    }
 };
 
 
 pub struct PathTool {
-    tick: u32,
-    running: bool,
+    pub tick: u32,
+    pub running: bool,
     pub env: Env,
-    camera: Camera,
+    pub camera: Camera,
     pub current_env_config_string: String,
+    pub help_open: bool,
 }
 
 impl Default for PathTool {
@@ -36,6 +30,7 @@ impl Default for PathTool {
             env,
             camera: Camera::default(),
             current_env_config_string: env_config_string,
+            help_open: false,
         };
         instance.recalc_charging_stations();
         instance.recalc_field_config_on_add_remove();
@@ -57,29 +52,22 @@ impl Tool for PathTool {
         render_agents(ui, &self.camera, &self.env.agents);
     }
     fn render_ui(&mut self, ui: &mut egui::Ui) {
-
-        self.config_select(ui);
-
-        ui_render_mouse_screen_scene_pos(ui, &self.camera);
-        
-        ui.label(format!("Running: {}", self.running));
-        ui.label(format!("Env_step: {}", self.env.step_count));
-
-        if !self.running {
-            if ui.button("Start").clicked() {
-                self.running = true;
-            }
-        } else if ui.button("Pause").clicked() {
-            self.running = false;
-        }
-        if ui.button("Reset").clicked() {
-            self.tick = 0;
-            self.running = false;
-            self.env.reset();
-        }
-
+        self.render_help_button(ui);
         ui.separator();
+
+        self.ui_config_select(ui);
+        ui.separator();
+
+        self.ui_mouse_position(ui);
+        ui.separator();
+        
+        self.ui_render_controls(ui);
+        ui.separator();
+
+        ui.label(egui::RichText::new("Env information:").size(16.0));
         ui_render_agents_path(ui, &self.env.agents);
+
+        self.render_help(ui);
     }
     fn update(&mut self) {
         if self.running {
@@ -87,6 +75,7 @@ impl Tool for PathTool {
             self.env.step();
         }
     }
+
 }
 
 impl PathTool {
@@ -107,6 +96,32 @@ impl PathTool {
             }
         }
     
+    }
+}
+
+impl HasHelp for PathTool {
+    fn help_modal(&self) -> egui::Modal {
+        egui::Modal::new(egui::Id::new("Path Tool Help"))
+    }
+    fn render_help_contents(&self, ui: &mut egui::Ui) {
+        ui.heading("Path Tool Help");
+        ui.label("This is a path tool where you can test pathfinding with clicking on screen(env).");
+        ui.separator();
+
+        ui.label("Env config:");
+        ui.label("In dropdown you can select env config.");
+        ui.separator();
+
+        ui.label("Mouse position:");
+        ui.label("See where mouse is on screen and in env/scene.");
+        ui.separator();
+
+        ui.label("Env controls:");
+        ui.label("Then you have start/pause/resume/reset controls for env as well as current env step count.");
+        ui.separator();
+
+        ui.label("Env information:");
+        ui.label("Agents with information.");
     }
 }
 

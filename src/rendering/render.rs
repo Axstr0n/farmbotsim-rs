@@ -2,16 +2,13 @@ use egui::epaint::CircleShape;
 use egui::{Align2, Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
 use egui_plot::{Line, Plot, PlotPoint, PlotPoints, Text};
 
-use crate::environment::farm_entity_module::farm_entity::FarmEntity;
-use crate::environment::field_config::FieldConfig;
 use crate::{
     agent_module::{
         agent::Agent,
-        battery::Battery,
     },
     environment::{
         datetime::DateTimeManager,
-        field_config::VariantFieldConfig,
+        field_config::{FieldConfig, VariantFieldConfig},
         obstacle::Obstacle,
         spawn_area_module::spawn_area::SpawnArea,
         station_module::station::Station,
@@ -356,24 +353,61 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
 }
 
 pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
-    for agent in agents {
-        ui.horizontal(|ui| {
-            ui.label(RichText::new("⏺").color(agent.color));
-            ui.label(format!(" {} {} {} {:?} {:.2}%", agent.id, agent.position.fmt(2), agent.direction.fmt(2), agent.state, agent.battery.get_soc()));
-        });
-
-        let mut path_str = String::new();
-        if let Some(task) = &agent.current_task {
-            if let Some(path) = task.get_path() {
-                for p in path {
-                    path_str += &format!("{:?}",p);
+    ui.label("Agents");
+    Grid::new("agents")
+    .striped(true)
+    .show(ui, |ui| {
+        ui.label(" ");
+        ui.label("Id");
+        ui.label("Position            ");
+        ui.label("Direction         ");
+        ui.label("State             ");
+        ui.label("Battery  ");
+        ui.label("Path");
+        ui.end_row();
+        
+        for agent in agents {
+            ui.label(RichText::new("⏺").color(agent.color)); //⏹⏺
+            ui.label(agent.id.to_string());
+            ui.label(agent.position.fmt(2));
+            ui.label(agent.direction.fmt(2));
+            ui.label(format!("{:?}", agent.state));
+            ui.label(format!("{:.2}", agent.battery.soc));
+            let mut path_str = String::new();
+            if let Some(task) = &agent.current_task {
+                if let Some(path) = task.get_path() {
+                    for p in path {
+                        path_str += &format!("{:?}",p);
+                    }
                 }
+            } else {
+                path_str = "None".to_string();
             }
-        } else {
-            path_str = "None".to_string();
+            ui.label(format!("Path: {}", path_str));
+            ui.end_row();
         }
-        ui.label(format!("Path: {}", path_str));
-    }
+    });
+
+
+
+    // for agent in agents {
+    //     ui.horizontal(|ui| {
+    //         ui.label(RichText::new("⏺").color(agent.color));
+    //         ui.label(format!(" {} {} {} {:?} {:.2}%", agent.id, agent.position.fmt(2), agent.direction.fmt(2), agent.state, agent.battery.get_soc()));
+    //     });
+
+    //     let mut path_str = String::new();
+    //     if let Some(task) = &agent.current_task {
+    //         if let Some(path) = task.get_path() {
+    //             for p in path {
+    //                 path_str += &format!("{:?}",p);
+    //             }
+    //         }
+    //     } else {
+    //         path_str = "None".to_string();
+    //     }
+    //     ui.label(format!("Path: {}", path_str));
+    // }
 }
 
 pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
@@ -399,20 +433,6 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
             ui.end_row();
         }
     });
-}
-
-pub fn ui_render_mouse_screen_scene_pos(ui: &mut Ui, camera: &Camera) {
-    let (mouse_pos, scene_pos) = match camera.mouse_position {
-        Some(pos) => {
-            let scene_pos = camera.screen_to_scene_pos(pos);
-            (Some(pos), Some(scene_pos))
-        },
-        None => {
-            (None, None)
-        },
-    };
-    ui.label(format!("Mouse pos: {}", mouse_pos.map_or("None".to_string(), |p| p.fmt(2))));
-    ui.label(format!("Scene pos: {}", scene_pos.map_or("None".to_string(), |p| p.fmt(2))));
 }
 
 pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {

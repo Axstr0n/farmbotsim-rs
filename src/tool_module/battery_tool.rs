@@ -3,9 +3,7 @@ use egui::Slider;
 use egui_plot::{HLine, Legend, Line, Plot, PlotPoints};
 
 use crate::{
-    agent_module::battery::{Battery, BatteryConfig, BatteryPack},
-    tool_module::tool::Tool,
-    cfg::BATTERIES_PATH
+    agent_module::battery::{Battery, BatteryConfig, BatteryPack}, cfg::BATTERIES_PATH, tool_module::{has_help::HasHelp, tool::Tool}
 };
 
 
@@ -16,6 +14,7 @@ pub struct BatteryTool {
     battery_map: HashMap<String, BatteryPack>,
     month: u32,
     morph_data: Option<Vec<(u32, f32)>>,
+    pub help_open: bool,
 }
 
 impl Default for BatteryTool {
@@ -39,6 +38,7 @@ impl Default for BatteryTool {
             battery_map: HashMap::new(),
             month: 1,
             morph_data: None,
+            help_open: false,
         }
     }
 }
@@ -106,6 +106,8 @@ impl Tool for BatteryTool {
     }
 
     fn render_ui(&mut self, ui: &mut egui::Ui) {
+        self.render_help_button(ui);
+        ui.separator();
 
         ui.label("Batteries");
         for folder in &self.folder_names {
@@ -166,6 +168,8 @@ impl Tool for BatteryTool {
                 }
             }
         }
+        
+        self.render_help(ui);
     }
 
     fn update(&mut self) {
@@ -173,6 +177,15 @@ impl Tool for BatteryTool {
     }
 }
 
-impl BatteryTool {
-    
+impl HasHelp for BatteryTool {
+    fn help_modal(&self) -> egui::Modal {
+        egui::Modal::new(egui::Id::new("Battery Tool Help"))
+    }
+    fn render_help_contents(&self, ui: &mut egui::Ui) {
+        ui.heading("Battery Tool Help");
+        ui.label("This is a battery tool where you can see selected battery charging characteristics and parameters.");
+        ui.separator();
+
+        ui.label("When battery is selected you can see morphed characteristics between jan and jun data.");
+    }
 }

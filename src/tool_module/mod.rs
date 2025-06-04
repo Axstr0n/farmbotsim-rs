@@ -1,5 +1,7 @@
 pub mod tool;
-pub mod env_tool;
+pub mod has_env;
+pub mod has_env_controls;
+pub mod has_help;
 pub mod simulation_tool;
 pub mod path_tool;
 pub mod editor_tool;

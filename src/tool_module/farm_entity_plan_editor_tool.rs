@@ -2,10 +2,10 @@ use std::{fs::{self, File}, io::Write};
 use egui::Ui;
 
 use crate::{
+    cfg::{DEFAULT_POINT_FARM_ENTITY_PLAN_PATH, FARM_ENTITY_PLANS_PATH},
     environment::farm_entity_module::farm_entity_plan::FarmEntityPlan,
-    tool_module::tool::Tool,
-    utilities::utils::get_json_files_in_folder,
-    cfg::{FARM_ENTITY_PLANS_PATH, DEFAULT_POINT_FARM_ENTITY_PLAN_PATH},
+    tool_module::{has_help::HasHelp, tool::Tool},
+    utilities::utils::get_json_files_in_folder
 };
 
 
@@ -13,6 +13,7 @@ pub struct FarmEntityPlanEditorTool {
     content: String,
     save_file_name: String,
     pub current_farm_entity_plan_path: String,
+    pub help_open: bool,
 }
 
 impl Default for FarmEntityPlanEditorTool {
@@ -23,6 +24,7 @@ impl Default for FarmEntityPlanEditorTool {
             content: json_str,
             save_file_name: String::new(),
             current_farm_entity_plan_path: file_path.to_string(),
+            help_open: false,
         }
     }
 }
@@ -44,6 +46,9 @@ impl Tool for FarmEntityPlanEditorTool {
     }
 
     fn render_ui(&mut self, ui: &mut egui::Ui) {
+        self.render_help_button(ui);
+        ui.separator();
+
         ui.horizontal(|ui| {
             ui.label(FARM_ENTITY_PLANS_PATH);
             ui.add(egui::TextEdit::singleline(&mut self.save_file_name).desired_width(100.0));
@@ -61,6 +66,8 @@ impl Tool for FarmEntityPlanEditorTool {
             }
         });
         self.config_select(ui);
+
+        self.render_help(ui);
     }
 
     fn update(&mut self) {
@@ -100,5 +107,43 @@ impl FarmEntityPlanEditorTool {
         
         println!("Successfully saved to {}", filename);
         Ok(())
+    }
+}
+
+impl HasHelp for FarmEntityPlanEditorTool {
+    fn help_modal(&self) -> egui::Modal {
+        egui::Modal::new(egui::Id::new("Farm Entity Plan Editor Tool Help"))
+    }
+    fn render_help_contents(&self, ui: &mut egui::Ui) {
+        ui.heading("Farm Entity Plan Editor Tool Help");
+        ui.label("This is a Farm Entity Plan Editor where you can see, change, create, save plans.");
+        ui.separator();
+
+        ui.label("Type specifies if whole plan is point/stationary or line/moving. (point and line)");
+        ui.label("Cycle parameter specify if after the last action the plan cycles and from which index");
+
+        ui.label("There are 3 types of actions:");
+        ui.monospace(
+        r#"pub enum FarmEntityAction {
+    Point {
+        action_name: String,
+        duration: Duration,
+        power: Power,
+    },
+    Line {
+        action_name: String,
+        velocity: LinearVelocity,
+        power: Power,
+    },
+    Wait {
+        action_name: String,
+        duration: Duration,
+    }
+}"#,
+    );
+        ui.label("Where power, duration and linear velocity can be specified as:");
+        ui.label("Power: W-watt");
+        ui.label("Duration: s-second, min-minute, h-hour, d-day");
+        ui.label("Linear velocity: m/s-meters per second, km/h-kilometers per hour");
     }
 }

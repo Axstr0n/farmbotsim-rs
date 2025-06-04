@@ -5,34 +5,25 @@ use serde_json::to_string_pretty;
 use egui::{Slider, Ui};
 
 
-use super::env_tool::EnvTool;
 use crate::{
-    environment::{
-        datetime::{DATE_FORMAT, TIME_FORMAT},
-        env_module::{
+    cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH}, environment::{
+        datetime::{DATE_FORMAT, TIME_FORMAT}, env_module::{
             env::Env,
             env_config::EnvConfig,
-        },
-        station_module::station::Station,
-        field_config::{LineFieldConfig, PointFieldConfig, VariantFieldConfig},
-    },
-    rendering::{
+        }, field_config::{LineFieldConfig, PointFieldConfig, VariantFieldConfig}, station_module::station::Station
+    }, rendering::{
         camera::Camera,
-        render::{render_coordinate_system, render_drag_points, render_grid, render_obstacles, render_spawn_area, render_stations, render_field_config, render_visibility_graph},
-        render::{ui_render_mouse_screen_scene_pos},
-    },
-    tool_module::tool::Tool,
-    utilities::pos2::ExtendedPos2,
-    cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH},
+        render::{render_coordinate_system, render_drag_points, render_field_config, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph},
+    }, tool_module::{has_help::HasHelp, has_env::HasEnv, tool::Tool}, utilities::pos2::ExtendedPos2
 };
 
 
 pub struct EditorTool {
-    tick: u32,
     pub env: Env,
-    camera: Camera,
+    pub camera: Camera,
     save_file_name: String,
     pub current_env_config_string: String,
+    pub help_open: bool,
 }
 
 impl Default for EditorTool {
@@ -40,11 +31,11 @@ impl Default for EditorTool {
         let env_config_string = DEFAULT_ENV_CONFIG_PATH.to_string();
         let env = Env::from_config(EnvConfig::from_json_file(&env_config_string).expect("Error"));
         let mut instance = Self {
-            tick: 0,
             env,
             camera: Camera::default(),
             save_file_name: String::new(),
             current_env_config_string: env_config_string,
+            help_open: false,
         };
         instance.recalc_charging_stations();
         instance.recalc_field_config_on_add_remove();
@@ -54,10 +45,7 @@ impl Default for EditorTool {
 }
 
 impl Tool for EditorTool {
-    fn update(&mut self) {
-        self.tick += 1;
-        
-    }
+    fn update(&mut self) {}
 
     fn render_main(&mut self, ui: &mut Ui) {
         self.camera.handle_events(ui);
@@ -72,6 +60,10 @@ impl Tool for EditorTool {
     }
 
     fn render_ui(&mut self, ui: &mut Ui) {
+        self.render_help_button(ui);
+        ui.separator();
+
+        self.ui_config_select(ui);
         ui.horizontal(|ui| {
             ui.label(ENV_CONFIGS_PATH);
             ui.add(egui::TextEdit::singleline(&mut self.save_file_name).desired_width(100.0));
@@ -83,19 +75,12 @@ impl Tool for EditorTool {
                 self.create_env(self.current_env_config_string.clone());
             }
         });
-
-        self.config_select(ui);
-
         ui.separator();
         
-        ui_render_mouse_screen_scene_pos(ui, &self.camera);
-
-        // ui.label(format!("Camera pos: {}", self.camera.position.fmt(2)));
-        // ui.label(format!("Zoom: {}", self.camera.zoom_level));
-
+        self.ui_mouse_position(ui);
         ui.separator();
-
         
+        ui.label(egui::RichText::new("Env information:").size(16.0));
         egui::CollapsingHeader::new("n_agents")
         .default_open(true)
         .show(ui, |ui| {
@@ -128,7 +113,9 @@ impl Tool for EditorTool {
                 }
             });
 
-        egui::CollapsingHeader::new("Fields")
+        egui::CollapsingHeader::new(
+            format!("Fields ({})", self.env.field_config.configs.len())
+        )
             .default_open(true)
             .show(ui, |ui| {
                 ui.horizontal_top(|ui| {
@@ -316,6 +303,8 @@ impl Tool for EditorTool {
                 }
 
             });
+        
+        self.render_help(ui);
     }
     
 }
@@ -410,5 +399,27 @@ impl EditorTool {
         
         println!("Successfully saved to {}", filename);
         Ok(())
+    }
+}
+
+impl HasHelp for EditorTool {
+    fn help_modal(&self) -> egui::Modal {
+        egui::Modal::new(egui::Id::new("Editor Tool Help"))
+    }
+    fn render_help_contents(&self, ui: &mut egui::Ui) {
+        ui.heading("Editor Tool Help");
+        ui.label("This is a editor tool where you can create, adjust and save env config.");
+        ui.separator();
+
+        ui.label("Env config:");
+        ui.label("In dropdown you can select env config and save new config");
+        ui.separator();
+
+        ui.label("Mouse position:");
+        ui.label("See where mouse is on screen and in env/scene.");
+        ui.separator();
+
+        ui.label("Env information:");
+        ui.label("Includes adjustable parameters for env config.");
     }
 }
