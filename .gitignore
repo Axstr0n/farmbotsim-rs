@@ -13,3 +13,9 @@ configs/farm_entity_plans/*
 
 configs/batteries/*
 !configs/batteries/default
+
+configs/movement_configs/*
+!configs/movement_configs/default_romba.json
+
+configs/agent_configs/*
+!configs/agent_configs/default.json

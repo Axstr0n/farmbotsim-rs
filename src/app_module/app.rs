@@ -4,13 +4,7 @@ use std::time::{Duration, Instant};
 use crate::{
     app_module::app_mode::AppMode,
     tool_module::{
-        battery_tool::BatteryTool,
-        editor_tool::EditorTool,
-        farm_entity_plan_editor_tool::FarmEntityPlanEditorTool,
-        path_tool::PathTool,
-        simulation_tool::SimulationTool,
-        task_tool::TaskTool,
-        tool::Tool,
+        agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, editor_tool::EditorTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, simulation_tool::SimulationTool, task_tool::TaskTool, tool::Tool
     },
 };
 
@@ -24,6 +18,8 @@ pub struct App {
     editor_tool: EditorTool,
     battery_tool: BatteryTool,
     farm_entity_plan_editor_tool: FarmEntityPlanEditorTool,
+    movement_config_editor_tool: MovementConfigEditorTool,
+    agent_config_editor_tool: AgentConfigEditorTool,
 
     fps: f32,
     tps: f32,
@@ -51,6 +47,8 @@ impl Default for App {
             editor_tool: EditorTool::default(),
             battery_tool: BatteryTool::default(),
             farm_entity_plan_editor_tool: FarmEntityPlanEditorTool::default(),
+            movement_config_editor_tool: MovementConfigEditorTool::default(),
+            agent_config_editor_tool: AgentConfigEditorTool::default(),
 
             fps: 0.0,
             tps: 0.0,
@@ -119,7 +117,9 @@ impl App {
             AppMode::Task => self.task_tool.update(),
             AppMode::Editor => self.editor_tool.update(),
             AppMode::Battery => {},
-            AppMode::FarmEntityPlanEditor => {}
+            AppMode::FarmEntityPlanEditor => {},
+            AppMode::MovementConfigEditor => {},
+            AppMode::AgentConfigEditor => {},
         }
         
     }
@@ -185,6 +185,8 @@ impl App {
                         AppMode::Editor => self.editor_tool.render_ui(ui),
                         AppMode::Battery => self.battery_tool.render_ui(ui),
                         AppMode::FarmEntityPlanEditor => self.farm_entity_plan_editor_tool.render_ui(ui),
+                        AppMode::MovementConfigEditor => self.movement_config_editor_tool.render_ui(ui),
+                        AppMode::AgentConfigEditor => self.agent_config_editor_tool.render_ui(ui),
                     }
                 });
         });
@@ -208,10 +210,12 @@ impl App {
                             }
                         });
                 },
-                AppMode::FarmEntityPlanEditor => {
-                    // Tools with text editor
+                AppMode::FarmEntityPlanEditor | AppMode::MovementConfigEditor | AppMode::AgentConfigEditor => {
+                    // Tools without camera
                     match self.mode {
                         AppMode::FarmEntityPlanEditor => self.farm_entity_plan_editor_tool.render_main(ui),
+                        AppMode::MovementConfigEditor => self.movement_config_editor_tool.render_main(ui),
+                        AppMode::AgentConfigEditor => self.agent_config_editor_tool.render_main(ui),
                         _ => {}
                     }
                 },

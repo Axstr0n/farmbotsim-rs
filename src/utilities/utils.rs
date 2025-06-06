@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::Path};
 
 
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
@@ -53,4 +53,27 @@ pub fn get_json_files_in_folder(path: &str) -> Result<Vec<String>, std::io::Erro
     }
     
     Ok(json_files)
+}
+
+pub fn get_folders_in_folder(path: &str) -> Result<Vec<String>, std::io::Error> {
+    let mut folders = Vec::new();
+
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            if let Some(folder_name) = path.file_name().and_then(|s| s.to_str()) {
+                folders.push(folder_name.to_string());
+            }
+        }
+    }
+
+    Ok(folders)
+}
+
+pub fn load_json<T: serde::de::DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T, Box<dyn std::error::Error>> {
+    let data = fs::read_to_string(&path)?;
+    let parsed = serde_json::from_str(&data)?;
+    Ok(parsed)
 }

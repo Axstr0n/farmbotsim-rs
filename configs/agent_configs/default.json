@@ -1,0 +1,5 @@
+{
+    "movement": "configs/movement_configs/default_romba.json",
+    "battery": "configs/batteries/default",
+    "battery_soc": 80.0
+}

@@ -1,0 +1,9 @@
+{
+    "type": "RombaMovement",
+    "params": {
+        "max_velocity": "10 km/h",
+        "max_angular_velocity": "0.1 rad/s",
+        "wheel_distance": "0.2 m",
+        "wheel_radius": "0.05 m"
+    }
+}

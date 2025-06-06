@@ -1,25 +1,15 @@
 use egui::Vec2;
 
 use crate::{
-    agent_module::{
-        agent::Agent,
-        movement::RombaMovement,
-    },
+    agent_module::agent::Agent,
     environment::{
-        env_module::env_config::EnvConfig,
-        datetime::{DateTimeConfig, DateTimeManager},
-        field_config::FieldConfig,
-        obstacle::Obstacle,
-        spawn_area_module::spawn_area::SpawnArea,
-        station_module::station::Station,
+        datetime::{DateTimeConfig, DateTimeManager}, env_module::env_config::EnvConfig, field_config::FieldConfig, obstacle::Obstacle, spawn_area_module::spawn_area::SpawnArea, station_module::station::Station
     },
     path_finding_module::visibility_graph::VisibilityGraph,
     task_module::task_manager::TaskManager,
     units::duration::Duration,
     utilities::{
-        pos2::random_pos2_in_rect,
-        vec2::random_vec2,
-        utils::generate_colors,
+        pos2::random_pos2_in_rect, utils::{generate_colors, load_json}, vec2::random_vec2
     }
 };
 
@@ -27,6 +17,7 @@ use crate::{
 pub struct Env {
     pub step_count: u32,
     pub n_agents: u32,
+    pub agent_path: String,
     pub agents: Vec<Agent>,
     pub field_config: FieldConfig,
     pub stations: Vec<Station>,
@@ -47,11 +38,13 @@ impl Env {
         let mut agents = Vec::new();
         for i in 0..n_agents {
             agents.push(
-                Agent::new(i,
+                Agent::from_config(
+                    load_json(config.agent_path.clone()).expect("Can't deserialize to AgentConfig"),
+                    i,
                     random_pos2_in_rect(egui::Rect { min: spawn_area.left_top_pos, max: spawn_area.left_top_pos+Vec2::new(spawn_area.width.to_base_unit(), spawn_area.height.to_base_unit()) }, spawn_area.angle),
                     random_vec2(),
-                    RombaMovement::default(),
-                agent_colors[i as usize])
+                    agent_colors[i as usize]
+                )
             )
         }
         
@@ -70,6 +63,7 @@ impl Env {
         Self {
             step_count: 0,
             n_agents,
+            agent_path: config.agent_path,
             agents,
             field_config,
             stations,
@@ -90,6 +84,7 @@ impl Env {
         let spawn_area_config = self.spawn_area.to_config();
         EnvConfig::new(
             self.n_agents,
+            self.agent_path.clone(),
             self.datetime_config.clone(),
             self.field_config.configs.clone(),
             station_configs,
@@ -99,14 +94,16 @@ impl Env {
     
     pub fn reset(&mut self) {
         self.agents.clear();
-        let colors = generate_colors(self.n_agents as usize, 0.1);
+        let agent_colors = generate_colors(self.n_agents as usize, 0.1);
         for i in 0..self.n_agents {
             self.agents.push(
-                Agent::new(i,
+                Agent::from_config(
+                    load_json(self.agent_path.clone()).expect("Can't deserialize to AgentConfig"),
+                    i,
                     random_pos2_in_rect(egui::Rect { min: self.spawn_area.left_top_pos, max: self.spawn_area.left_top_pos+Vec2::new(self.spawn_area.width.to_base_unit(), self.spawn_area.height.to_base_unit()) }, self.spawn_area.angle),
                     random_vec2(),
-                    RombaMovement::default(),
-                    colors[i as usize])
+                    agent_colors[i as usize]
+                )
             )
         }
         for station in &mut self.stations {

@@ -8,13 +8,14 @@ use crate::{
         field_config::VariantFieldConfig,
         spawn_area_module::spawn_area_config::SpawnAreaConfig,
         station_module::station_config::StationConfig
-    }
+    }, utilities::utils::load_json
 };
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnvConfig {
     pub n_agents: u32,
+    pub agent_path: String,
     #[serde(rename = "date_time")]
     pub datetime_config: DateTimeConfig,
     #[serde(rename = "field")]
@@ -26,9 +27,10 @@ pub struct EnvConfig {
 }
 
 impl EnvConfig {
-    pub fn new(n_agents: u32, datetime_config: DateTimeConfig, field_configs: Vec<VariantFieldConfig>, station_configs: Vec<StationConfig>, spawn_area_config: SpawnAreaConfig) -> Self {
+    pub fn new(n_agents: u32, agent_path: String, datetime_config: DateTimeConfig, field_configs: Vec<VariantFieldConfig>, station_configs: Vec<StationConfig>, spawn_area_config: SpawnAreaConfig) -> Self {
         Self {
             n_agents,
+            agent_path,
             datetime_config,
             field_configs,
             station_configs,
@@ -39,12 +41,7 @@ impl EnvConfig {
 
 impl EnvConfig {
     pub fn from_json_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Box<dyn std::error::Error>> {
-        let file = std::fs::File::open(file_path.as_ref())
-            .map_err(|e| format!("Failed to open file: {}", e))?;
-        
-        let config = serde_json::from_reader(file)
-            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
-        
+        let config = load_json(file_path).expect("");
         Ok(config)
     }
 }

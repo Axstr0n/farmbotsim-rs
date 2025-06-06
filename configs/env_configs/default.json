@@ -1,5 +1,6 @@
 {
     "n_agents": 3,
+    "agent_path": "configs/agent_configs/default.json",
     "date_time": {
         "date": "01.10.2025",
         "time": "04:00:00"

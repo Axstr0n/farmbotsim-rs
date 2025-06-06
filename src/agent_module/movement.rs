@@ -1,24 +1,46 @@
 use egui::{Pos2, Vec2};
+use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::{
-    units::{
+    cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE}, units::{
         angle::Angle,
         angular_velocity::AngularVelocity,
         duration::Duration,
         length::Length,
         linear_velocity::LinearVelocity,
-    },
-    utilities::vec2::Vec2Rotate,
-    cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE},
+    }, utilities::{utils::load_json, vec2::Vec2Rotate}
 };
 
-pub trait Movement {
+pub trait IsMovement {
     fn calculate_inputs_for_target(self, position: Pos2, direction: Vec2, target_position: Pos2, target_direction: Option<Vec2>) -> Vec<f32>;
     fn calculate_new_pose_from_inputs(&self, simulation_step: Duration, inputs: Vec<f32>, position: Pos2, direction: Vec2, max_velocity: LinearVelocity) -> (Pos2, Vec2, LinearVelocity, AngularVelocity);
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "params")]
+pub enum Movement {
+    RombaMovement(RombaMovement),
+}
+impl IsMovement for Movement {
+    fn calculate_inputs_for_target(self, position: Pos2, direction: Vec2, target_position: Pos2, target_direction: Option<Vec2>) -> Vec<f32> {
+        match self {
+            Movement::RombaMovement(romba) => romba.calculate_inputs_for_target(position, direction, target_position, target_direction),
+        }
+    }
+    fn calculate_new_pose_from_inputs(&self, simulation_step: Duration, inputs: Vec<f32>, position: Pos2, direction: Vec2, max_velocity: LinearVelocity) -> (Pos2, Vec2, LinearVelocity, AngularVelocity) {
+        match self {
+            Movement::RombaMovement(romba) => romba.calculate_new_pose_from_inputs(simulation_step, inputs, position, direction, max_velocity),
+        }
+    }
+}
+impl Movement {
+    pub fn from_file(file_path: String) -> Self {
+        load_json(file_path).expect("")
+    }
+}
+
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 pub struct RombaMovement {
     pub max_velocity: LinearVelocity,
     pub max_angular_velocity: AngularVelocity,
@@ -37,7 +59,7 @@ impl Default for RombaMovement {
     }
 }
 
-impl Movement for RombaMovement {
+impl IsMovement for RombaMovement {
     fn calculate_new_pose_from_inputs(&self, simulation_step: Duration, inputs: Vec<f32>, position: Pos2, direction: Vec2, max_velocity: LinearVelocity) -> (Pos2, Vec2, LinearVelocity, AngularVelocity) {
         if inputs.len() != 2 { assert_eq!(2, inputs.len()) }
         // Clamp if it is not

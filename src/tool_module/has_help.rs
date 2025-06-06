@@ -1,4 +1,4 @@
-use crate::tool_module::{battery_tool::BatteryTool, editor_tool::EditorTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, path_tool::PathTool, simulation_tool::SimulationTool, task_tool::TaskTool};
+use crate::tool_module::{agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, editor_tool::EditorTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, simulation_tool::SimulationTool, task_tool::TaskTool};
 
 pub trait HasHelpCore {
     fn is_help_open(&self) -> bool;
@@ -53,3 +53,5 @@ impl_help_core!(TaskTool);
 impl_help_core!(EditorTool);
 impl_help_core!(BatteryTool);
 impl_help_core!(FarmEntityPlanEditorTool);
+impl_help_core!(MovementConfigEditorTool);
+impl_help_core!(AgentConfigEditorTool);

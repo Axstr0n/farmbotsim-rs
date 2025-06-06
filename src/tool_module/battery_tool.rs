@@ -111,10 +111,11 @@ impl Tool for BatteryTool {
 
         ui.label("Batteries");
         for folder in &self.folder_names {
-            if ui.button(folder).clicked() {
-                self.selected = Some(folder.clone());
-                self.battery_map.entry(folder.clone()).or_insert_with(|| {
-                    BatteryPack::from_config(BatteryConfig::from_file(folder.clone()), 70.0)
+            let whole_path = format!("{}{}", BATTERIES_PATH, folder.clone());
+            if ui.button(whole_path.clone()).clicked() {
+                self.selected = Some(whole_path.clone());
+                self.battery_map.entry(whole_path.clone()).or_insert_with(|| {
+                    BatteryPack::from_config(BatteryConfig::from_file(whole_path), 70.0)
                 });
             }
         }

@@ -2,20 +2,12 @@ use egui::{Color32, Pos2, Vec2};
 
 use crate::{
     agent_module::{
-        agent_state::AgentState,
-        battery::{BatteryConfig, BatteryPack},
-        movement::{Movement, RombaMovement},
-        work_schedule::WorkSchedule,
-    },
-    environment::datetime::DateTimeManager,
-    task_module::task::Task,
-    units::{
+        agent_config::AgentConfig, agent_state::AgentState, battery::{BatteryConfig, BatteryPack}, movement::{IsMovement, Movement}, work_schedule::WorkSchedule
+    }, cfg::TOLERANCE_DISTANCE, environment::datetime::DateTimeManager, task_module::task::Task, units::{
         angular_velocity::AngularVelocity,
         duration::Duration,
         linear_velocity::LinearVelocity,
-    },
-    utilities::pos2::ExtendedPos2,
-    cfg::TOLERANCE_DISTANCE,
+    }, utilities::pos2::ExtendedPos2
 };
 
 
@@ -24,7 +16,7 @@ pub struct Agent {
     pub id: u32,
     pub position: Pos2,
     pub direction: Vec2,
-    pub movement: RombaMovement,
+    pub movement: Movement,
     pub velocity_lin: LinearVelocity,
     pub velocity_ang: AngularVelocity,
     pub color: Color32,
@@ -39,16 +31,12 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub fn new(id: u32, 
-        position: Pos2,
-        direction: Vec2,
-        movement: RombaMovement,
-        color: Color32) -> Self {
+    pub fn from_config(config: AgentConfig, id: u32, position: Pos2, direction: Vec2, color: Color32) -> Self {
         Self {
             id,
             position,
             direction,
-            movement,
+            movement: Movement::from_file(config.movement),
             velocity_lin: LinearVelocity::meters_per_second(0.0),
             velocity_ang: AngularVelocity::radians_per_second(0.0),
             color,
@@ -59,9 +47,10 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: BatteryPack::from_config(BatteryConfig::from_file("default".to_string()), 100.0),
+            battery: BatteryPack::from_config(BatteryConfig::from_file(config.battery), config.battery_soc),
         }
     }
+
     pub fn update(&mut self, simulation_step: Duration, date_time_manager: &DateTimeManager) {
         if self.state == AgentState::Discharged { return }
         self.update_state(date_time_manager);
@@ -115,7 +104,7 @@ impl Agent {
                 self.position
             }
         };
-        self.movement.calculate_inputs_for_target(
+        self.movement.clone().calculate_inputs_for_target(
             self.position, self.direction, next_position, next_direction
         )
     }

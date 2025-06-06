@@ -1,10 +1,11 @@
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::Write;
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use serde_json::to_string_pretty;
 use egui::{Slider, Ui};
 
 
+use crate::cfg::AGENT_CONFIGS_PATH;
 use crate::environment::farm_entity_module::farm_entity_plan::FarmEntityPlan;
 use crate::{
     cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH, FARM_ENTITY_PLANS_PATH}, environment::{
@@ -82,10 +83,19 @@ impl Tool for EditorTool {
         ui.separator();
         
         ui.label(egui::RichText::new("Env information:").size(16.0));
-        egui::CollapsingHeader::new("n_agents")
+        egui::CollapsingHeader::new("Agents:")
         .default_open(true)
         .show(ui, |ui| {
                 ui.add(Slider::new(&mut self.env.n_agents, 0..=20).text("n_agents").step_by(1.0));
+                egui::ComboBox::from_label("")
+                    .selected_text(&self.env.agent_path)
+                    .show_ui(ui, |ui| {
+                        let json_files = get_json_files_in_folder(AGENT_CONFIGS_PATH).expect("Can't find json files");
+                        for json_file in json_files {
+                            let whole_path = format!("{}{}", AGENT_CONFIGS_PATH, json_file.clone());
+                            ui.selectable_value(&mut self.env.agent_path, whole_path.clone(), whole_path);
+                        }
+                    });
         });
         
         egui::CollapsingHeader::new("Datetime")

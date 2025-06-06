@@ -201,7 +201,7 @@ pub struct BatteryConfig {
 }
 impl BatteryConfig {
     pub fn from_file(folder_name: String) -> Self {
-        let path_str = format!("{}{}/config.json", BATTERIES_PATH, folder_name);
+        let path_str = format!("{}/config.json", folder_name);
         let path = Path::new(&path_str);
         let json_str = std::fs::read_to_string(path).expect("File not found");
         let config: BatteryConfig = serde_json::from_str(&json_str).expect("Can't deserialize to BatteryConfig");

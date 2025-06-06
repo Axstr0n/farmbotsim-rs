@@ -18,3 +18,9 @@ pub const DEFAULT_POINT_FARM_ENTITY_PLAN_PATH: &str = "configs/farm_entity_plans
 pub const DEFAULT_LINE_FARM_ENTITY_PLAN_PATH: &str = "configs/farm_entity_plans/default_line.json";
 
 pub const BATTERIES_PATH: &str = "configs/batteries/";
+
+pub const MOVEMENT_CONFIGS_PATH: &str = "configs/movement_configs/";
+pub const DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH: &str = "configs/movement_configs/default_romba.json";
+
+pub const AGENT_CONFIGS_PATH: &str = "configs/agent_configs/";
+pub const DEFAULT_AGENT_CONFIG_PATH: &str = "configs/agent_configs/default.json";

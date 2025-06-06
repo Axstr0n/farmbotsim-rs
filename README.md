@@ -69,9 +69,11 @@ The **farmbotsim-rs** project is organized into several directories that help se
 
 
 `configs/`
+- `agent_configs/` - Contains agent configs.
 - `batteries/` - Contains battery configs.
 - `env_configs/` - Contains configs with all parameters for env creation.
 - `farm_entity_plans/` - Contains plans for farm entity growth.
+- `movement_configs/` - Contains movement configs.
 
 `media/`- Contains screenshots of app.
 
@@ -87,8 +89,8 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `path_finding_module/` - Includes code related to navigation and pathfinding algorithms.
 - `rendering/` - Responsible for rendering.
 - `task_module/` - Includes files for task creation and task handling.
-- `units/` - Unit system.
 - `tool_module/` - Contains files for app modes (simulation, editor, path, task, ...).
+- `units/` - Unit system.
 - `utilities/` - Common utilities and helper functions used across the project.
 - `cfg.rs` - Contains constants.
 - `main.rs` - Contains entry point into application.
