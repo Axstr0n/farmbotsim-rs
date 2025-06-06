@@ -20,7 +20,7 @@ impl FarmEntityPlan {
     pub fn from_json_file(path: &str) -> Self {
         let path = Path::new(path);
         let json_str = fs::read_to_string(path).expect("File not found");
-        let plan: FarmEntityPlan = serde_json::from_str(&json_str).expect("Can't deserialize crop plan.");
+        let plan: FarmEntityPlan = serde_json::from_str(&json_str).expect("Can't deserialize to FarmEntityPlan.");
         plan
     }
     pub fn default_point() -> Self {

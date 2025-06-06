@@ -1,12 +1,13 @@
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::Write;
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use serde_json::to_string_pretty;
 use egui::{Slider, Ui};
 
 
+use crate::environment::farm_entity_module::farm_entity_plan::FarmEntityPlan;
 use crate::{
-    cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH}, environment::{
+    cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH, FARM_ENTITY_PLANS_PATH}, environment::{
         datetime::{DATE_FORMAT, TIME_FORMAT}, env_module::{
             env::Env,
             env_config::EnvConfig,
@@ -14,7 +15,7 @@ use crate::{
     }, rendering::{
         camera::Camera,
         render::{render_coordinate_system, render_drag_points, render_field_config, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph},
-    }, tool_module::{has_help::HasHelp, has_env::HasEnv, tool::Tool}, utilities::pos2::ExtendedPos2
+    }, tool_module::{has_env::HasEnv, has_help::HasHelp, tool::Tool}, utilities::{pos2::ExtendedPos2, utils::get_json_files_in_folder}
 };
 
 
@@ -163,7 +164,20 @@ impl Tool for EditorTool {
                                     let n_lines_response = ui.add(Slider::new(&mut config.n_lines, 1..=10).text("N_lines").step_by(1.0));
                                     let line_spacing_response = ui.add(Slider::new(&mut config.line_spacing.value, 0.2..=0.8).text(format!("Line spacing [{}]", config.line_spacing.unit)).step_by(0.05));
                                     let length_response = ui.add(Slider::new(&mut config.length.value, 1.0..=10.0).text(format!("Length [{}]", config.length.unit)).step_by(0.05));
-                                    ui.label(&config.crop_plan.crop_name);
+                                    
+                                    egui::ComboBox::from_label("")
+                                        .selected_text(&config.farm_entity_plan_path)
+                                        .show_ui(ui, |ui| {
+                                            let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH).expect("Can't find json files");
+                                            for json_file in json_files {
+                                                let whole_path = format!("{}{}", FARM_ENTITY_PLANS_PATH, json_file.clone());
+                                                let plan = FarmEntityPlan::from_json_file(&whole_path);
+                                                if plan.type_.to_lowercase() == "line" {
+                                                    ui.selectable_value(&mut config.farm_entity_plan_path, whole_path.clone(), whole_path);
+                                                }
+                                            }
+                                        });
+                                    
                                     if ui.button("Remove").clicked() {
                                         to_remove = Some(i);
                                     }
@@ -202,7 +216,20 @@ impl Tool for EditorTool {
                                     let line_spacing_response = ui.add(Slider::new(&mut config.line_spacing.value, 0.2..=0.8).text(format!("Line spacing [{}]", config.line_spacing.unit)).step_by(0.05));
                                     let n_points_per_line_response = ui.add(Slider::new(&mut config.n_points_per_line, 1..=10).text("N points per line").step_by(1.0));
                                     let point_spacing_response = ui.add(Slider::new(&mut config.point_spacing.value, 0.2..=0.8).text(format!("Point spacing [{}]", config.point_spacing.unit)).step_by(0.05));
-                                    ui.label(&config.crop_plan.crop_name);
+                                    
+                                    egui::ComboBox::from_label("")
+                                        .selected_text(&config.farm_entity_plan_path)
+                                        .show_ui(ui, |ui| {
+                                            let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH).expect("Can't find json files");
+                                            for json_file in json_files {
+                                                let whole_path = format!("{}{}", FARM_ENTITY_PLANS_PATH, json_file.clone());
+                                                let plan = FarmEntityPlan::from_json_file(&whole_path);
+                                                if plan.type_.to_lowercase() == "point" {
+                                                    ui.selectable_value(&mut config.farm_entity_plan_path, whole_path.clone(), whole_path);
+                                                }
+                                            }
+                                        });
+
                                     if ui.button("Remove").clicked() {
                                         to_remove = Some(i);
                                     }

@@ -3,7 +3,7 @@ use egui::{Pos2, Vec2};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{
-    environment::{
+    cfg::{DEFAULT_LINE_FARM_ENTITY_PLAN_PATH, DEFAULT_POINT_FARM_ENTITY_PLAN_PATH}, environment::{
         farm_entity_module::{
             crop::Crop,
             farm_entity::FarmEntity,
@@ -11,12 +11,10 @@ use crate::{
             row::Row,
         },
         obstacle::Obstacle,
-    },
-    units::{
+    }, units::{
         angle::Angle,
         length::Length,
-    },
-    utilities::vec2::Vec2Rotate,
+    }, utilities::vec2::Vec2Rotate
 };
 
 
@@ -31,7 +29,7 @@ pub struct LineFieldConfig {
     pub n_lines: u32,
     pub length: Length,
     pub line_spacing: Length,
-    pub crop_plan: FarmEntityPlan,
+    pub farm_entity_plan_path: String,
 }
 impl Default for LineFieldConfig {
     fn default() -> Self {
@@ -43,12 +41,12 @@ impl Default for LineFieldConfig {
             n_lines: 3,
             length: Length::meters(4.0),
             line_spacing: Length::meters(0.4),
-            crop_plan: FarmEntityPlan::default_line(),
+            farm_entity_plan_path: DEFAULT_LINE_FARM_ENTITY_PLAN_PATH.to_string(),
         }
     }
 }
 impl LineFieldConfig {
-    pub fn new(left_top_pos: Pos2, angle: Angle, n_lines: u32, length: Length, line_spacing: Length, crop_plan_path: &str) -> Self {
+    pub fn new(left_top_pos: Pos2, angle: Angle, n_lines: u32, length: Length, line_spacing: Length, farm_entity_plan_path: String) -> Self {
         Self {
             id: 0,
             color: egui::Color32::WHITE,
@@ -57,7 +55,7 @@ impl LineFieldConfig {
             n_lines,
             length,
             line_spacing,
-            crop_plan: FarmEntityPlan::from_json_file(crop_plan_path),
+            farm_entity_plan_path,
         }
     }
 }
@@ -74,7 +72,7 @@ pub struct PointFieldConfig {
     pub n_points_per_line: u32,
     pub line_spacing: Length,
     pub point_spacing: Length,
-    pub crop_plan: FarmEntityPlan,
+    pub farm_entity_plan_path: String,
 }
 impl Default for PointFieldConfig {
     fn default() -> Self {
@@ -87,12 +85,12 @@ impl Default for PointFieldConfig {
             n_points_per_line: 6,
             line_spacing: Length::meters(0.4),
             point_spacing: Length::meters(0.3),
-            crop_plan: FarmEntityPlan::default_point(),
+            farm_entity_plan_path: DEFAULT_POINT_FARM_ENTITY_PLAN_PATH.to_string(),
         }
     }
 }
 impl PointFieldConfig {
-    pub fn new(left_top_pos: Pos2, angle: Angle, n_lines: u32, n_points_per_line: u32, line_spacing: Length, point_spacing: Length, crop_plan_path: &str) -> Self {
+    pub fn new(left_top_pos: Pos2, angle: Angle, n_lines: u32, n_points_per_line: u32, line_spacing: Length, point_spacing: Length, farm_entity_plan_path: String) -> Self {
         Self {
             id: 0,
             color: egui::Color32::WHITE,
@@ -102,7 +100,7 @@ impl PointFieldConfig {
             n_points_per_line,
             line_spacing,
             point_spacing,
-            crop_plan: FarmEntityPlan::from_json_file(crop_plan_path),
+            farm_entity_plan_path,
         }
     }
 }
@@ -241,19 +239,21 @@ impl FieldConfig {
             let field_id = n as u32;
             match config_variant {
                 VariantFieldConfig::Line(c) => {
+                    let farm_entity_plan = FarmEntityPlan::from_json_file(&c.farm_entity_plan_path);
                     let ls_val = c.line_spacing.value;
                     for i in 0..c.n_lines {
                         let path = vec![c.left_top_pos+Vec2::new(i as f32*ls_val, 0.0).rotate(c.angle), c.left_top_pos+Vec2::new(i as f32*ls_val, c.length.to_base_unit()).rotate(c.angle)];
-                        let row = Row::new(id_counter, field_id, path, c.crop_plan.clone());
+                        let row = Row::new(id_counter, field_id, path, farm_entity_plan.clone());
                         farm_entities.insert(id_counter, FarmEntity::Row(row));
                         id_counter += 1;
                     }
                 },
                 VariantFieldConfig::Point(c) => {
+                    let farm_entity_plan = FarmEntityPlan::from_json_file(&c.farm_entity_plan_path);
                     for i in 0..c.n_lines {
                         for j in 0..c.n_points_per_line {
                             let pos = c.left_top_pos + Vec2::new(c.line_spacing.to_base_unit()*i as f32, c.point_spacing.to_base_unit()*j as f32).rotate(c.angle);
-                            let crop = Crop::new(id_counter, field_id, i, pos, c.crop_plan.clone());
+                            let crop = Crop::new(id_counter, field_id, i, pos, farm_entity_plan.clone());
                             farm_entities.insert(id_counter, FarmEntity::Crop(crop));
                             id_counter += 1;
                         }

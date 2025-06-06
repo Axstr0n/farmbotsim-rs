@@ -15,20 +15,7 @@
             "n_points_per_line": 5,
             "line_spacing": "0.3 m",
             "point_spacing": "0.3 m",
-            "crop_plan": {
-                "name": "default_point",
-                "type": "point",
-                "cycle": 0,
-                "plan": [
-                    { "Point": { "action_name": "plant", "duration": "2 min", "power": "200 W" }},
-                    { "Point": { "action_name": "water", "duration": "15 s", "power": "200 W" }},
-                    { "Wait": { "action_name": "wait", "duration": "10 min" }},
-                    { "Point": { "action_name": "water", "duration": "30 s", "power": "200 W" }},
-                    { "Point": { "action_name": "fertilize", "duration": "30 s", "power": "200 W" }},
-                    { "Wait": { "action_name": "wait", "duration": "10 min" }},
-                    { "Point": { "action_name": "harvest", "duration": "1 min", "power": "200 W" }}
-                ]
-            }
+            "farm_entity_plan_path": "configs/farm_entity_plans/default_point.json"
         },
         {
             "left_top_pos": {
@@ -39,20 +26,7 @@
             "n_lines": 3,
             "length": "5.0 m",
             "line_spacing": "0.5 m",
-            "crop_plan": {
-                "name": "default_line",
-                "type": "line",
-                "cycle": 0,
-                "plan": [
-                    { "Line": { "action_name": "plant", "velocity": "2 km/h", "power": "200 W" }},
-                    { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},
-                    { "Wait": { "action_name": "wait", "duration": "10 min" }},
-                    { "Line": { "action_name": "water", "velocity": "2 km/h", "power": "200 W" }},
-                    { "Line": { "action_name": "fertilize", "velocity": "2 km/h", "power": "200 W" }},
-                    { "Wait": { "action_name": "wait", "duration": "10 min" }},
-                    { "Line": { "action_name": "harvest", "velocity": "2 km/h", "power": "200 W" }}
-                ]
-            }
+            "farm_entity_plan_path": "configs/farm_entity_plans/default_line.json"
         }
     ],
     "spawn_area": {
