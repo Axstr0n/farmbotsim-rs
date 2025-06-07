@@ -93,6 +93,7 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `units/` - Unit system.
 - `utilities/` - Common utilities and helper functions used across the project.
 - `cfg.rs` - Contains constants.
+- `logger.rs` - Logger for application.
 - `main.rs` - Contains entry point into application.
 
 `.gitignore` - Ignores files/folders.

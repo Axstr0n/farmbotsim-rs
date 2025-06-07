@@ -1,7 +1,6 @@
-use std::{fs, path::Path};
 use serde::{Deserialize, Serialize};
 
-use crate::{cfg::{DEFAULT_LINE_FARM_ENTITY_PLAN_PATH, DEFAULT_POINT_FARM_ENTITY_PLAN_PATH}, environment::farm_entity_module::farm_entity_action::FarmEntityAction};
+use crate::{cfg::{DEFAULT_LINE_FARM_ENTITY_PLAN_PATH, DEFAULT_POINT_FARM_ENTITY_PLAN_PATH}, environment::farm_entity_module::farm_entity_action::FarmEntityAction, utilities::utils::load_json_or_panic};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -18,10 +17,7 @@ pub struct FarmEntityPlan {
 
 impl FarmEntityPlan {
     pub fn from_json_file(path: &str) -> Self {
-        let path = Path::new(path);
-        let json_str = fs::read_to_string(path).expect("File not found");
-        let plan: FarmEntityPlan = serde_json::from_str(&json_str).expect("Can't deserialize to FarmEntityPlan.");
-        plan
+        load_json_or_panic(path)
     }
     pub fn default_point() -> Self {
         Self::from_json_file(DEFAULT_POINT_FARM_ENTITY_PLAN_PATH)

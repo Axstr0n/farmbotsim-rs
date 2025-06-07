@@ -7,6 +7,7 @@ use egui::{Slider, Ui};
 
 use crate::cfg::AGENT_CONFIGS_PATH;
 use crate::environment::farm_entity_module::farm_entity_plan::FarmEntityPlan;
+use crate::logger::log_error_and_panic;
 use crate::{
     cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH, FARM_ENTITY_PLANS_PATH}, environment::{
         datetime::{DATE_FORMAT, TIME_FORMAT}, env_module::{
@@ -31,7 +32,7 @@ pub struct EditorTool {
 impl Default for EditorTool {
     fn default() -> Self {
         let env_config_string = DEFAULT_ENV_CONFIG_PATH.to_string();
-        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string).expect("Error"));
+        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string));
         let mut instance = Self {
             env,
             camera: Camera::default(),
@@ -90,7 +91,7 @@ impl Tool for EditorTool {
                 egui::ComboBox::from_label("")
                     .selected_text(&self.env.agent_path)
                     .show_ui(ui, |ui| {
-                        let json_files = get_json_files_in_folder(AGENT_CONFIGS_PATH).expect("Can't find json files");
+                        let json_files = get_json_files_in_folder(AGENT_CONFIGS_PATH);
                         for json_file in json_files {
                             let whole_path = format!("{}{}", AGENT_CONFIGS_PATH, json_file.clone());
                             ui.selectable_value(&mut self.env.agent_path, whole_path.clone(), whole_path);
@@ -102,12 +103,27 @@ impl Tool for EditorTool {
             .default_open(true)
             .show(ui, |ui| {
                 ui.label(format!("{} {}", &self.env.datetime_config.date, &self.env.datetime_config.time));
-                let mut date = NaiveDate::parse_from_str(&self.env.datetime_config.date, DATE_FORMAT).expect("");
+                
+                let mut date = NaiveDate::parse_from_str(&self.env.datetime_config.date, DATE_FORMAT)
+                    .unwrap_or_else(|e| {
+                        let msg = format!(
+                            "Failed to parse date '{}' with format '{}': {}",
+                            &self.env.datetime_config.date, DATE_FORMAT, e
+                        );
+                        log_error_and_panic(&msg)
+                    });
                 if ui.add(egui_extras::DatePickerButton::new(&mut date)).changed() {
                     self.env.datetime_config.date = date.format(DATE_FORMAT).to_string();
                 }
                 
-                let time = NaiveTime::parse_from_str(&self.env.datetime_config.time, TIME_FORMAT).expect("Invalid time format");
+                let time = NaiveTime::parse_from_str(&self.env.datetime_config.time, TIME_FORMAT)
+                    .unwrap_or_else(|e| {
+                        let msg = format!(
+                            "Failed to parse time '{}' with format '{}': {}",
+                            &self.env.datetime_config.time, TIME_FORMAT, e
+                        );
+                        log_error_and_panic(&msg);
+                    });
                 let mut hours = time.hour();
                 let mut minutes = time.minute();
                 let mut seconds = time.second();
@@ -178,7 +194,7 @@ impl Tool for EditorTool {
                                     egui::ComboBox::from_label("")
                                         .selected_text(&config.farm_entity_plan_path)
                                         .show_ui(ui, |ui| {
-                                            let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH).expect("Can't find json files");
+                                            let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH);
                                             for json_file in json_files {
                                                 let whole_path = format!("{}{}", FARM_ENTITY_PLANS_PATH, json_file.clone());
                                                 let plan = FarmEntityPlan::from_json_file(&whole_path);
@@ -230,7 +246,7 @@ impl Tool for EditorTool {
                                     egui::ComboBox::from_label("")
                                         .selected_text(&config.farm_entity_plan_path)
                                         .show_ui(ui, |ui| {
-                                            let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH).expect("Can't find json files");
+                                            let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH);
                                             for json_file in json_files {
                                                 let whole_path = format!("{}{}", FARM_ENTITY_PLANS_PATH, json_file.clone());
                                                 let plan = FarmEntityPlan::from_json_file(&whole_path);

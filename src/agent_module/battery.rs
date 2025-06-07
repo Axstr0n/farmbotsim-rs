@@ -6,13 +6,12 @@ use std::{
 };
 
 use crate::{
-    units::{
+    cfg::BATTERIES_PATH, logger::log_error_and_panic, units::{
         duration::Duration,
         energy::Energy,
         power::Power,
         voltage::Voltage
-    },
-    cfg::BATTERIES_PATH,
+    }, utilities::utils::load_json_or_panic
 };
 
 pub trait Battery {
@@ -58,7 +57,11 @@ impl BatteryPack {
         }
     }
     fn get_month_data_points<P: AsRef<Path>>(file_path: P) -> Vec<(u32, f32)> {
-        let file = File::open(file_path).expect("Failed to open month data file");
+        let path_ref = file_path.as_ref();
+        let file = File::open(path_ref).unwrap_or_else(|e| {
+            let msg = format!("Failed to open file {:?}: {}", path_ref, e);
+            log_error_and_panic(&msg)
+        });
         let reader = BufReader::new(file);
         let mut points = Vec::new();
 
@@ -200,12 +203,9 @@ pub struct BatteryConfig {
     pub jun_max: String,
 }
 impl BatteryConfig {
-    pub fn from_file(folder_name: String) -> Self {
+    pub fn from_json_file(folder_name: String) -> Self {
         let path_str = format!("{}/config.json", folder_name);
-        let path = Path::new(&path_str);
-        let json_str = std::fs::read_to_string(path).expect("File not found");
-        let config: BatteryConfig = serde_json::from_str(&json_str).expect("Can't deserialize to BatteryConfig");
-        config
+        load_json_or_panic(path_str)
     }
 }
 

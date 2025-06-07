@@ -80,7 +80,7 @@ impl FarmEntityPlanEditorTool {
         egui::ComboBox::from_label("")
             .selected_text(format!("{:?}", self.current_farm_entity_plan_path))
             .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH).expect("Can't find json files");
+                let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH);
                 let previous_value = self.current_farm_entity_plan_path.clone();
 
                 for json_file in json_files {

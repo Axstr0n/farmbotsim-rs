@@ -1,5 +1,4 @@
 use std::path::Path;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -8,7 +7,7 @@ use crate::{
         field_config::VariantFieldConfig,
         spawn_area_module::spawn_area_config::SpawnAreaConfig,
         station_module::station_config::StationConfig
-    }, utilities::utils::load_json
+    }, utilities::utils::load_json_or_panic
 };
 
 
@@ -40,8 +39,7 @@ impl EnvConfig {
 }
 
 impl EnvConfig {
-    pub fn from_json_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Box<dyn std::error::Error>> {
-        let config = load_json(file_path).expect("");
-        Ok(config)
+    pub fn from_json_file<P: AsRef<Path>>(file_path: P) -> Self {
+        load_json_or_panic(file_path)
     }
 }

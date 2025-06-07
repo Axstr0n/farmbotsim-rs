@@ -1,4 +1,6 @@
-use std::{fs, path::Path};
+use std::{any, fs, path::Path};
+
+use crate::logger::log_error_and_panic;
 
 
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
@@ -38,30 +40,46 @@ pub fn generate_colors(n: usize, hue_offset: f32) -> Vec<egui::Color32> {
     colors
 }
 
-pub fn get_json_files_in_folder(path: &str) -> Result<Vec<String>, std::io::Error> {
+pub fn get_json_files_in_folder(path: &str) -> Vec<String> {
     let mut json_files = Vec::new();
-    
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
+
+    let entries = fs::read_dir(path).unwrap_or_else(|e| {
+        let msg = format!("Failed to read directory {}: {}", path, e);
+        log_error_and_panic(&msg);
+    });
+
+    for entry in entries {
+        let entry = entry.unwrap_or_else(|e| {
+            let msg = format!("Failed to read entry in {}: {}", path, e);
+            log_error_and_panic(&msg);
+        });
+
         let path = entry.path();
-        
         if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
             if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
                 json_files.push(file_name.to_string());
             }
         }
     }
-    
-    Ok(json_files)
+
+    json_files
 }
 
-pub fn get_folders_in_folder(path: &str) -> Result<Vec<String>, std::io::Error> {
+pub fn get_folders_in_folder(path: &str) -> Vec<String> {
     let mut folders = Vec::new();
 
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
+    let entries = fs::read_dir(path).unwrap_or_else(|e| {
+        let msg = format!("Failed to read directory {}: {}", path, e);
+        log_error_and_panic(&msg);
+    });
 
+    for entry in entries {
+        let entry = entry.unwrap_or_else(|e| {
+            let msg = format!("Error reading entry in {}: {}", path, e);
+            log_error_and_panic(&msg);
+        });
+
+        let path = entry.path();
         if path.is_dir() {
             if let Some(folder_name) = path.file_name().and_then(|s| s.to_str()) {
                 folders.push(folder_name.to_string());
@@ -69,11 +87,28 @@ pub fn get_folders_in_folder(path: &str) -> Result<Vec<String>, std::io::Error> 
         }
     }
 
-    Ok(folders)
+    folders
 }
 
-pub fn load_json<T: serde::de::DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T, Box<dyn std::error::Error>> {
-    let data = fs::read_to_string(&path)?;
-    let parsed = serde_json::from_str(&data)?;
-    Ok(parsed)
+
+pub fn load_json_or_panic<T, P>(path: P) -> T
+where
+    T: serde::de::DeserializeOwned,
+    P: AsRef<Path>,
+{
+    let path_ref = path.as_ref();
+
+    // Read the file contents, or panic with logging if it fails
+    let data = fs::read_to_string(path_ref).unwrap_or_else(|e| {
+        let type_name = any::type_name::<T>();
+        let msg = format!("Failed to read file {:?} for {}: {}", path_ref, type_name, e);
+        log_error_and_panic(&msg);
+    });
+
+    // Parse JSON, or panic with logging if it fails
+    serde_json::from_str(&data).unwrap_or_else(|e| {
+        let type_name = any::type_name::<T>();
+        let msg = format!("Failed to parse JSON from {:?} into {}: {}", path_ref, type_name, e);
+        log_error_and_panic(&msg);
+    })
 }

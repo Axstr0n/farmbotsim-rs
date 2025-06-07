@@ -1,11 +1,10 @@
 use eframe::egui;
-use std::time::{Duration, Instant};
+use std::{time::{Duration, Instant}};
 
 use crate::{
-    app_module::app_mode::AppMode,
-    tool_module::{
+    app_module::app_mode::AppMode, tool_module::{
         agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, editor_tool::EditorTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, simulation_tool::SimulationTool, task_tool::TaskTool, tool::Tool
-    },
+    }
 };
 
 pub struct App {

@@ -36,7 +36,7 @@ impl Agent {
             id,
             position,
             direction,
-            movement: Movement::from_file(config.movement),
+            movement: Movement::from_json_file(config.movement),
             velocity_lin: LinearVelocity::meters_per_second(0.0),
             velocity_ang: AngularVelocity::radians_per_second(0.0),
             color,
@@ -47,7 +47,7 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: BatteryPack::from_config(BatteryConfig::from_file(config.battery), config.battery_soc),
+            battery: BatteryPack::from_config(BatteryConfig::from_json_file(config.battery), config.battery_soc),
         }
     }
 

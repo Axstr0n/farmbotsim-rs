@@ -2,7 +2,7 @@ use std::fs;
 use egui::Ui;
 
 use crate::{
-    agent_module::agent_config::AgentConfig, cfg::{AGENT_CONFIGS_PATH, BATTERIES_PATH, DEFAULT_AGENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::{get_folders_in_folder, get_json_files_in_folder, load_json}
+    agent_module::agent_config::AgentConfig, cfg::{AGENT_CONFIGS_PATH, BATTERIES_PATH, DEFAULT_AGENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::{get_folders_in_folder, get_json_files_in_folder, load_json_or_panic}
 };
 
 
@@ -18,7 +18,7 @@ pub struct AgentConfigEditorTool {
 impl Default for AgentConfigEditorTool {
     fn default() -> Self {
         let file_path = DEFAULT_AGENT_CONFIG_PATH;
-        let agent_config: AgentConfig = load_json(file_path).expect("");
+        let agent_config: AgentConfig = AgentConfig::from_json_file(file_path);
 
         Self {
             save_file_name: String::new(),
@@ -40,7 +40,7 @@ impl Tool for AgentConfigEditorTool {
             egui::ComboBox::from_id_salt("movement_dropdown")
                 .selected_text(&self.current_movement_path)
                 .show_ui(ui, |ui| {
-                    let movement_options = get_json_files_in_folder(MOVEMENT_CONFIGS_PATH).expect("");
+                    let movement_options = get_json_files_in_folder(MOVEMENT_CONFIGS_PATH);
                     for movement in movement_options {
                         let whole_path = format!("{}{}", MOVEMENT_CONFIGS_PATH, movement);
                         ui.selectable_value(&mut self.current_movement_path, whole_path.clone(), whole_path);
@@ -53,7 +53,7 @@ impl Tool for AgentConfigEditorTool {
             egui::ComboBox::from_id_salt("battery_dropdown")
                 .selected_text(&self.current_battery_path)
                 .show_ui(ui, |ui| {
-                    let battery_options = get_folders_in_folder(BATTERIES_PATH).expect("");
+                    let battery_options = get_folders_in_folder(BATTERIES_PATH);
                     for battery in battery_options {
                         let whole_path = format!("{}{}", BATTERIES_PATH, battery);
                         ui.selectable_value(&mut self.current_battery_path, whole_path.clone(), whole_path);
@@ -105,7 +105,7 @@ impl AgentConfigEditorTool {
         egui::ComboBox::from_label("")
             .selected_text(format!("{:?}", self.current_agent_config_path))
             .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(AGENT_CONFIGS_PATH).expect("Can't find json files");
+                let json_files = get_json_files_in_folder(AGENT_CONFIGS_PATH);
                 let previous_value = self.current_agent_config_path.clone();
 
                 for json_file in json_files {
@@ -114,7 +114,7 @@ impl AgentConfigEditorTool {
                 }
 
                 if *self.current_agent_config_path != previous_value {
-                    let agent_config: AgentConfig = load_json(self.current_agent_config_path.clone()).expect("");
+                    let agent_config: AgentConfig = load_json_or_panic(self.current_agent_config_path.clone());
                     self.current_movement_path = agent_config.movement;
                     self.current_battery_path = agent_config.battery;
                     self.current_battery_soc = agent_config.battery_soc;

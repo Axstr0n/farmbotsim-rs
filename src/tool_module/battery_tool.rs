@@ -1,9 +1,9 @@
-use std::{collections::HashMap, fs};
+use std::collections::HashMap;
 use egui::Slider;
 use egui_plot::{HLine, Legend, Line, Plot, PlotPoints};
 
 use crate::{
-    agent_module::battery::{Battery, BatteryConfig, BatteryPack}, cfg::BATTERIES_PATH, tool_module::{has_help::HasHelp, tool::Tool}
+    agent_module::battery::{Battery, BatteryConfig, BatteryPack}, cfg::BATTERIES_PATH, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::get_folders_in_folder
 };
 
 
@@ -19,19 +19,7 @@ pub struct BatteryTool {
 
 impl Default for BatteryTool {
     fn default() -> Self {
-        let mut folders: Vec<String> = vec![];
-        for entry in fs::read_dir(BATTERIES_PATH).unwrap_or_else(|_| panic!("No folder named {}", BATTERIES_PATH)) {
-            let entry = entry.expect("No subfolders found");
-            let path = entry.path();
-            
-            if path.is_dir() {
-                if let Some(folder_name) = path.file_name() {
-                    if let Some(name) = folder_name.to_str() {
-                        folders.push(name.to_string());
-                    }
-                }
-            }
-        }
+        let folders = get_folders_in_folder(BATTERIES_PATH);
         Self {
             selected: None,
             folder_names: folders,
@@ -115,7 +103,7 @@ impl Tool for BatteryTool {
             if ui.button(whole_path.clone()).clicked() {
                 self.selected = Some(whole_path.clone());
                 self.battery_map.entry(whole_path.clone()).or_insert_with(|| {
-                    BatteryPack::from_config(BatteryConfig::from_file(whole_path), 70.0)
+                    BatteryPack::from_config(BatteryConfig::from_json_file(whole_path), 70.0)
                 });
             }
         }

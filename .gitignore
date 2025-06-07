@@ -1,6 +1,7 @@
 /target
 bin/
 src/lib.rs
+log.txt
 
 configs/env_configs/*
 !configs/env_configs/default_only_line.json

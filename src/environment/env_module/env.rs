@@ -9,7 +9,7 @@ use crate::{
     task_module::task_manager::TaskManager,
     units::duration::Duration,
     utilities::{
-        pos2::random_pos2_in_rect, utils::{generate_colors, load_json}, vec2::random_vec2
+        pos2::random_pos2_in_rect, utils::{generate_colors, load_json_or_panic}, vec2::random_vec2
     }
 };
 
@@ -39,7 +39,7 @@ impl Env {
         for i in 0..n_agents {
             agents.push(
                 Agent::from_config(
-                    load_json(config.agent_path.clone()).expect("Can't deserialize to AgentConfig"),
+                    load_json_or_panic(config.agent_path.clone()),
                     i,
                     random_pos2_in_rect(egui::Rect { min: spawn_area.left_top_pos, max: spawn_area.left_top_pos+Vec2::new(spawn_area.width.to_base_unit(), spawn_area.height.to_base_unit()) }, spawn_area.angle),
                     random_vec2(),
@@ -98,7 +98,7 @@ impl Env {
         for i in 0..self.n_agents {
             self.agents.push(
                 Agent::from_config(
-                    load_json(self.agent_path.clone()).expect("Can't deserialize to AgentConfig"),
+                    load_json_or_panic(self.agent_path.clone()),
                     i,
                     random_pos2_in_rect(egui::Rect { min: self.spawn_area.left_top_pos, max: self.spawn_area.left_top_pos+Vec2::new(self.spawn_area.width.to_base_unit(), self.spawn_area.height.to_base_unit()) }, self.spawn_area.angle),
                     random_vec2(),

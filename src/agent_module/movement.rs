@@ -9,7 +9,7 @@ use crate::{
         duration::Duration,
         length::Length,
         linear_velocity::LinearVelocity,
-    }, utilities::{utils::load_json, vec2::Vec2Rotate}
+    }, utilities::{utils::load_json_or_panic, vec2::Vec2Rotate}
 };
 
 pub trait IsMovement {
@@ -35,8 +35,8 @@ impl IsMovement for Movement {
     }
 }
 impl Movement {
-    pub fn from_file(file_path: String) -> Self {
-        load_json(file_path).expect("")
+    pub fn from_json_file(file_path: String) -> Self {
+        load_json_or_panic(file_path)
     }
 }
 

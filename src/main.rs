@@ -11,18 +11,19 @@
 #![deny(clippy::cast_lossless)]     // Disallow using `as` for conversions that could fail
 
 
-mod app_module;
+pub mod app_module;
 use crate::app_module::app::App;
 
-mod tool_module;
-mod rendering;
-mod agent_module;
-mod environment;
-mod path_finding_module;
-mod task_module;
-mod utilities;
-mod units;
-mod cfg;
+pub mod tool_module;
+pub mod rendering;
+pub mod agent_module;
+pub mod environment;
+pub mod path_finding_module;
+pub mod task_module;
+pub mod utilities;
+pub mod units;
+pub mod cfg;
+pub mod logger;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {

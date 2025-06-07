@@ -1106,6 +1106,7 @@ dependencies = [
  "egui",
  "egui_extras",
  "egui_plot",
+ "once_cell",
  "petgraph",
  "rand 0.9.0",
  "serde",

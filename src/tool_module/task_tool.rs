@@ -25,7 +25,7 @@ pub struct TaskTool {
 impl Default for TaskTool {
     fn default() -> Self {
         let env_config_string = DEFAULT_ENV_CONFIG_PATH.to_string();
-        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string).expect("Error"));
+        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string));
         let mut instance = Self {
             tick: 0,
             running: false,

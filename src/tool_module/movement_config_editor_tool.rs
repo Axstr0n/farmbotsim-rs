@@ -77,7 +77,7 @@ impl MovementConfigEditorTool {
         egui::ComboBox::from_label("")
             .selected_text(format!("{:?}", self.current_movement_config_path))
             .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(MOVEMENT_CONFIGS_PATH).expect("Can't find json files");
+                let json_files = get_json_files_in_folder(MOVEMENT_CONFIGS_PATH);
                 let previous_value = self.current_movement_config_path.clone();
 
                 for json_file in json_files {

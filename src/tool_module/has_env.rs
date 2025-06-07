@@ -19,7 +19,7 @@ pub trait HasEnv {
     fn camera(&self) -> &Camera;
 
     fn create_env(&mut self, new_config_file_path: String) {
-        let new_env_config = EnvConfig::from_json_file(&new_config_file_path).expect("Err");
+        let new_env_config = EnvConfig::from_json_file(&new_config_file_path);
         *self.env_mut() = Env::from_config(new_env_config);
         self.recalc_charging_stations();
         self.recalc_field_config_on_add_remove();
@@ -31,7 +31,7 @@ pub trait HasEnv {
         egui::ComboBox::from_label("")
             .selected_text(format!("{:?}", self.current_env_config_string()))
             .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(ENV_CONFIGS_PATH).expect("Can't find json files");
+                let json_files = get_json_files_in_folder(ENV_CONFIGS_PATH);
                 let previous_value = self.current_env_config_string().clone();
 
                 for json_file in json_files {
