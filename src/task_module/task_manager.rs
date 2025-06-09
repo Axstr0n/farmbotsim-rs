@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::{collections::{HashMap, VecDeque}};
 
 use egui::Pos2;
 
@@ -7,9 +7,7 @@ use crate::{
         agent::Agent,
         agent_state::AgentState,
         battery::Battery
-    },
-    cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS},
-    environment::{
+    }, cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS}, environment::{
         farm_entity_module::{
             farm_entity::FarmEntity,
             farm_entity_action::FarmEntityActionInstance,
@@ -17,15 +15,54 @@ use crate::{
         },
         field_config::FieldConfig,
         station_module::station::{Station, StationPosType}
-    },
-    path_finding_module::{
+    }, path_finding_module::{
         path_finding::PathFinding,
         visibility_graph::VisibilityGraph,
-    },
-    units::duration::Duration};
+    }, task_module::task_manager_config::TaskManagerConfig, units::duration::Duration};
 use super::task::{Intent, Task};
 
 
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ChooseStationStrat {
+    First,
+    Closest,
+    ClosestMinQueue,
+}
+impl ChooseStationStrat {
+    pub fn variants() -> Vec<ChooseStationStrat> {
+        vec![ChooseStationStrat::First, ChooseStationStrat::Closest, ChooseStationStrat::ClosestMinQueue]
+    }
+}
+impl std::fmt::Display for ChooseStationStrat {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let str = match self {
+            Self::First => "First".to_string(),
+            Self::Closest => "Closest".to_string(),
+            Self::ClosestMinQueue => "ClosestMinQueue".to_string(),
+        };
+        write!(f, "{str}")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ChargingStrat {
+    CriticalOnly,
+    ThresholdWithLimit,
+}
+impl ChargingStrat {
+    pub fn variants() -> Vec<ChargingStrat> {
+        vec![ChargingStrat::CriticalOnly, ChargingStrat::ThresholdWithLimit]
+    }
+}
+impl std::fmt::Display for ChargingStrat {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let str = match self {
+            Self::CriticalOnly => "CriticalOnly".to_string(),
+            Self::ThresholdWithLimit => "ThresholdWithLimit".to_string(),
+        };
+        write!(f, "{str}")
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct TaskManager {
@@ -39,10 +76,13 @@ pub struct TaskManager {
     pub assigned_tasks: Vec<Task>,
     pub completed_tasks: Vec<Task>,
     visibility_graph: VisibilityGraph,
+
+    pub charging_strat: ChargingStrat,
+    pub choose_station_strat: ChooseStationStrat,
 }
 
 impl TaskManager {
-    pub fn from_field_config(field_config: FieldConfig) -> Self {
+    pub fn from_config(task_manager_config: TaskManagerConfig, field_config: FieldConfig) -> Self {
         let farm_entities = field_config.get_farm_entities();
         let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
         let obstacles = field_config.get_obstacles();
@@ -56,7 +96,13 @@ impl TaskManager {
             assigned_tasks: vec![],
             completed_tasks: vec![],
             visibility_graph,
+            charging_strat: task_manager_config.charging_strat,
+            choose_station_strat: task_manager_config.choose_station_strat,
         }
+    }
+
+    pub fn to_config(&self) -> TaskManagerConfig {
+        TaskManagerConfig { charging_strat: self.charging_strat.clone(), choose_station_strat: self.choose_station_strat.clone() }
     }
 
     pub fn reset(&mut self) {
@@ -133,10 +179,43 @@ impl TaskManager {
         let mut agent_ids_updated: Vec<u32> = vec![];
         let mut station_ids_updated: Vec<u32> = vec![];
         for agent in &mut *agents {
+            self.update_completed_tasks(agent);
             // Discharge agents
             if agent.state == AgentState::Discharged {
                 agent_ids_updated.push(agent.id);
                 // TO DO
+                if agent.current_task.is_none() { continue; }
+                if let Some(task) = &agent.current_task {
+                    if *task.get_intent() == Intent::Work {
+                        // Return work task
+                        self.work_list.push_front(task.clone());
+                        agent.current_task = None;
+                    }
+                    for ws_task in &agent.work_schedule.tasks {
+                        if *ws_task.get_intent() == Intent::Work {
+                            // Return work task
+                            self.work_list.push_front(ws_task.clone());
+                        }
+                    }
+                    agent.work_schedule.clear();
+                    for station in stations.iter_mut() {
+                        if station.slots.contains(&agent.id) || station.queue.contains(&agent.id) {
+                            station.release_agent(agent.id);
+                        }
+                    }
+                } else {
+                    continue;
+                }
+
+                // target_id = agent.task.target_id
+                // if "station" in target_id:
+                //     self.stations[target_id].release_agent(agent)
+                // if "crop" in target_id:
+                //     row_id = f'row_{agent.task.target_id.split("_")[1]}'
+                //     self.crop_field.rows_assign[row_id] = False
+                //     agent.task.object.quit_work()
+                //     self.crop_field.update_row_processing_status()
+                // agent.task = None
             }
             // Charging agents that are full
             else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 100.0 {
@@ -157,25 +236,24 @@ impl TaskManager {
 
         for agent in &mut *agents {
             if agent_ids_updated.contains(&agent.id) { continue; }
-
             // Agents going to station
             if agent.current_task.as_ref().map(|task| {
                 let intent = task.get_intent();
                 intent == &Intent::Charge || intent == &Intent::Queue
             }).unwrap_or(false) || agent.work_schedule.has_charging() {
-                
+                agent_ids_updated.push(agent.id);
             }
-            
-            
-            // Agent that need to go to station
-            else if agent.battery.get_soc() < 60.0 {
-                self.assign_station_tasks_to_agent(agent, stations);
-            }
+        }
+
+        agent_ids_updated = self.charging_strategy(&mut agent_ids_updated, agents, stations);
+
+        for agent in &mut *agents {
+            if agent_ids_updated.contains(&agent.id) { continue; }
+
             // Agents that need to work
-            else if agent.current_task.is_none() && agent.work_schedule.is_empty() {
+            if agent.current_task.is_none() && agent.work_schedule.is_empty() {
                 self.assign_work_tasks_to_agent(agent);
             }
-            self.update_completed_tasks(agent);
         }
     }
 
@@ -278,7 +356,8 @@ impl TaskManager {
 
     pub fn get_station_tasks(&mut self, agent: &Agent, stations: &mut [Station]) -> Vec<Task> {
         let mut tasks: Vec<Task> = vec![];
-        let station = &mut stations[0];
+        let station_index = self.choose_station_index(agent, stations);
+        let station = &mut stations[station_index];
         let (pos, pos_type) = station.request_charge(agent.id);
         let path = self.visibility_graph.find_path(agent.position, pos);
         if let Some(path) = path {
@@ -382,8 +461,8 @@ impl TaskManager {
         let path = self.visibility_graph.find_path(agent.position, agent.spawn_position);
         if let Some(path) = path {
             let travel_task = Task::travel(path, MAX_VELOCITY, Intent::Idle);
-            let wait_task = Task::wait_infinite(Intent::Idle);
-            tasks.extend([travel_task, wait_task]);
+            //let wait_task = Task::wait_infinite(Intent::Idle);
+            tasks.extend([travel_task]);
         }
 
         tasks
@@ -419,4 +498,90 @@ impl TaskManager {
         }
     }
 
+
+    fn charging_strategy(&mut self, agent_ids_updated: &mut Vec<u32>, agents: &mut[Agent], stations: &mut [Station]) -> Vec<u32> {
+        let critical_battery_level = 45.0;
+        let low_battery_threshold = 60.0;
+        match self.charging_strat {
+            ChargingStrat::CriticalOnly => {
+                for agent in agents {
+                    if agent_ids_updated.contains(&agent.id) { continue; }
+                    // If below critical battery go to charging
+                    if agent.battery.get_soc() < critical_battery_level {
+                        self.assign_station_tasks_to_agent(agent, stations);
+                        agent_ids_updated.push(agent.id);
+                    }
+                }
+            },
+            ChargingStrat::ThresholdWithLimit => {
+                let mut n_of_all_charging_agents = 0;
+                for station in stations.iter() {
+                    n_of_all_charging_agents += station.slots.len()+station.queue.len();
+                }
+                let max_agents_charging = stations.len();
+                for agent in agents {
+                    if agent_ids_updated.contains(&agent.id) { continue; }
+                    if agent.battery.get_soc() < critical_battery_level {
+                        // If below critical battery go to charging
+                        self.assign_station_tasks_to_agent(agent, stations);
+                        agent_ids_updated.push(agent.id);
+                        n_of_all_charging_agents += 1;
+                    }
+                    else if agent.battery.get_soc() < low_battery_threshold && n_of_all_charging_agents < max_agents_charging {
+                        // If not maximum number of charging agents and battery below threshold go charging
+                        self.assign_station_tasks_to_agent(agent, stations);
+                        agent_ids_updated.push(agent.id);
+                        n_of_all_charging_agents += 1;
+                    }
+                }
+            }
+        }
+        agent_ids_updated.to_vec()
+    }
+
+    fn choose_station_index(&mut self, agent: &Agent, stations: &[Station]) -> usize {
+        match self.choose_station_strat {
+            ChooseStationStrat::First => {
+                0
+            },
+            ChooseStationStrat::Closest => {
+                let mut distances = vec![];
+                for station in stations {
+                    let maybe_path = self.visibility_graph.find_path(agent.position, station.position);
+                    if let Some(path) = maybe_path {
+                        let distance = path.windows(2)
+                            .map(|w| w[0].distance(w[1]))
+                            .sum();
+                        distances.push(distance);
+                    } else {
+                        distances.push(f32::INFINITY)
+                    }
+                }
+                let closest_maybe = distances.iter()
+                    .enumerate()
+                    .min_by(|a, b| a.1.partial_cmp(b.1).expect("Couldn't find closest station index"))  // safe if no NaNs
+                    .map(|(index, _)| index);
+                closest_maybe.unwrap_or(0)
+            },
+            ChooseStationStrat::ClosestMinQueue => {
+                let mut distances = vec![];
+                for station in stations {
+                    let maybe_path = self.visibility_graph.find_path(agent.position, station.position);
+                    if let Some(path) = maybe_path {
+                        let distance: f32 = path.windows(2)
+                            .map(|w| w[0].distance(w[1]))
+                            .sum();
+                        distances.push(distance + 40.0*(station.slots.len()+station.queue.len()) as f32);
+                    } else {
+                        distances.push(f32::INFINITY)
+                    }
+                }
+                let closest_maybe = distances.iter()
+                    .enumerate()
+                    .min_by(|a, b| a.1.partial_cmp(b.1).expect("Couldn't find closest station index"))  // safe if no NaNs
+                    .map(|(index, _)| index);
+                closest_maybe.unwrap_or(0)
+            }
+        }
+    }
 }

@@ -48,23 +48,13 @@ pub struct RombaMovement {
     pub wheel_radius: Length
 }
 
-impl Default for RombaMovement {
-    fn default() -> Self {
-        Self {
-            max_velocity: LinearVelocity::kilometers_per_hour(10.0),
-            max_angular_velocity: AngularVelocity::radians_per_second(0.1),
-            wheel_distance: Length::meters(0.2),
-            wheel_radius: Length::meters(0.05)
-        }
-    }
-}
-
 impl IsMovement for RombaMovement {
     fn calculate_new_pose_from_inputs(&self, simulation_step: Duration, inputs: Vec<f32>, position: Pos2, direction: Vec2, max_velocity: LinearVelocity) -> (Pos2, Vec2, LinearVelocity, AngularVelocity) {
         if inputs.len() != 2 { assert_eq!(2, inputs.len()) }
         // Clamp if it is not
         let mut m1 = inputs[0].clamp(-1.0, 1.0);
         let mut m2 = inputs[1].clamp(-1.0, 1.0);
+        let max_velocity = if max_velocity > self.max_velocity {self.max_velocity} else {max_velocity};
 
         let mut v_left = m1 * max_velocity;
         let mut v_right = m2 * max_velocity;

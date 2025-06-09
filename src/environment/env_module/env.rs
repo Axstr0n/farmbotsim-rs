@@ -59,7 +59,7 @@ impl Env {
 
         let date_time_manager = DateTimeManager::from_config(config.datetime_config.clone());
 
-        let task_manager = TaskManager::from_field_config(field_config.clone());
+        let task_manager = TaskManager::from_config(config.task_manager_config, field_config.clone());
         Self {
             step_count: 0,
             n_agents,
@@ -88,7 +88,8 @@ impl Env {
             self.datetime_config.clone(),
             self.field_config.configs.clone(),
             station_configs,
-            spawn_area_config
+            spawn_area_config,
+            self.task_manager.to_config()
         )
     }
     
@@ -116,7 +117,7 @@ impl Env {
     pub fn step(&mut self) {
         let simulation_step = Duration::seconds(1.0);
         self.step_count += 1;
-        self.date_time_manager.advance_time(1);
+        self.date_time_manager.advance_time(simulation_step.to_base_unit() as i64);
         self.task_manager.update_waiting_list(simulation_step);
         for agent in &mut self.agents {
             agent.update(simulation_step, &self.date_time_manager);

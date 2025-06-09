@@ -8,6 +8,7 @@ use egui::{Slider, Ui};
 use crate::cfg::AGENT_CONFIGS_PATH;
 use crate::environment::farm_entity_module::farm_entity_plan::FarmEntityPlan;
 use crate::logger::log_error_and_panic;
+use crate::task_module::task_manager::{ChargingStrat, ChooseStationStrat};
 use crate::{
     cfg::{DEFAULT_ENV_CONFIG_PATH, ENV_CONFIGS_PATH, FARM_ENTITY_PLANS_PATH}, environment::{
         datetime::{DATE_FORMAT, TIME_FORMAT}, env_module::{
@@ -356,6 +357,27 @@ impl Tool for EditorTool {
                 }
 
             });
+        
+        egui::CollapsingHeader::new("Task Manager:")
+        .default_open(true)
+        .show(ui, |ui| {
+                egui::ComboBox::from_label("Choose Station Strategy")
+                    .selected_text(self.env.task_manager.choose_station_strat.to_string())
+                    .show_ui(ui, |ui| {
+                        let choose_station_options = ChooseStationStrat::variants();
+                        for strat in choose_station_options {
+                            ui.selectable_value(&mut self.env.task_manager.choose_station_strat, strat.clone(), strat.clone().to_string());
+                        }
+                    });
+                egui::ComboBox::from_label("Charging Strategy")
+                    .selected_text(self.env.task_manager.charging_strat.to_string())
+                    .show_ui(ui, |ui| {
+                        let charge_strat_options = ChargingStrat::variants();
+                        for strat in charge_strat_options {
+                            ui.selectable_value(&mut self.env.task_manager.charging_strat, strat.clone(), strat.clone().to_string());
+                        }
+                    });
+        });
         
         self.render_help(ui);
     }

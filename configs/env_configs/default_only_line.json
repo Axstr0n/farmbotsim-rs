@@ -39,5 +39,9 @@
             },
             "n_slots": 1
         }
-    ]
+    ],
+    "task_manager": {
+        "charging_strat": "ThresholdWithLimit",
+        "choose_station_strat": "ClosestMinQueue"
+    }
 }
