@@ -1,13 +1,12 @@
-use std::{fs::{self, File}, io::Write};
 use egui::Ui;
 
 use crate::{
-    agent_module::movement::Movement, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::get_json_files_in_folder
+    agent_module::movement::{Movement, RombaMovement}, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, units::{angular_velocity::{AngularVelocity, AngularVelocityUnit}, length::{Length, LengthUnit}, linear_velocity::{LinearVelocity, LinearVelocityUnit}}, utilities::utils::{get_json_files_in_folder, load_json_or_panic}
 };
 
 
 pub struct MovementConfigEditorTool {
-    content: String,
+    movement: Movement,
     save_file_name: String,
     pub current_movement_config_path: String,
     pub help_open: bool,
@@ -15,12 +14,11 @@ pub struct MovementConfigEditorTool {
 
 impl Default for MovementConfigEditorTool {
     fn default() -> Self {
-        let file_path = DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH;
-        let json_str = fs::read_to_string(file_path).expect("File not found");
+        let movement = load_json_or_panic(DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH);
         Self {
-            content: json_str,
+            movement,
             save_file_name: String::new(),
-            current_movement_config_path: file_path.to_string(),
+            current_movement_config_path: DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH.to_string(),
             help_open: false,
         }
     }
@@ -28,40 +26,17 @@ impl Default for MovementConfigEditorTool {
 
 impl Tool for MovementConfigEditorTool {
     fn render_main(&mut self, ui: &mut egui::Ui) {
-
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut self.content)
-                    .font(egui::TextStyle::Monospace)
-                    .code_editor()
-                    .desired_rows(10)
-                    .lock_focus(true)
-                    .desired_width(f32::INFINITY)
-            );
-        });
-    
+        self.movement_ui(ui);
     }
 
     fn render_ui(&mut self, ui: &mut egui::Ui) {
         self.render_help_button(ui);
         ui.separator();
 
-        ui.horizontal(|ui| {
-            ui.label(MOVEMENT_CONFIGS_PATH);
-            ui.add(egui::TextEdit::singleline(&mut self.save_file_name).desired_width(100.0));
-            ui.label(".json");
-            ui.spacing();
-            if ui.button("Save movement config").clicked() && !self.save_file_name.is_empty() {
-                let result = self.save_as_json(&self.save_file_name);
-                match result {
-                    Ok(_) => {
-                        println!("File saved");
-                        self.current_movement_config_path = format!("{}{}.json", MOVEMENT_CONFIGS_PATH, self.save_file_name.clone());
-                    },
-                    Err(error) => eprintln!("{}", error)
-                }
-            }
-        });
+        let mut save_file_name = self.save_file_name.clone();
+        self.draw_save_ui(ui, &mut save_file_name);
+        self.save_file_name = save_file_name;
+
         self.config_select(ui);
 
         self.render_help(ui);
@@ -86,24 +61,104 @@ impl MovementConfigEditorTool {
                 }
 
                 if *self.current_movement_config_path != previous_value {
-                    let json_str = fs::read_to_string(self.current_movement_config_path.clone()).expect("File not found");
-                    self.content = json_str;
+                    let movement = load_json_or_panic(self.current_movement_config_path.clone());
+                    self.movement = movement;
                 }
             });
     }
 
-    fn save_as_json(&self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // Check if it can be serialized
-        let _: Movement = serde_json::from_str(&self.content)?;
+    fn movement_ui(&mut self, ui: &mut egui::Ui) {
+        ui.label("{");
+        ui.horizontal(|ui| {
+            ui.label("    \"type\":");
 
-        // Create file
-        let mut file = File::create(format!("{}{}.json", MOVEMENT_CONFIGS_PATH, filename))?;
-        
-        // Write JSON to file
-        file.write_all(self.content.as_bytes())?;
-        
-        println!("Successfully saved to {}", filename);
-        Ok(())
+            // Type selection
+            egui::ComboBox::from_id_salt("Type")
+                .selected_text(match self.movement {
+                    Movement::RombaMovement(_) => "RombaMovement",
+                })
+                .show_ui(ui, |ui| {
+                    // You can extend this with more variants later
+                    if ui.selectable_label(matches!(self.movement, Movement::RombaMovement(_)), "RombaMovement").clicked() {
+                        self.movement = Movement::RombaMovement(RombaMovement {
+                            max_velocity: LinearVelocity { value: 10.0, unit: LinearVelocityUnit::KilometersPerHour },
+                            max_angular_velocity: AngularVelocity { value: 0.1, unit: AngularVelocityUnit::RadiansPerSecond },
+                            wheel_distance: Length { value: 0.2, unit: LengthUnit::Meters },
+                            wheel_radius: Length { value: 0.05, unit: LengthUnit::Meters },
+                        });
+                    }
+                });
+        });
+        // // Type selection
+        // egui::ComboBox::from_id_salt("Type")
+        //     .selected_text(match self.movement {
+        //         Movement::RombaMovement(_) => "RombaMovement",
+        //     })
+        //     .show_ui(ui, |ui| {
+        //         // You can extend this with more variants later
+        //         if ui.selectable_label(matches!(self.movement, Movement::RombaMovement(_)), "RombaMovement").clicked() {
+        //             self.movement = Movement::RombaMovement(RombaMovement {
+        //                 max_velocity: LinearVelocity { value: 10.0, unit: LinearVelocityUnit::KilometersPerHour },
+        //                 max_angular_velocity: AngularVelocity { value: 0.1, unit: AngularVelocityUnit::RadiansPerSecond },
+        //                 wheel_distance: Length { value: 0.2, unit: LengthUnit::Meters },
+        //                 wheel_radius: Length { value: 0.05, unit: LengthUnit::Meters },
+        //             });
+        //         }
+        //     });
+
+        // Param fields
+        match &mut self.movement {
+            Movement::RombaMovement(params) => {
+                ui.label("    params: {");
+
+                // Max velocity
+                Self::param_with_unit_ui(ui, "max_velocity", &mut params.max_velocity.value, &mut params.max_velocity.unit);
+
+                // Angular velocity
+                Self::param_with_unit_ui(ui, "max_angular_velocity", &mut params.max_angular_velocity.value, &mut params.max_angular_velocity.unit);
+
+                // Wheel distance
+                Self::param_with_unit_ui(ui, "wheel_distance", &mut params.wheel_distance.value, &mut params.wheel_distance.unit);
+
+                // Wheel radius
+                Self::param_with_unit_ui(ui, "wheel_radius", &mut params.wheel_radius.value, &mut params.wheel_radius.unit);
+
+                ui.label("    }");
+            }
+        }
+        ui.label("}");
+    }
+    fn param_with_unit_ui<T: ToString + PartialEq + Copy + enum_iterator::Sequence>(
+        ui: &mut egui::Ui,
+        label: &str,
+        value: &mut f32,
+        unit: &mut T,
+    ) {
+        ui.horizontal(|ui| {
+            ui.label(format!("        \"{}\":", label));
+            ui.add(egui::DragValue::new(value).speed(0.1));
+
+            egui::ComboBox::from_id_salt(label)
+                .selected_text(unit.to_string())
+                .show_ui(ui, |ui| {
+                    for u in enum_iterator::all::<T>() {
+                        ui.selectable_value(unit, u, u.to_string());
+                    }
+                });
+        });
+    }
+
+}
+
+impl HasConfigSaving for MovementConfigEditorTool {
+    fn base_path() -> &'static str {
+        MOVEMENT_CONFIGS_PATH
+    }
+    fn config(&self) -> impl serde::Serialize {
+        self.movement.clone()
+    }
+    fn update_current_path(&mut self, path: String) {
+        self.current_movement_config_path = path;
     }
 }
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use egui::{Pos2, Vec2};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     cfg::{DEFAULT_LINE_FARM_ENTITY_PLAN_PATH, DEFAULT_POINT_FARM_ENTITY_PLAN_PATH}, environment::{
@@ -14,7 +14,7 @@ use crate::{
     }, units::{
         angle::Angle,
         length::Length,
-    }, utilities::vec2::Vec2Rotate
+    }, utilities::{utils::generate_colors, vec2::Vec2Rotate}
 };
 
 
@@ -105,50 +105,14 @@ impl PointFieldConfig {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum VariantFieldConfig {
     Line(LineFieldConfig),
     Point(PointFieldConfig),
 }
 
-impl Serialize for VariantFieldConfig {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            VariantFieldConfig::Line(config) => config.serialize(serializer),
-            VariantFieldConfig::Point(config) => config.serialize(serializer),
-        }
-    }
-}
-impl<'de> Deserialize<'de> for VariantFieldConfig {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        // First deserialize into a generic Value
-        let value = serde_json::Value::deserialize(deserializer)?;
-        
-        // Try to deserialize as LineFieldConfig
-        if let Ok(config) = LineFieldConfig::deserialize(&value) {
-            return Ok(VariantFieldConfig::Line(config));
-        }
-        
-        // Try to deserialize as PointFieldConfig
-        if let Ok(config) = PointFieldConfig::deserialize(&value) {
-            return Ok(VariantFieldConfig::Point(config));
-        }
-        
-        Err(de::Error::custom(format!(
-            "Could not determine config type for variant field config from JSON: {}",
-            value
-        )))
-    }
-}
 
-
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FieldConfig {
     pub configs: Vec<VariantFieldConfig>,
 }
@@ -265,4 +229,19 @@ impl FieldConfig {
         farm_entities
     }
 
+    pub fn recalc_id_color(&mut self) {
+        let colors = generate_colors(self.configs.len(), 0.1);
+        for (i, config_variant) in self.configs.iter_mut().enumerate() {
+            match config_variant {
+                VariantFieldConfig::Line(config) => {
+                    config.id = i as u32;
+                    config.color = colors[i];
+                },
+                VariantFieldConfig::Point(config) => {
+                    config.id = i as u32;
+                    config.color = colors[i];
+                },
+            }
+        }
+    }
 }

@@ -1,57 +1,11 @@
 {
     "n_agents": 3,
-    "agent_path": "configs/agent_configs/default.json",
+    "agent_config_path": "configs/agent_configs/default.json",
     "date_time": {
         "date": "01.10.2025",
         "time": "04:00:00"
     },
-    "field": [
-        {
-            "left_top_pos": {
-                "x": 7.0,
-                "y": 4.0
-            },
-            "angle": "0.0 deg",
-            "n_lines": 3,
-            "n_points_per_line": 5,
-            "line_spacing": "0.3 m",
-            "point_spacing": "0.3 m",
-            "farm_entity_plan_path": "configs/farm_entity_plans/default_point.json"
-        },
-        {
-            "left_top_pos": {
-                "x": 3.0,
-                "y": 4.0
-            },
-            "angle": "0.0 deg",
-            "n_lines": 3,
-            "length": "5.0 m",
-            "line_spacing": "0.5 m",
-            "farm_entity_plan_path": "configs/farm_entity_plans/default_line.json"
-        }
-    ],
-    "spawn_area": {
-        "left_top_pos": {
-            "x": 2.0,
-            "y": 1.0
-        },
-        "angle": "5.0 deg",
-        "width": "3.0 m",
-        "height": "1.0 m"
-    },
-    "stations": [
-        {
-            "position": {
-                "x": 1.0,
-                "y": 1.0
-            },
-            "queue_direction": {
-                "x": 1.0,
-                "y": 0.0
-            },
-            "n_slots": 1
-        }
-    ],
+    "scene_config_path": "configs/scene_configs/default.json",
     "task_manager": {
         "charging_strat": "ThresholdWithLimit",
         "choose_station_strat": "ClosestMinQueue"

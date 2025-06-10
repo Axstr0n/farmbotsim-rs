@@ -1,8 +1,7 @@
-use std::fs;
 use egui::Ui;
 
 use crate::{
-    agent_module::agent_config::AgentConfig, cfg::{AGENT_CONFIGS_PATH, BATTERIES_PATH, DEFAULT_AGENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::{get_folders_in_folder, get_json_files_in_folder, load_json_or_panic}
+    agent_module::agent_config::AgentConfig, cfg::{AGENT_CONFIGS_PATH, BATTERIES_PATH, DEFAULT_AGENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{get_folders_in_folder, get_json_files_in_folder, load_json_or_panic}
 };
 
 
@@ -74,22 +73,11 @@ impl Tool for AgentConfigEditorTool {
         self.render_help_button(ui);
         ui.separator();
 
-        ui.horizontal(|ui| {
-            ui.label(AGENT_CONFIGS_PATH);
-            ui.add(egui::TextEdit::singleline(&mut self.save_file_name).desired_width(100.0));
-            ui.label(".json");
-            ui.spacing();
-            if ui.button("Save agent config").clicked() && !self.save_file_name.is_empty() {
-                let result = self.save_as_json(&self.save_file_name);
-                match result {
-                    Ok(_) => {
-                        println!("File saved");
-                        self.current_agent_config_path = format!("{}{}.json", AGENT_CONFIGS_PATH, self.save_file_name.clone());
-                    },
-                    Err(error) => eprintln!("{}", error)
-                }
-            }
-        });
+        
+        let mut save_file_name = self.save_file_name.clone();
+        self.draw_save_ui(ui, &mut save_file_name);
+        self.save_file_name = save_file_name;
+
         self.config_select(ui);
 
         self.render_help(ui);
@@ -121,16 +109,17 @@ impl AgentConfigEditorTool {
                 }
             });
     }
+}
 
-    fn save_as_json(&self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let config = AgentConfig::new(self.current_movement_path.clone(), self.current_battery_path.clone(), self.current_battery_soc);
-        // Check if it can be serialized
-        let json = serde_json::to_string_pretty(&config)?; // Pretty prints with indentation
-        let path = format!("{}{}.json", AGENT_CONFIGS_PATH, filename);
-        fs::write(path.clone(), json)?;
-        
-        println!("Successfully saved to {}", path);
-        Ok(())
+impl HasConfigSaving for AgentConfigEditorTool {
+    fn base_path() -> &'static str {
+        AGENT_CONFIGS_PATH
+    }
+    fn config(&self) -> impl serde::Serialize {
+        AgentConfig::new(self.current_movement_path.clone(), self.current_battery_path.clone(), self.current_battery_soc)
+    }
+    fn update_current_path(&mut self, path: String) {
+        self.current_agent_config_path = path;
     }
 }
 

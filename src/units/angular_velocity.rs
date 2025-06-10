@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, enum_iterator::Sequence)]
 pub enum AngularVelocityUnit {
     RadiansPerSecond,
     DegreesPerSecond,

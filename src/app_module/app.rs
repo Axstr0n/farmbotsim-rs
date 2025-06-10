@@ -3,7 +3,7 @@ use std::{time::{Duration, Instant}};
 
 use crate::{
     app_module::app_mode::AppMode, tool_module::{
-        agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, editor_tool::EditorTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, simulation_tool::SimulationTool, task_tool::TaskTool, tool::Tool
+        agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, env_config_editor_tool::EnvConfigEditorTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, field_config_editor_tool::FieldConfigEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, scene_config_editor_tool::SceneConfigEditorTool, simulation_tool::SimulationTool, task_tool::TaskTool, tool::Tool
     }
 };
 
@@ -14,11 +14,13 @@ pub struct App {
     simulation_tool: SimulationTool,
     path_tool: PathTool,
     task_tool: TaskTool,
-    editor_tool: EditorTool,
     battery_tool: BatteryTool,
     farm_entity_plan_editor_tool: FarmEntityPlanEditorTool,
     movement_config_editor_tool: MovementConfigEditorTool,
     agent_config_editor_tool: AgentConfigEditorTool,
+    field_config_editor_tool: FieldConfigEditorTool,
+    scene_config_editor_tool: SceneConfigEditorTool,
+    env_config_editor_tool: EnvConfigEditorTool,
 
     fps: f32,
     tps: f32,
@@ -43,11 +45,13 @@ impl Default for App {
             simulation_tool: SimulationTool::default(),
             path_tool: PathTool::default(),
             task_tool: TaskTool::default(),
-            editor_tool: EditorTool::default(),
             battery_tool: BatteryTool::default(),
             farm_entity_plan_editor_tool: FarmEntityPlanEditorTool::default(),
             movement_config_editor_tool: MovementConfigEditorTool::default(),
             agent_config_editor_tool: AgentConfigEditorTool::default(),
+            field_config_editor_tool: FieldConfigEditorTool::default(),
+            scene_config_editor_tool: SceneConfigEditorTool::default(),
+            env_config_editor_tool: EnvConfigEditorTool::default(),
 
             fps: 0.0,
             tps: 0.0,
@@ -114,11 +118,13 @@ impl App {
             AppMode::Simulation => self.simulation_tool.update(),
             AppMode::Path => self.path_tool.update(),
             AppMode::Task => self.task_tool.update(),
-            AppMode::Editor => self.editor_tool.update(),
             AppMode::Battery => {},
             AppMode::FarmEntityPlanEditor => {},
             AppMode::MovementConfigEditor => {},
             AppMode::AgentConfigEditor => {},
+            AppMode::FieldConfigEditor => {},
+            AppMode::SceneConfigEditor => {},
+            AppMode::EnvConfigEditor => {},
         }
         
     }
@@ -181,11 +187,13 @@ impl App {
                         AppMode::Simulation => self.simulation_tool.render_ui(ui),
                         AppMode::Path => self.path_tool.render_ui(ui),
                         AppMode::Task => self.task_tool.render_ui(ui),
-                        AppMode::Editor => self.editor_tool.render_ui(ui),
                         AppMode::Battery => self.battery_tool.render_ui(ui),
                         AppMode::FarmEntityPlanEditor => self.farm_entity_plan_editor_tool.render_ui(ui),
                         AppMode::MovementConfigEditor => self.movement_config_editor_tool.render_ui(ui),
                         AppMode::AgentConfigEditor => self.agent_config_editor_tool.render_ui(ui),
+                        AppMode::FieldConfigEditor => self.field_config_editor_tool.render_ui(ui),
+                        AppMode::SceneConfigEditor => self.scene_config_editor_tool.render_ui(ui),
+                        AppMode::EnvConfigEditor => self.env_config_editor_tool.render_ui(ui),
                     }
                 });
         });
@@ -194,24 +202,26 @@ impl App {
         egui::CentralPanel::default().show(ctx, |ui| {
 
             match self.mode {
-                AppMode::Editor | AppMode::Simulation | AppMode::Path | AppMode::Task | AppMode::Battery => {
+                AppMode::Simulation | AppMode::Path | AppMode::Task | AppMode::FieldConfigEditor | AppMode::SceneConfigEditor | AppMode::EnvConfigEditor => {
                     // Tools with camera
                     egui::Frame::group(ui.style())
                         .inner_margin(0.0)
                         .show(ui, |ui| {
                             match self.mode {
-                                AppMode::Editor => { self.editor_tool.render_main(ui); }
                                 AppMode::Simulation => { self.simulation_tool.render_main(ui); }
                                 AppMode::Path => { self.path_tool.render_main(ui); }
                                 AppMode::Task => { self.task_tool.render_main(ui); }
-                                AppMode::Battery => { self.battery_tool.render_main(ui); }
+                                AppMode::FieldConfigEditor => { self.field_config_editor_tool.render_main(ui); }
+                                AppMode::SceneConfigEditor => { self.scene_config_editor_tool.render_main(ui); }
+                                AppMode::EnvConfigEditor => { self.env_config_editor_tool.render_main(ui); }
                                 _ => {},
                             }
                         });
-                },
-                AppMode::FarmEntityPlanEditor | AppMode::MovementConfigEditor | AppMode::AgentConfigEditor => {
-                    // Tools without camera
-                    match self.mode {
+                    },
+                    AppMode::Battery | AppMode::FarmEntityPlanEditor | AppMode::MovementConfigEditor | AppMode::AgentConfigEditor => {
+                        // Tools without camera
+                        match self.mode {
+                        AppMode::Battery => { self.battery_tool.render_main(ui); }
                         AppMode::FarmEntityPlanEditor => self.farm_entity_plan_editor_tool.render_main(ui),
                         AppMode::MovementConfigEditor => self.movement_config_editor_tool.render_main(ui),
                         AppMode::AgentConfigEditor => self.agent_config_editor_tool.render_main(ui),

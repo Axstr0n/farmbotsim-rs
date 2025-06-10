@@ -7,6 +7,16 @@ pub struct StationConfig {
     pub n_slots: u32,
 }
 
+impl Default for StationConfig {
+    fn default() -> Self {
+        Self {
+            position: Pos2::ZERO,
+            queue_direction: Vec2::X,
+            n_slots: 1,
+        }
+    }
+}
+
 impl StationConfig {
     pub fn new(position: Pos2, queue_direction: Vec2, n_slots: u32) -> Self {
         Self {

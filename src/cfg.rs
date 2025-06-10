@@ -24,3 +24,9 @@ pub const DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH: &str = "configs/movement_configs/d
 
 pub const AGENT_CONFIGS_PATH: &str = "configs/agent_configs/";
 pub const DEFAULT_AGENT_CONFIG_PATH: &str = "configs/agent_configs/default.json";
+
+pub const FIELD_CONFIGS_PATH: &str = "configs/field_configs/";
+pub const DEFAULT_FIELD_CONFIG_PATH: &str = "configs/field_configs/default.json";
+
+pub const SCENE_CONFIGS_PATH: &str = "configs/scene_configs/";
+pub const DEFAULT_SCENE_CONFIG_PATH: &str = "configs/scene_configs/default.json";

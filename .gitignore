@@ -4,8 +4,6 @@ src/lib.rs
 log.txt
 
 configs/env_configs/*
-!configs/env_configs/default_only_line.json
-!configs/env_configs/default_only_point.json
 !configs/env_configs/default.json
 
 configs/farm_entity_plans/*
@@ -20,3 +18,11 @@ configs/movement_configs/*
 
 configs/agent_configs/*
 !configs/agent_configs/default.json
+
+configs/field_configs/*
+!configs/field_configs/default.json
+!configs/field_configs/default_only_line.json
+!configs/field_configs/default_only_point.json
+
+configs/scene_configs/*
+!configs/scene_configs/default.json

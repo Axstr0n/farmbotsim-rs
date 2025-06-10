@@ -55,11 +55,12 @@ impl Tool for FarmEntityPlanEditorTool {
             ui.label(".json");
             ui.spacing();
             if ui.button("Save farm entity plan").clicked() && !self.save_file_name.is_empty() {
-                let result = self.save_as_json(&self.save_file_name);
+                let save_file_path = format!("{}{}.json", FARM_ENTITY_PLANS_PATH, self.save_file_name.clone());
+                let result = self.save_as_json(&save_file_path);
                 match result {
                     Ok(_) => {
                         println!("File saved");
-                        self.current_farm_entity_plan_path = format!("{}{}.json", FARM_ENTITY_PLANS_PATH, self.save_file_name.clone());
+                        self.current_farm_entity_plan_path = save_file_path;
                     },
                     Err(error) => eprintln!("{}", error)
                 }
@@ -95,17 +96,17 @@ impl FarmEntityPlanEditorTool {
             });
     }
 
-    fn save_as_json(&self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn save_as_json(&self, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
         // Check if it can be serialized
         let _: FarmEntityPlan = serde_json::from_str(&self.content)?;
 
         // Create file
-        let mut file = File::create(format!("{}{}.json", FARM_ENTITY_PLANS_PATH, filename))?;
+        let mut file = File::create(file_path)?;
         
         // Write JSON to file
         file.write_all(self.content.as_bytes())?;
         
-        println!("Successfully saved to {}", filename);
+        println!("Successfully saved to {}", file_path);
         Ok(())
     }
 }

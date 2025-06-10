@@ -6,7 +6,7 @@ use crate::{
         camera::Camera,
         render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph, ui_render_agents_path},
     }, task_module::task::{Intent, Task}, tool_module::{
-        has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
+        has_camera::HasCamera, has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
     }
 };
 

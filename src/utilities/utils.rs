@@ -1,4 +1,7 @@
-use std::{any, fs, path::Path};
+use std::{any, error::Error, fs::{self, File}, io::Write, path::Path};
+
+use serde::Serialize;
+use serde_json::to_string_pretty;
 
 use crate::logger::log_error_and_panic;
 
@@ -111,4 +114,14 @@ where
         let msg = format!("Failed to parse JSON from {:?} into {}: {}", path_ref, type_name, e);
         log_error_and_panic(&msg);
     })
+}
+
+pub fn save_as_json<T: Serialize>(data: &T, file_path: &str) -> Result<(), Box<dyn Error>> {
+    let json = to_string_pretty(data)?;
+
+    let mut file = File::create(file_path)?;
+    file.write_all(json.as_bytes())?;
+
+    println!("Successfully saved to {}", file_path);
+    Ok(())
 }

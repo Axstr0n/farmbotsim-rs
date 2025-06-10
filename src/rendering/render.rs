@@ -152,24 +152,28 @@ pub fn render_visibility_graph(ui: &mut Ui, camera: &Camera, visibility_graph: &
     }
 }
 
-pub fn render_stations(ui: &mut Ui, camera: &Camera, stations: &Vec<Station>) {
+pub fn render_station(ui: &mut Ui, camera: &Camera, station: Station) {
     let painter = ui.painter();
+    let center = camera.scene_to_screen_pos(station.position);
+    let radius = camera.scene_to_screen_val(0.25);
+    painter.add(CircleShape {
+        center,
+        radius,
+        fill: station.color,
+        stroke: Stroke::default(),
+    });
+    let radius = camera.scene_to_screen_val(0.20);
+    painter.add(CircleShape {
+        center,
+        radius,
+        fill: Color32::BLACK,
+        stroke: Stroke::default(),
+    });
+}
+
+pub fn render_stations(ui: &mut Ui, camera: &Camera, stations: &Vec<Station>) {
     for station in stations {
-        let center = camera.scene_to_screen_pos(station.position);
-        let radius = camera.scene_to_screen_val(0.25);
-        painter.add(CircleShape {
-            center,
-            radius,
-            fill: station.color,
-            stroke: Stroke::default(),
-        });
-        let radius = camera.scene_to_screen_val(0.20);
-        painter.add(CircleShape {
-            center,
-            radius,
-            fill: Color32::BLACK,
-            stroke: Stroke::default(),
-        });
+        render_station(ui, camera, station.clone());
     }
 }
 

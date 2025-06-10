@@ -4,8 +4,7 @@ use crate::{
     cfg::ENV_CONFIGS_PATH, environment::{
         env_module::{env::Env, env_config::EnvConfig},
         field_config::VariantFieldConfig, station_module::station::Station
-    }, rendering::camera::Camera, utilities::utils::{generate_colors, get_json_files_in_folder},
-    utilities::pos2::ExtendedPos2,
+    }, utilities::utils::{generate_colors, get_json_files_in_folder},
 };
 
 
@@ -15,8 +14,6 @@ pub trait HasEnv {
 
     fn env(&self) -> &Env;
     fn env_mut(&mut self) -> &mut Env;
-
-    fn camera(&self) -> &Camera;
 
     fn create_env(&mut self, new_config_file_path: String) {
         let new_env_config = EnvConfig::from_json_file(&new_config_file_path);
@@ -73,21 +70,6 @@ pub trait HasEnv {
         self.env_mut().obstacles = obstacles.clone();
         self.env_mut().visibility_graph.recalculate(graph_points, &obstacles);
     }
-
-    fn ui_mouse_position(&self, ui: &mut Ui) {
-        let (mouse_pos, scene_pos) = match self.camera().mouse_position {
-            Some(pos) => {
-                let scene_pos = self.camera().screen_to_scene_pos(pos);
-                (Some(pos), Some(scene_pos))
-            },
-            None => {
-                (None, None)
-            },
-        };
-        ui.label(egui::RichText::new("Mouse position:").size(16.0));
-        ui.label(format!("Screen pos: {}", mouse_pos.map_or("None".to_string(), |p| p.fmt(2))));
-        ui.label(format!("Scene pos: {}", scene_pos.map_or("None".to_string(), |p| p.fmt(2))));
-    }
 }
 
 macro_rules! impl_has_env {
@@ -105,15 +87,10 @@ macro_rules! impl_has_env {
             fn env_mut(&mut self) -> &mut Env {
                 &mut self.env
             }
-
-            fn camera(&self) -> &Camera {
-                &self.camera
-            }
         }
     };
 }
 
 impl_has_env!(super::simulation_tool::SimulationTool);
 impl_has_env!(super::path_tool::PathTool);
-impl_has_env!(super::editor_tool::EditorTool);
 impl_has_env!(super::task_tool::TaskTool);

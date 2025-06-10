@@ -9,7 +9,7 @@ use crate::{
         render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_task_manager_on_field, render_visibility_graph, ui_render_agents, ui_render_datetime, ui_render_stations, ui_render_task_manager},
     },
     tool_module::{
-        has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
+        has_camera::HasCamera, has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
     }
 };
 
