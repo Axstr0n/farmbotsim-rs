@@ -81,3 +81,29 @@ impl Duration {
         }
     }
 }
+
+pub fn format_duration(dur: &Duration) -> String {
+    let secs = dur.to_base_unit();
+    if secs >= 3600.0 {
+        format!("{} h", secs / 3600.0)
+    } else if secs >= 60.0 {
+        format!("{} min", secs / 60.0)
+    } else {
+        format!("{} s", secs)
+    }
+}
+
+pub fn average_duration(durations: &[Duration]) -> Duration {
+    if durations.is_empty() {
+        return Duration::seconds(0.0);
+    }
+    let total_secs: f32 = durations.iter().map(|d| d.to_base_unit()).sum();
+    Duration::seconds(total_secs / durations.len() as f32)
+}
+
+impl Eq for Duration {}
+impl Ord for Duration {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap_or(std::cmp::Ordering::Equal)
+    }
+}

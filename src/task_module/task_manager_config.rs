@@ -6,3 +6,11 @@ pub struct TaskManagerConfig {
     pub charging_strat: ChargingStrat,
     pub choose_station_strat: ChooseStationStrat,
 }
+impl Default for TaskManagerConfig {
+    fn default() -> Self {
+        Self {
+            charging_strat: ChargingStrat::CriticalOnly,
+            choose_station_strat: ChooseStationStrat::Closest,
+        }
+    }
+}

@@ -26,3 +26,6 @@ configs/field_configs/*
 
 configs/scene_configs/*
 !configs/scene_configs/default.json
+
+performance_matrix/*
+!performance_matrix/default.json

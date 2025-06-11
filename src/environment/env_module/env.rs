@@ -16,6 +16,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Env {
     pub step_count: u32,
+    pub duration: Duration,
     pub n_agents: u32,
     pub agent_path: String,
     pub agents: Vec<Agent>,
@@ -63,6 +64,7 @@ impl Env {
         let task_manager = TaskManager::from_config(config.task_manager_config, field_config.clone());
         Self {
             step_count: 0,
+            duration: Duration::seconds(0.0),
             n_agents,
             agent_path: config.agent_config_path,
             agents,
@@ -100,6 +102,7 @@ impl Env {
     }
     pub fn step(&mut self) {
         let simulation_step = Duration::seconds(1.0);
+        self.duration = self.duration + simulation_step;
         self.step_count += 1;
         self.date_time_manager.advance_time(simulation_step.to_base_unit() as i64);
         self.task_manager.update_waiting_list(simulation_step);

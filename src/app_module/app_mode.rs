@@ -9,6 +9,7 @@ pub enum AppMode {
     FieldConfigEditor,
     SceneConfigEditor,
     EnvConfigEditor,
+    PerformanceMatrixTool,
 }
 impl AppMode {
     pub fn variants() -> Vec<AppMode> {
@@ -23,6 +24,7 @@ impl AppMode {
             AppMode::FieldConfigEditor,
             AppMode::SceneConfigEditor,
             AppMode::EnvConfigEditor,
+            AppMode::PerformanceMatrixTool,
         ]
     }
     pub fn to_string(&self) -> &str {
@@ -37,6 +39,7 @@ impl AppMode {
             AppMode::FieldConfigEditor => "FieldConfigEditor",
             AppMode::SceneConfigEditor => "SceneConfigEditor",
             AppMode::EnvConfigEditor => "EnvConfigEditor",
+            AppMode::PerformanceMatrixTool => "PerformanceMatrixTool"
         }
     }
 }

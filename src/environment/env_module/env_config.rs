@@ -2,9 +2,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    environment::{
-        datetime::DateTimeConfig,
-    }, task_module::task_manager_config::TaskManagerConfig, utilities::utils::load_json_or_panic
+    cfg::{DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH}, environment::datetime::DateTimeConfig, task_module::task_manager_config::TaskManagerConfig, utilities::utils::load_json_or_panic
 };
 
 
@@ -17,6 +15,18 @@ pub struct EnvConfig {
     pub scene_config_path: String,
     #[serde(rename = "task_manager")]
     pub task_manager_config: TaskManagerConfig,
+}
+
+impl Default for EnvConfig {
+    fn default() -> Self {
+        Self {
+            n_agents: 1,
+            agent_config_path: DEFAULT_AGENT_CONFIG_PATH.to_string(),
+            datetime_config: DateTimeConfig::from_string("01.01.2025 00:00:00".to_string()),
+            scene_config_path: DEFAULT_SCENE_CONFIG_PATH.to_string(),
+            task_manager_config: TaskManagerConfig::default(),
+        }
+    }
 }
 
 impl EnvConfig {

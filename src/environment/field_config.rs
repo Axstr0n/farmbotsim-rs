@@ -14,7 +14,7 @@ use crate::{
     }, units::{
         angle::Angle,
         length::Length,
-    }, utilities::{utils::generate_colors, vec2::Vec2Rotate}
+    }, utilities::{utils::{generate_colors, load_json_or_panic}, vec2::Vec2Rotate}
 };
 
 
@@ -227,6 +227,40 @@ impl FieldConfig {
         }
 
         farm_entities
+    }
+
+    pub fn has_cycle_farm_entity_plan(&self) -> bool {
+        for config in &self.configs {
+            let plan_path = match config {
+                VariantFieldConfig::Line(data) => {data.farm_entity_plan_path.clone()},
+                VariantFieldConfig::Point(data) => {data.farm_entity_plan_path.clone()}
+            };
+            let plan: FarmEntityPlan = load_json_or_panic(plan_path);
+            if plan.cycle.is_some() {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn number_of_actions(&self) -> Option<u32> {
+        if self.has_cycle_farm_entity_plan() { return None; }
+
+        let mut n_actions = 0;
+        for config in &self.configs {
+            match config {
+                VariantFieldConfig::Line(data) => {
+                    let plan: FarmEntityPlan = load_json_or_panic(data.farm_entity_plan_path.clone());
+                    n_actions += data.n_lines*plan.schedule.len() as u32;
+                },
+                VariantFieldConfig::Point(data) => {
+                    let plan: FarmEntityPlan = load_json_or_panic(data.farm_entity_plan_path.clone());
+                    n_actions += data.n_lines*data.n_points_per_line*plan.schedule.len() as u32;
+                }
+            }
+        }
+
+        Some(n_actions)
     }
 
     pub fn recalc_id_color(&mut self) {

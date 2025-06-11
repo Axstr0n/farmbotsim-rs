@@ -1,0 +1,28 @@
+{
+  "start_datetime": "2025-06-11T20:31:04.239735200+02:00",
+  "evaluation_duration": {
+    "secs": 3,
+    "nanos": 875961400
+  },
+  "n_episodes": 10,
+  "scene_config_path": "configs/scene_configs/default.json",
+  "results": [
+    {
+      "env_config": {
+        "n_agents": 1,
+        "agent_config_path": "configs/agent_configs/default.json",
+        "date_time": {
+          "date": "01.01.2025",
+          "time": "00:00:00"
+        },
+        "scene_config_path": "configs/scene_configs/default.json",
+        "task_manager": {
+          "charging_strat": "CriticalOnly",
+          "choose_station_strat": "Closest"
+        }
+      },
+      "n_completed_tasks(min,avg,max)": "(269, 270, 272)",
+      "env_duration_(min,avg,max)": "(24 h, 24 h, 24 h)"
+    }
+  ]
+}
