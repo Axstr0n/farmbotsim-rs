@@ -8,7 +8,6 @@ pub enum AppMode {
     AgentConfigEditor,
     FieldConfigEditor,
     SceneConfigEditor,
-    EnvConfigEditor,
     PerformanceMatrixTool,
 }
 impl AppMode {
@@ -23,7 +22,6 @@ impl AppMode {
             AppMode::AgentConfigEditor,
             AppMode::FieldConfigEditor,
             AppMode::SceneConfigEditor,
-            AppMode::EnvConfigEditor,
             AppMode::PerformanceMatrixTool,
         ]
     }
@@ -38,7 +36,6 @@ impl AppMode {
             AppMode::AgentConfigEditor => "AgentConfigEditor",
             AppMode::FieldConfigEditor => "FieldConfigEditor",
             AppMode::SceneConfigEditor => "SceneConfigEditor",
-            AppMode::EnvConfigEditor => "EnvConfigEditor",
             AppMode::PerformanceMatrixTool => "PerformanceMatrixTool"
         }
     }

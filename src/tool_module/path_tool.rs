@@ -1,5 +1,5 @@
 use crate::{
-    cfg::{DEFAULT_ENV_CONFIG_PATH, MAX_VELOCITY}, environment::env_module::{
+    cfg::{MAX_VELOCITY}, environment::env_module::{
         env::Env,
         env_config::EnvConfig,
     }, path_finding_module::path_finding::PathFinding, rendering::{
@@ -7,35 +7,31 @@ use crate::{
         render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph, ui_render_agents_path},
     }, task_module::task::{Intent, Task}, tool_module::{
         has_camera::HasCamera, has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
-    }
+    },
 };
 
 
 pub struct PathTool {
     pub tick: u32,
     pub running: bool,
+    pub env_config: EnvConfig,
     pub env: Env,
     pub camera: Camera,
-    pub current_env_config_string: String,
     pub help_open: bool,
 }
 
 impl Default for PathTool {
     fn default() -> Self {
-        let env_config_string = DEFAULT_ENV_CONFIG_PATH.to_string();
-        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string));
-        let mut instance = Self {
+        let env_config = EnvConfig::default();
+        let env = Env::from_config(env_config.clone());
+        Self {
             tick: 0,
             running: false,
+            env_config,
             env,
             camera: Camera::default(),
-            current_env_config_string: env_config_string,
             help_open: false,
-        };
-        instance.recalc_charging_stations();
-        instance.recalc_field_config_on_add_remove();
-        
-        instance
+        }
     }
 }
 
@@ -54,8 +50,23 @@ impl Tool for PathTool {
     fn render_ui(&mut self, ui: &mut egui::Ui) {
         self.render_help_button(ui);
         ui.separator();
-
-        self.ui_config_select(ui);
+        
+        ui.label(egui::RichText::new("Env config:").size(16.0));
+        // n_agents
+        ui.horizontal(|ui| {
+            ui.label("n_agents:");
+            if ui.add(egui::DragValue::new(&mut self.env_config.n_agents).speed(1).range(1..=10)).changed() {self.rebuild_env();};
+        });
+        // agent_config_path
+        ui.horizontal(|ui| {
+            ui.label("agent_config_path:");
+            self.ui_agent_config_select(ui);
+        });
+        // scene_config
+        ui.horizontal(|ui| {
+            ui.label("scene_config: ");
+            self.ui_scene_config_select(ui);
+        });
         ui.separator();
 
         self.ui_mouse_position(ui);
@@ -84,7 +95,6 @@ impl PathTool {
         let mouse_position = response.hover_pos();
         if let Some(mouse_position) = mouse_position {
             if response.clicked_by(egui::PointerButton::Primary) {
-                println!("Set path");
                 let scene_pos = self.camera.screen_to_scene_pos(mouse_position);
                 for agent in &mut self.env.agents {
                     let path = self.env.visibility_graph.find_path(agent.position, scene_pos);
@@ -109,7 +119,7 @@ impl HasHelp for PathTool {
         ui.separator();
 
         ui.label("Env config:");
-        ui.label("In dropdown you can select env config.");
+        ui.label("Configure env config.");
         ui.separator();
 
         ui.label("Mouse position:");

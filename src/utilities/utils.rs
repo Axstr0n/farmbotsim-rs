@@ -125,3 +125,58 @@ pub fn save_as_json<T: Serialize>(data: &T, file_path: &str) -> Result<(), Box<d
     println!("Successfully saved to {}", file_path);
     Ok(())
 }
+
+pub fn json_config_combo(
+    ui: &mut egui::Ui,
+    id_salt: &str,
+    current_value: &mut String,
+    folder_path: &str,
+) -> bool {
+    let mut changed = false;
+
+    egui::ComboBox::from_id_salt(id_salt)
+        .selected_text(format!("{:?}", current_value))
+        .show_ui(ui, |ui| {
+            let json_files = get_json_files_in_folder(folder_path);
+            let previous_value = current_value.clone();
+
+            for json_file in json_files {
+                let new_value = format!("{}{}", folder_path, json_file);
+                ui.selectable_value(current_value, new_value.clone(), json_file);
+            }
+
+            if *current_value != previous_value {
+                changed = true;
+            }
+        });
+
+    changed
+}
+
+pub fn folder_select_combo(
+    ui: &mut egui::Ui,
+    id_salt: &str,
+    current_value: &mut String,
+    base_path: &str
+) -> bool {
+    let mut changed = false;
+
+    egui::ComboBox::from_id_salt(id_salt)
+        .selected_text(current_value.as_str())
+        .show_ui(ui, |ui| {
+            let options = get_folders_in_folder(base_path);
+            let previous_value = current_value.clone();
+
+            for option in options {
+                let full_path = format!("{}{}", base_path, option);
+                ui.selectable_value(current_value, full_path.clone(), full_path);
+            }
+
+            if *current_value != previous_value {
+                changed = true;
+            }
+        });
+
+    changed
+}
+

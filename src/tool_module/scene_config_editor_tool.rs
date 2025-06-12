@@ -10,14 +10,14 @@ use crate::path_finding_module::visibility_graph::VisibilityGraph;
 use crate::rendering::render::render_station;
 use crate::tool_module::has_camera::HasCamera;
 use crate::tool_module::has_config_saving::HasConfigSaving;
-use crate::utilities::utils::load_json_or_panic;
+use crate::utilities::utils::{json_config_combo, load_json_or_panic};
 use crate::{
     environment::{
         station_module::station::Station
     }, rendering::{
         camera::Camera,
         render::{render_coordinate_system, render_drag_points, render_field_config, render_grid, render_obstacles, render_spawn_area, render_visibility_graph},
-    }, tool_module::{has_help::HasHelp, tool::Tool}, utilities::{pos2::ExtendedPos2, utils::get_json_files_in_folder}
+    }, tool_module::{has_help::HasHelp, tool::Tool}, utilities::{pos2::ExtendedPos2}
 };
 
 
@@ -205,42 +205,30 @@ impl SceneConfigEditorTool {
         self.field_config.recalc_id_color();
     }
 
-    fn ui_scene_config_select(&mut self, ui: &mut Ui) {
+    fn ui_scene_config_select(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("Scene config:").size(16.0));
-        egui::ComboBox::from_label("")
-            .selected_text(format!("{:?}", self.current_scene_config_path))
-            .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(SCENE_CONFIGS_PATH);
-                let previous_value = self.current_scene_config_path.clone();
 
-                for json_file in json_files {
-                    let new_value = format!("{}{}", SCENE_CONFIGS_PATH, json_file.clone());
-                    ui.selectable_value(&mut self.current_scene_config_path, new_value.clone(), json_file);
-                }
+        let mut new_value = self.current_scene_config_path.clone();
 
-                if *self.current_scene_config_path != previous_value {
-                    self.change_scene_config();
-                }
-            });
+        if json_config_combo(ui, "", &mut new_value, SCENE_CONFIGS_PATH)
+            && new_value != self.current_scene_config_path
+        {
+            self.current_scene_config_path = new_value;
+            self.change_scene_config();
+        }
     }
-    
-    fn ui_field_config_select(&mut self, ui: &mut Ui) {
+
+    fn ui_field_config_select(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("Field config:").size(16.0));
-        egui::ComboBox::from_label("  ")
-            .selected_text(format!("{:?}", self.scene_config.field_config_path))
-            .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(FIELD_CONFIGS_PATH);
-                let previous_value = self.scene_config.field_config_path.clone();
 
-                for json_file in json_files {
-                    let new_value = format!("{}{}", FIELD_CONFIGS_PATH, json_file.clone());
-                    ui.selectable_value(&mut self.scene_config.field_config_path, new_value.clone(), json_file);
-                }
+        let mut new_value = self.scene_config.field_config_path.clone();
 
-                if *self.scene_config.field_config_path != previous_value {
-                    self.change_field_config();
-                }
-            });
+        if json_config_combo(ui, "  ", &mut new_value, FIELD_CONFIGS_PATH)
+            && new_value != self.scene_config.field_config_path
+        {
+            self.scene_config.field_config_path = new_value;
+            self.change_field_config();
+        }
     }
 }
 

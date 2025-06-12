@@ -34,4 +34,3 @@ impl_has_camera!(super::path_tool::PathTool);
 impl_has_camera!(super::task_tool::TaskTool);
 impl_has_camera!(super::field_config_editor_tool::FieldConfigEditorTool);
 impl_has_camera!(super::scene_config_editor_tool::SceneConfigEditorTool);
-impl_has_camera!(super::env_config_editor_tool::EnvConfigEditorTool);

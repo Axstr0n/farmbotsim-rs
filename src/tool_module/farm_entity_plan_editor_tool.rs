@@ -5,7 +5,7 @@ use crate::{
     cfg::{DEFAULT_POINT_FARM_ENTITY_PLAN_PATH, FARM_ENTITY_PLANS_PATH},
     environment::farm_entity_module::farm_entity_plan::FarmEntityPlan,
     tool_module::{has_help::HasHelp, tool::Tool},
-    utilities::utils::get_json_files_in_folder
+    utilities::utils::{json_config_combo}
 };
 
 
@@ -66,7 +66,7 @@ impl Tool for FarmEntityPlanEditorTool {
                 }
             }
         });
-        self.config_select(ui);
+        self.ui_farm_entity_plan_select(ui);
 
         self.render_help(ui);
     }
@@ -77,23 +77,16 @@ impl Tool for FarmEntityPlanEditorTool {
 }
 
 impl FarmEntityPlanEditorTool {
-    fn config_select(&mut self, ui: &mut Ui) {
-        egui::ComboBox::from_label("")
-            .selected_text(format!("{:?}", self.current_farm_entity_plan_path))
-            .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(FARM_ENTITY_PLANS_PATH);
-                let previous_value = self.current_farm_entity_plan_path.clone();
+    fn ui_farm_entity_plan_select(&mut self, ui: &mut Ui) {
+        let mut new_value = self.current_farm_entity_plan_path.clone();
 
-                for json_file in json_files {
-                    let new_value = format!("{}{}", FARM_ENTITY_PLANS_PATH, json_file.clone());
-                    ui.selectable_value(&mut self.current_farm_entity_plan_path, new_value.clone(), json_file);
-                }
-
-                if *self.current_farm_entity_plan_path != previous_value {
-                    let json_str = fs::read_to_string(self.current_farm_entity_plan_path.clone()).expect("File not found");
-                    self.content = json_str;
-                }
-            });
+        if json_config_combo(ui, "", &mut new_value, FARM_ENTITY_PLANS_PATH)
+            && new_value != self.current_farm_entity_plan_path
+        {
+            self.current_farm_entity_plan_path = new_value;
+            let json_str = fs::read_to_string(self.current_farm_entity_plan_path.clone()).expect("File not found");
+            self.content = json_str;
+        }
     }
 
     fn save_as_json(&self, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {

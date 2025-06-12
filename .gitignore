@@ -3,9 +3,6 @@ bin/
 src/lib.rs
 log.txt
 
-configs/env_configs/*
-!configs/env_configs/default.json
-
 configs/farm_entity_plans/*
 !configs/farm_entity_plans/default_line.json
 !configs/farm_entity_plans/default_point.json

@@ -71,13 +71,14 @@ The **farmbotsim-rs** project is organized into several directories that help se
 `configs/`
 - `agent_configs/` - Contains agent configs. (movement + battery)
 - `batteries/` - Contains battery configs.
-- `env_configs/` - Contains parameters for env creation. (agents + datetime + scene + task manager)
 - `farm_entity_plans/` - Contains plans for farm entity growth.
 - `field_configs/` - Contains parameters for field config. (field)
 - `movement_configs/` - Contains movement configs. (movement)
 - `scene_configs/` - Contains parameters for scene config. (field + stations + spawn area)
 
 `media/`- Contains screenshots of app.
+
+`performance_matrix/` - Stores all evaluations
 
 `src/` - Contains the core logic of the application:
 - `agent_module/` - Contains the agent struct and its associated logic, such as movement, battery, state machine.

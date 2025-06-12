@@ -13,5 +13,4 @@ pub mod movement_config_editor_tool;
 pub mod agent_config_editor_tool;
 pub mod field_config_editor_tool;
 pub mod scene_config_editor_tool;
-pub mod env_config_editor_tool;
 pub mod performance_matrix_tool;

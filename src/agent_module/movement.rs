@@ -5,10 +5,10 @@ use std::f32::consts::PI;
 use crate::{
     cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE}, units::{
         angle::Angle,
-        angular_velocity::AngularVelocity,
+        angular_velocity::{AngularVelocity, AngularVelocityUnit},
         duration::Duration,
-        length::Length,
-        linear_velocity::LinearVelocity,
+        length::{Length, LengthUnit},
+        linear_velocity::{LinearVelocity, LinearVelocityUnit},
     }, utilities::{utils::load_json_or_panic, vec2::Vec2Rotate}
 };
 
@@ -46,6 +46,16 @@ pub struct RombaMovement {
     pub max_angular_velocity: AngularVelocity,
     pub wheel_distance: Length,
     pub wheel_radius: Length
+}
+impl Default for RombaMovement {
+    fn default() -> Self {
+        Self {
+            max_velocity: LinearVelocity { value: 10.0, unit: LinearVelocityUnit::KilometersPerHour },
+            max_angular_velocity: AngularVelocity { value: 0.1, unit: AngularVelocityUnit::RadiansPerSecond },
+            wheel_distance: Length { value: 0.2, unit: LengthUnit::Meters },
+            wheel_radius: Length { value: 0.05, unit: LengthUnit::Meters },
+        }
+    }
 }
 
 impl IsMovement for RombaMovement {

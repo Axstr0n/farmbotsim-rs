@@ -1,7 +1,7 @@
 use egui::Ui;
 
 use crate::{
-    agent_module::agent_config::AgentConfig, cfg::{AGENT_CONFIGS_PATH, BATTERIES_PATH, DEFAULT_AGENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{get_folders_in_folder, get_json_files_in_folder, load_json_or_panic}
+    agent_module::agent_config::AgentConfig, cfg::{AGENT_CONFIGS_PATH, BATTERIES_PATH, DEFAULT_AGENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{folder_select_combo, json_config_combo, load_json_or_panic}
 };
 
 
@@ -36,28 +36,12 @@ impl Tool for AgentConfigEditorTool {
 
         ui.horizontal(|ui| {
             ui.label(r#"   "movement":"#);
-            egui::ComboBox::from_id_salt("movement_dropdown")
-                .selected_text(&self.current_movement_path)
-                .show_ui(ui, |ui| {
-                    let movement_options = get_json_files_in_folder(MOVEMENT_CONFIGS_PATH);
-                    for movement in movement_options {
-                        let whole_path = format!("{}{}", MOVEMENT_CONFIGS_PATH, movement);
-                        ui.selectable_value(&mut self.current_movement_path, whole_path.clone(), whole_path);
-                    }
-                });
+            self.ui_movement_select(ui)
         });
 
         ui.horizontal(|ui| {
             ui.label(r#"   "battery":"#);
-            egui::ComboBox::from_id_salt("battery_dropdown")
-                .selected_text(&self.current_battery_path)
-                .show_ui(ui, |ui| {
-                    let battery_options = get_folders_in_folder(BATTERIES_PATH);
-                    for battery in battery_options {
-                        let whole_path = format!("{}{}", BATTERIES_PATH, battery);
-                        ui.selectable_value(&mut self.current_battery_path, whole_path.clone(), whole_path);
-                    }
-                });
+            self.ui_battery_select(ui);
         });
 
         ui.horizontal(|ui| {
@@ -78,36 +62,49 @@ impl Tool for AgentConfigEditorTool {
         self.draw_save_ui(ui, &mut save_file_name);
         self.save_file_name = save_file_name;
 
-        self.config_select(ui);
+        self.ui_agent_config_select(ui);
 
         self.render_help(ui);
     }
 
-    fn update(&mut self) {
-        
-    }
+    fn update(&mut self) {}
 }
 
 impl AgentConfigEditorTool {
-    fn config_select(&mut self, ui: &mut Ui) {
-        egui::ComboBox::from_label("")
-            .selected_text(format!("{:?}", self.current_agent_config_path))
-            .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(AGENT_CONFIGS_PATH);
-                let previous_value = self.current_agent_config_path.clone();
+    fn ui_agent_config_select(&mut self, ui: &mut Ui) {
+        let mut new_value = self.current_agent_config_path.clone();
 
-                for json_file in json_files {
-                    let new_value = format!("{}{}", AGENT_CONFIGS_PATH, json_file.clone());
-                    ui.selectable_value(&mut self.current_agent_config_path, new_value.clone(), json_file);
-                }
+        if json_config_combo(ui, "", &mut new_value, AGENT_CONFIGS_PATH)
+            && new_value != self.current_agent_config_path
+        {
+            self.current_agent_config_path = new_value;
+            let agent_config: AgentConfig = load_json_or_panic(self.current_agent_config_path.clone());
+            self.current_movement_path = agent_config.movement;
+            self.current_battery_path = agent_config.battery;
+            self.current_battery_soc = agent_config.battery_soc;
+        }
+    }
+    fn ui_movement_select(&mut self, ui: &mut egui::Ui) {
+        let mut new_path = self.current_movement_path.clone();
 
-                if *self.current_agent_config_path != previous_value {
-                    let agent_config: AgentConfig = load_json_or_panic(self.current_agent_config_path.clone());
-                    self.current_movement_path = agent_config.movement;
-                    self.current_battery_path = agent_config.battery;
-                    self.current_battery_soc = agent_config.battery_soc;
-                }
-            });
+        if json_config_combo(ui, "", &mut new_path, MOVEMENT_CONFIGS_PATH)
+            && new_path != self.current_movement_path
+        {
+            self.current_movement_path = new_path;
+        }
+    }
+    fn ui_battery_select(&mut self, ui: &mut egui::Ui) {
+        let mut new_path = self.current_battery_path.clone();
+
+        if folder_select_combo(
+            ui,
+            "battery_select",
+            &mut new_path,
+            BATTERIES_PATH,
+        ) && new_path != self.current_battery_path
+        {
+            self.current_battery_path = new_path;
+        }
     }
 }
 

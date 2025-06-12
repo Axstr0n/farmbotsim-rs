@@ -1,10 +1,10 @@
-use std::{fs, io::Write};
+use std::io::Write;
 
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use egui::DragValue;
 use serde::{Deserialize, Serialize};
 
-use crate::{cfg::{AGENT_CONFIGS_PATH, DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, PERFORMANCE_MATRIX_PATH, SCENE_CONFIGS_PATH}, environment::{datetime::{DateTimeConfig, DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig}, field_config::FieldConfig, scene_config::SceneConfig}, logger::log_error_and_panic, task_module::task_manager::{ChargingStrat, ChooseStationStrat}, tool_module::{has_help::HasHelp, tool::Tool}, units::duration::{average_duration, format_duration, Duration}, utilities::utils::{get_json_files_in_folder, load_json_or_panic}};
+use crate::{cfg::{AGENT_CONFIGS_PATH, DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, PERFORMANCE_MATRIX_PATH, SCENE_CONFIGS_PATH}, environment::{datetime::{DateTimeConfig, DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig}, field_config::FieldConfig, scene_config::SceneConfig}, logger::log_error_and_panic, task_module::task_manager::{ChargingStrat, ChooseStationStrat}, tool_module::{has_help::HasHelp, tool::Tool}, units::duration::{average_duration, format_duration, Duration}, utilities::utils::{json_config_combo, load_json_or_panic}};
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -83,30 +83,15 @@ impl Default for PerformanceMatrixTool {
 
 impl Tool for PerformanceMatrixTool {
     fn render_main(&mut self, ui: &mut egui::Ui) {
-        // if let Some(pm_content) = &self.current_content {
-        //     egui::ScrollArea::vertical().show(ui, |ui| {
-        //         ui.add(
-        //             egui::TextEdit::multiline(&mut pm_content.clone())
-        //                 .font(egui::TextStyle::Monospace)
-        //                 .desired_rows(20)
-        //                 .lock_focus(true)
-        //                 .desired_width(f32::INFINITY)
-        //                 .interactive(false),
-        //             );
-        //         });
-        // }
-
-        //if let Ok(raw) = fs::read_to_string("configs/scene_config/default.json") {
         if let Some(raw) = &self.current_content {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(raw) {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    // Force the content to fill the full available width
                     ui.set_min_width(ui.available_width());
 
                     show_json_value(ui, &json, "root");
                 });
             } else {
-                ui.label("❌ Failed to parse JSON.");
+                ui.label("Failed to parse JSON.");
             }
         }
 
@@ -118,10 +103,12 @@ impl Tool for PerformanceMatrixTool {
         self.ui_summary_select(ui);
         ui.separator();
 
+        // n_episodes
         ui.horizontal(|ui| {
             ui.label("n_episodes: ");
             ui.add(egui::DragValue::new(&mut self.n_episodes).speed(10).range(10..=10000));
         });
+        // scene_config
         ui.horizontal(|ui| {
             ui.label("scene_config: ");
             self.ui_scene_config_select(ui);
@@ -129,21 +116,7 @@ impl Tool for PerformanceMatrixTool {
         // agent_config_path
         ui.horizontal(|ui| {
             ui.label("agent_config_path");
-            egui::ComboBox::from_id_salt("agent_config_path")
-                .selected_text(&self.agent_config_path)
-                .show_ui(ui, |ui| {
-                    let json_files = get_json_files_in_folder(AGENT_CONFIGS_PATH);
-                    let previous_value = self.agent_config_path.clone();
-                    for json_file in json_files {
-                        let whole_path = format!("{}{}", AGENT_CONFIGS_PATH, json_file.clone());
-                        ui.selectable_value(&mut self.agent_config_path, whole_path.clone(), whole_path);
-                    }
-                    if *self.agent_config_path != previous_value {
-                        for env_config in self.env_configs.iter_mut() {
-                            env_config.agent_config_path = self.agent_config_path.clone();
-                        }
-                    }
-                });
+            self.ui_agent_config_select(ui);
         });
         // datetime
         ui.horizontal(|ui| {
@@ -193,7 +166,7 @@ impl Tool for PerformanceMatrixTool {
                 }
             }
         });
-
+        // env configs
         ui.label(egui::RichText::new(format!("Env configs ({}):", self.env_configs.len())).size(16.0));
         ui.horizontal(|ui| {
             if ui.button("Add").clicked() {
@@ -220,21 +193,6 @@ impl Tool for PerformanceMatrixTool {
                     ui.label("n_agents: ");
                     ui.add(egui::DragValue::new(&mut config.n_agents).speed(1).range(1..=10));
                 });
-                // // agent_config_path
-                // ui.horizontal(|ui| {
-                //     ui.label("agent_config_path");
-                //     ui.label(config.agent_config_path.to_string());
-                // });
-                // // datetime
-                // ui.horizontal(|ui| {
-                //     ui.label("datetime:");
-                //     ui.label(format!("{} {}", config.datetime_config.date, config.datetime_config.time));
-                // });
-                // // scene config path
-                // ui.horizontal(|ui| {
-                //     ui.label("scene_config_path:");
-                //     ui.label(config.scene_config_path.to_string());
-                // });
                 //taskmanager
                 ui.horizontal(|ui| {
                     ui.label("task_manager_config:");
@@ -285,7 +243,6 @@ impl Tool for PerformanceMatrixTool {
                     if !Self::has_cycle_plan(self.scene_config_path.clone()) && ui.selectable_label(selected_kind == "AllTasksCompleted", "AllTasksCompleted").clicked() {
                             self.termination_condition = TerminationCondition::AllTasksCompleted;
                             selected_kind = "AllTasksCompleted";
-                        
                     }
                     if ui.selectable_label(selected_kind == "NumberCompletedTasks", "NumberCompletedTasks").clicked() {
                         self.termination_condition = TerminationCondition::NumberCompletedTasks(1); // default value
@@ -324,6 +281,7 @@ impl Tool for PerformanceMatrixTool {
             }
         });
         ui.separator();
+        ui.label("Make sure you set tps/fps ratio high in settings");
         ui.horizontal(|ui| {
             ui.label(PERFORMANCE_MATRIX_PATH);
             ui.add(egui::TextEdit::singleline(&mut self.save_file_name).desired_width(100.0));
@@ -408,46 +366,45 @@ impl Tool for PerformanceMatrixTool {
 impl PerformanceMatrixTool {
     fn ui_summary_select(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("Summary:").size(16.0));
-        egui::ComboBox::from_label("  ")
-            .selected_text(
-                self.current_pm_path
-                    .as_deref()
-                    .unwrap_or("Select file...")
-            )
-            .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(PERFORMANCE_MATRIX_PATH);
-                let previous_value = self.current_pm_path.clone();
 
-                for json_file in json_files {
-                    let new_value = format!("{}{}", PERFORMANCE_MATRIX_PATH, json_file.clone());
-                    ui.selectable_value(&mut self.current_pm_path, Some(new_value.clone()), json_file);
-                }
+        let mut selected_path = self.current_pm_path.clone().unwrap_or("Select file...".to_string());
 
-                if self.current_pm_path != previous_value {
-                    if let Some(path) = &self.current_pm_path {
-                        let json_str = fs::read_to_string(path.clone()).expect("File not found");
-                        self.current_content = Some(json_str);
-                    }
-                }
-            });
+        if json_config_combo(ui, "  ", &mut selected_path, PERFORMANCE_MATRIX_PATH)
+            && Some(selected_path.clone()) != self.current_pm_path
+        {
+            self.current_pm_path = Some(selected_path.clone());
+
+            if let Ok(json_str) = std::fs::read_to_string(&selected_path) {
+                self.current_content = Some(json_str);
+            } else {
+                self.current_content = None;
+            }
+        }
     }
-    fn ui_scene_config_select(&mut self, ui: &mut egui::Ui) {
-        egui::ComboBox::from_label(" ")
-            .selected_text(format!("{:?}", self.scene_config_path))
-            .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(SCENE_CONFIGS_PATH);
-                let previous_value = self.scene_config_path.clone();
 
-                for json_file in json_files {
-                    let new_value = format!("{}{}", SCENE_CONFIGS_PATH, json_file.clone());
-                    ui.selectable_value(&mut self.scene_config_path, new_value.clone(), json_file);
-                }
-                if *self.scene_config_path != previous_value {
-                    for env_config in self.env_configs.iter_mut() {
-                        env_config.scene_config_path = self.scene_config_path.clone();
-                    }
-                }
-            });
+    fn ui_scene_config_select(&mut self, ui: &mut egui::Ui) {
+        let mut new_value = self.scene_config_path.clone();
+
+        if json_config_combo(ui, "", &mut new_value, SCENE_CONFIGS_PATH)
+            && new_value != self.scene_config_path
+        {
+            self.scene_config_path = new_value;
+            for env_config in self.env_configs.iter_mut() {
+                env_config.scene_config_path = self.scene_config_path.clone();
+            }
+        }
+    }
+    fn ui_agent_config_select(&mut self, ui: &mut egui::Ui) {
+        let mut new_value = self.agent_config_path.clone();
+
+        if json_config_combo(ui, " ", &mut new_value, AGENT_CONFIGS_PATH)
+            && new_value != self.agent_config_path
+        {
+            self.agent_config_path = new_value;
+            for env_config in self.env_configs.iter_mut() {
+                env_config.agent_config_path = self.agent_config_path.clone();
+            }
+        }
     }
 
     fn has_cycle_plan(scene_path: String) -> bool {
@@ -525,19 +482,24 @@ impl HasHelp for PerformanceMatrixTool {
         ui.label("This is a Performance Matrix Tool where you set and run selected env configs and get evaluations.");
         ui.separator();
 
-        ui.label("Env config:");
-        ui.label("In dropdown you can select env config.");
+        ui.label("Summary:");
+        ui.label("In dropdown you can select summary.");
         ui.separator();
 
-        ui.label("Env controls:");
-        ui.label("Then you have start/pause/resume/reset controls for env as well as current env step count.");
+        ui.label("Env settings:");
+        ui.label("Set common settings for all env configs.");
         ui.separator();
 
-        ui.label("Env information:");
-        ui.label("Date time to keep track of time progression.");
-        ui.label("Agents are represented with table with their information.");
-        ui.label("Stations are represented in table with information.");
-        ui.label("Task manager with available, assigned, completed tasks");
+        ui.label("Env configs:");
+        ui.label("Add or remove env configs.");
+        ui.label("Set number of agents and task manager config for each env config");
+        ui.separator();
+
+        ui.label("Set condition when env stops");
+        ui.separator();
+
+        ui.label("Saving");
+        ui.label("Name file and start evaluation.");
     }
 }
 

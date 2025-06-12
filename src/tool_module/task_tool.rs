@@ -1,43 +1,36 @@
 use crate::{
-    cfg::DEFAULT_ENV_CONFIG_PATH,
-    environment::env_module::{
+    environment::{env_module::{
         env::Env,
         env_config::EnvConfig,
-    },
-    rendering::{
+    }}, rendering::{
         camera::Camera,
         render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_task_manager_on_field, render_visibility_graph, ui_render_agents, ui_render_datetime, ui_render_stations, ui_render_task_manager},
-    },
-    tool_module::{
+    }, task_module::{task::Intent}, tool_module::{
         has_camera::HasCamera, has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
-    }
+    },
 };
 
 pub struct TaskTool {
     pub tick: u32,
     pub running: bool,
+    pub env_config: EnvConfig,
     pub env: Env,
     pub camera: Camera,
-    pub current_env_config_string: String,
     pub help_open: bool,
 }
 
 impl Default for TaskTool {
     fn default() -> Self {
-        let env_config_string = DEFAULT_ENV_CONFIG_PATH.to_string();
-        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string));
-        let mut instance = Self {
+        let env_config = EnvConfig::default();
+        let env = Env::from_config(env_config.clone());
+        Self {
             tick: 0,
             running: false,
+            env_config,
             env,
             camera: Camera::default(),
-            current_env_config_string: env_config_string,
             help_open: false,
-        };
-        instance.recalc_charging_stations();
-        instance.recalc_field_config_on_add_remove();
-        
-        instance
+        }
     }
 }
 
@@ -57,7 +50,33 @@ impl Tool for TaskTool {
         self.render_help_button(ui);
         ui.separator();
 
-        self.ui_config_select(ui);
+        ui.label(egui::RichText::new("Env config:").size(16.0));
+        // n_agents
+        ui.horizontal(|ui| {
+            ui.label("n_agents:");
+            if ui.add(egui::DragValue::new(&mut self.env_config.n_agents).speed(1).range(1..=10)).changed() {self.rebuild_env();};
+        });
+        // agent_config_path
+        ui.horizontal(|ui| {
+            ui.label("agent_config_path:");
+            self.ui_agent_config_select(ui);
+        });
+        // datetime
+        ui.horizontal(|ui| {
+            ui.label("datetime:");
+            self.ui_datetime_select(ui);
+        });
+        // scene_config
+        ui.horizontal(|ui| {
+            ui.label("scene_config: ");
+            self.ui_scene_config_select(ui);
+        });
+        //taskmanager
+        ui.horizontal(|ui| {
+            ui.label("task_manager_config:");
+            self.ui_task_manager_config_select(ui);
+        });
+        ui.separator();
         
         self.ui_mouse_position(ui);
         ui.separator();
@@ -65,22 +84,31 @@ impl Tool for TaskTool {
         self.ui_render_controls(ui);
         ui.separator();
         
-        ui.label(egui::RichText::new("Manuall task assignment:").size(16.0));
+        ui.label(egui::RichText::new("Manual task assignment:").size(16.0));
         for i in 0..=self.env.agents.len()-1 {
             ui.horizontal(|ui| {
                 if ui.button(format!("Agent {} ->  work", i)).clicked() {
                     let mut removed_from_station = false;
+                    let mut station_ids_updated = vec![];
                     for agent in &mut self.env.agents {
                         if agent.id != i as u32 { continue; }
-                        removed_from_station |= self.env.stations[0].release_agent(i as u32);
+                        for station in &mut self.env.stations {
+                            let removed = station.release_agent(agent.id);
+                            removed_from_station |= removed;
+                            if removed {station_ids_updated.push(station.id);}
+                        }
                         self.env.task_manager.assign_work_tasks_to_agent(agent);
                     }
-                    if removed_from_station { self.env.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
+                    if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut self.env.stations, &mut self.env.agents); }
                 }
-                if ui.button(format!("Agent {} ->  station 0", i)).clicked() {
+                if ui.button(format!("Agent {} ->  station", i)).clicked() {
                     for agent in &mut self.env.agents {
                         if agent.id != i as u32 { continue; }
-                        if !self.env.stations[0].slots.contains(&agent.id) && !self.env.stations[0].queue.contains(&agent.id) {
+                        if let Some(task) = &agent.current_task {
+                            if *task.get_intent() != Intent::Queue && *task.get_intent() != Intent::Charge {
+                                self.env.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
+                            }
+                        } else {
                             self.env.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
                         }
                     }
@@ -100,15 +128,24 @@ impl Tool for TaskTool {
         ui.horizontal(|ui| {
             if ui.button("All -> work").clicked() {
                 let mut removed_from_station = false;
+                let mut station_ids_updated = vec![];
                 for agent in &mut self.env.agents {
-                    removed_from_station |= self.env.stations[0].release_agent(agent.id);
+                    for station in &mut self.env.stations {
+                        let removed = station.release_agent(agent.id);
+                        removed_from_station |= removed;
+                        if removed {station_ids_updated.push(station.id);}
+                    }
                     self.env.task_manager.assign_work_tasks_to_agent(agent);
                 }
-                if removed_from_station { self.env.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
+                if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut self.env.stations, &mut self.env.agents); }
             }
-            if ui.button("All -> station 0").clicked() {
+            if ui.button("All -> station").clicked() {
                 for agent in &mut self.env.agents {
-                    if !self.env.stations[0].slots.contains(&agent.id) && !self.env.stations[0].queue.contains(&agent.id) {
+                    if let Some(task) = &agent.current_task {
+                        if *task.get_intent() != Intent::Queue && *task.get_intent() != Intent::Charge {
+                            self.env.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
+                        }
+                    } else {
                         self.env.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
                     }
                 }
@@ -155,7 +192,7 @@ impl HasHelp for TaskTool {
         ui.separator();
 
         ui.label("Env config:");
-        ui.label("In dropdown you can select env config.");
+        ui.label("Configure env config.");
         ui.separator();
 
         ui.label("Env controls:");

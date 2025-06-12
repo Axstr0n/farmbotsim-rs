@@ -7,7 +7,7 @@ use crate::environment::field_config::FieldConfig;
 use crate::path_finding_module::visibility_graph::VisibilityGraph;
 use crate::tool_module::has_camera::HasCamera;
 use crate::tool_module::has_config_saving::HasConfigSaving;
-use crate::utilities::utils::{load_json_or_panic};
+use crate::utilities::utils::{json_config_combo, load_json_or_panic};
 use crate::{
     cfg::FARM_ENTITY_PLANS_PATH, environment::{
         field_config::{LineFieldConfig, PointFieldConfig, VariantFieldConfig},
@@ -57,7 +57,7 @@ impl Tool for FieldConfigEditorTool {
         self.render_help_button(ui);
         ui.separator();
 
-        self.ui_config_select(ui);
+        self.ui_field_config_select(ui);
         
         let mut save_file_name = self.save_file_name.clone();
         self.draw_save_ui(ui, &mut save_file_name);
@@ -255,24 +255,18 @@ impl FieldConfigEditorTool {
         let field_config: FieldConfig = load_json_or_panic(new_field_config_path);
         self.field_config = field_config;
     }
-
-    fn ui_config_select(&mut self, ui: &mut Ui) {
+    
+    fn ui_field_config_select(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("Field config:").size(16.0));
-        egui::ComboBox::from_label("")
-            .selected_text(format!("{:?}", self.current_field_config_path))
-            .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(FIELD_CONFIGS_PATH);
-                let previous_value = self.current_field_config_path.clone();
 
-                for json_file in json_files {
-                    let new_value = format!("{}{}", FIELD_CONFIGS_PATH, json_file.clone());
-                    ui.selectable_value(&mut self.current_field_config_path, new_value.clone(), json_file);
-                }
+        let mut new_value = self.current_field_config_path.clone();
 
-                if *self.current_field_config_path != previous_value {
-                    self.change_field_config(self.current_field_config_path.clone());
-                }
-            });
+        if json_config_combo(ui, "  ", &mut new_value, FIELD_CONFIGS_PATH)
+            && new_value != self.current_field_config_path
+        {
+            self.current_field_config_path = new_value;
+            self.change_field_config(self.current_field_config_path.clone());
+        }
     }
 }
 

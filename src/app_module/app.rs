@@ -3,7 +3,7 @@ use std::{time::{Duration, Instant}};
 
 use crate::{
     app_module::app_mode::AppMode, tool_module::{
-        agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, env_config_editor_tool::EnvConfigEditorTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, field_config_editor_tool::FieldConfigEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, performance_matrix_tool::PerformanceMatrixTool, scene_config_editor_tool::SceneConfigEditorTool, simulation_tool::SimulationTool, task_tool::TaskTool, tool::Tool
+        agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, field_config_editor_tool::FieldConfigEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, performance_matrix_tool::PerformanceMatrixTool, scene_config_editor_tool::SceneConfigEditorTool, simulation_tool::SimulationTool, task_tool::TaskTool, tool::Tool
     }
 };
 
@@ -20,7 +20,6 @@ pub struct App {
     agent_config_editor_tool: AgentConfigEditorTool,
     field_config_editor_tool: FieldConfigEditorTool,
     scene_config_editor_tool: SceneConfigEditorTool,
-    env_config_editor_tool: EnvConfigEditorTool,
     performance_matrix_tool: PerformanceMatrixTool,
 
     fps: f32,
@@ -52,7 +51,6 @@ impl Default for App {
             agent_config_editor_tool: AgentConfigEditorTool::default(),
             field_config_editor_tool: FieldConfigEditorTool::default(),
             scene_config_editor_tool: SceneConfigEditorTool::default(),
-            env_config_editor_tool: EnvConfigEditorTool::default(),
             performance_matrix_tool: PerformanceMatrixTool::default(),
 
             fps: 0.0,
@@ -126,7 +124,6 @@ impl App {
             AppMode::AgentConfigEditor => {},
             AppMode::FieldConfigEditor => {},
             AppMode::SceneConfigEditor => {},
-            AppMode::EnvConfigEditor => {},
             AppMode::PerformanceMatrixTool => self.performance_matrix_tool.update(),
         }
         
@@ -196,7 +193,6 @@ impl App {
                         AppMode::AgentConfigEditor => self.agent_config_editor_tool.render_ui(ui),
                         AppMode::FieldConfigEditor => self.field_config_editor_tool.render_ui(ui),
                         AppMode::SceneConfigEditor => self.scene_config_editor_tool.render_ui(ui),
-                        AppMode::EnvConfigEditor => self.env_config_editor_tool.render_ui(ui),
                         AppMode::PerformanceMatrixTool => self.performance_matrix_tool.render_ui(ui),
                     }
                 });
@@ -206,7 +202,7 @@ impl App {
         egui::CentralPanel::default().show(ctx, |ui| {
 
             match self.mode {
-                AppMode::Simulation | AppMode::Path | AppMode::Task | AppMode::FieldConfigEditor | AppMode::SceneConfigEditor | AppMode::EnvConfigEditor => {
+                AppMode::Simulation | AppMode::Path | AppMode::Task | AppMode::FieldConfigEditor | AppMode::SceneConfigEditor => {
                     // Tools with camera
                     egui::Frame::group(ui.style())
                         .inner_margin(0.0)
@@ -217,7 +213,6 @@ impl App {
                                 AppMode::Task => { self.task_tool.render_main(ui); }
                                 AppMode::FieldConfigEditor => { self.field_config_editor_tool.render_main(ui); }
                                 AppMode::SceneConfigEditor => { self.scene_config_editor_tool.render_main(ui); }
-                                AppMode::EnvConfigEditor => { self.env_config_editor_tool.render_main(ui); }
                                 _ => {},
                             }
                         });

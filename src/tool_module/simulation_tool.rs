@@ -1,40 +1,37 @@
+
 use crate::{
-    cfg::DEFAULT_ENV_CONFIG_PATH, environment::env_module::{
+    environment::{env_module::{
         env::Env,
         env_config::EnvConfig,
-    }, rendering::{
+    }}, rendering::{
         camera::Camera,
         render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_task_manager_on_field, ui_render_agents, ui_render_datetime, ui_render_stations, ui_render_task_manager},
     }, tool_module::{
         has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
-    }
+    },
 };
 
 pub struct SimulationTool {
     pub tick: u32,
     pub running: bool,
+    pub env_config: EnvConfig,
     pub env: Env,
     pub camera: Camera,
-    pub current_env_config_string: String,
     pub help_open: bool,
 }
 
 impl Default for SimulationTool {
     fn default() -> Self {
-        let env_config_string = DEFAULT_ENV_CONFIG_PATH.to_string();
-        let env = Env::from_config(EnvConfig::from_json_file(&env_config_string));
-        let mut instance = Self {
+        let env_config = EnvConfig::default();
+        let env = Env::from_config(env_config.clone());
+        Self {
             tick: 0,
             running: false,
+            env_config,
             env,
             camera: Camera::default(),
-            current_env_config_string: env_config_string,
             help_open: false,
-        };
-        instance.recalc_charging_stations();
-        instance.recalc_field_config_on_add_remove();
-        
-        instance
+        }
     }
 }
 
@@ -54,7 +51,33 @@ impl Tool for SimulationTool {
         self.render_help_button(ui);
         ui.separator();
 
-        self.ui_config_select(ui);
+        ui.label(egui::RichText::new("Env config:").size(16.0));
+        // n_agents
+        ui.horizontal(|ui| {
+            ui.label("n_agents:");
+            if ui.add(egui::DragValue::new(&mut self.env_config.n_agents).speed(1).range(1..=10)).changed() {self.rebuild_env();};
+        });
+        // agent_config_path
+        ui.horizontal(|ui| {
+            ui.label("agent_config_path:");
+            self.ui_agent_config_select(ui);
+        });
+        // datetime
+        ui.horizontal(|ui| {
+            ui.label("datetime:");
+            self.ui_datetime_select(ui);
+        });
+        // scene_config
+        ui.horizontal(|ui| {
+            ui.label("scene_config: ");
+            self.ui_scene_config_select(ui);
+        });
+        //taskmanager
+        ui.horizontal(|ui| {
+            ui.label("task_manager_config:");
+            self.ui_task_manager_config_select(ui);
+        });
+
         ui.separator();
 
         self.ui_render_controls(ui);
@@ -87,7 +110,7 @@ impl HasHelp for SimulationTool {
         ui.separator();
 
         ui.label("Env config:");
-        ui.label("In dropdown you can select env config.");
+        ui.label("Configure env config.");
         ui.separator();
 
         ui.label("Env controls:");

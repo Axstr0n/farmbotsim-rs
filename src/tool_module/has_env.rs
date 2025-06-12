@@ -1,96 +1,146 @@
-use egui::Ui;
+use chrono::{NaiveDate, NaiveTime, Timelike};
 
 use crate::{
-    cfg::ENV_CONFIGS_PATH, environment::{
-        env_module::{env::Env, env_config::EnvConfig},
-        field_config::VariantFieldConfig, station_module::station::Station
-    }, utilities::utils::{generate_colors, get_json_files_in_folder},
+    cfg::{AGENT_CONFIGS_PATH, SCENE_CONFIGS_PATH}, environment::{
+        datetime::{DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig},
+    }, logger::log_error_and_panic, task_module::task_manager::{ChargingStrat, ChooseStationStrat}, utilities::utils::json_config_combo
 };
 
 
 pub trait HasEnv {
-    fn current_env_config_string(&self) -> &String;
-    fn current_env_config_string_mut(&mut self) -> &mut String;
+    fn set_running(&mut self, value: bool);
+    fn set_tick(&mut self, value: u32);
+    fn set_env(&mut self, value: Env);
 
-    fn env(&self) -> &Env;
-    fn env_mut(&mut self) -> &mut Env;
+    fn get_env_config(&self) -> &EnvConfig;
+    fn get_mut_env_config(&mut self) -> &mut EnvConfig;
 
-    fn create_env(&mut self, new_config_file_path: String) {
-        let new_env_config = EnvConfig::from_json_file(&new_config_file_path);
-        *self.env_mut() = Env::from_config(new_env_config);
-        self.recalc_charging_stations();
-        self.recalc_field_config_on_add_remove();
-        self.recalc_field_config_on_param_changed();
+    fn rebuild_env(&mut self) {
+        self.set_running(false);
+        self.set_tick(0);
+        self.set_env(Env::from_config(self.get_env_config().clone()))
     }
-    
-    fn ui_config_select(&mut self, ui: &mut Ui) {
-        ui.label(egui::RichText::new("Env config:").size(16.0));
-        egui::ComboBox::from_label("")
-            .selected_text(format!("{:?}", self.current_env_config_string()))
+    fn ui_scene_config_select(&mut self, ui: &mut egui::Ui) {
+        let mut new_value = self.get_env_config().scene_config_path.clone();
+
+        if json_config_combo(ui, "", &mut new_value, SCENE_CONFIGS_PATH)
+            && new_value != self.get_env_config().scene_config_path
+        {
+            self.get_mut_env_config().scene_config_path = new_value;
+            self.rebuild_env();
+        }
+    }
+    fn ui_agent_config_select(&mut self, ui: &mut egui::Ui) {
+        let mut new_value = self.get_env_config().agent_config_path.clone();
+
+        if json_config_combo(ui, " ", &mut new_value, AGENT_CONFIGS_PATH)
+            && new_value != self.get_env_config().agent_config_path
+        {
+            self.get_mut_env_config().agent_config_path = new_value;
+            self.rebuild_env();
+        }
+    }
+    fn ui_datetime_select(&mut self, ui: &mut egui::Ui) {
+        let config = self.get_env_config().clone();
+        ui.label(format!("{} {} |", config.datetime_config.date, config.datetime_config.time));
+
+        let mut date = NaiveDate::parse_from_str(&config.datetime_config.date, DATE_FORMAT)
+            .unwrap_or_else(|e| {
+                let msg = format!(
+                    "Failed to parse date '{}' with format '{}': {}",
+                    &config.datetime_config.date, DATE_FORMAT, e
+                );
+                log_error_and_panic(&msg)
+            });
+
+        let mut changed = false;
+        if ui.add(egui_extras::DatePickerButton::new(&mut date)).changed() {
+            self.get_mut_env_config().datetime_config.date = date.format(DATE_FORMAT).to_string();
+            changed = true;
+        }
+
+        ui.label("|");
+
+        let time = NaiveTime::parse_from_str(&config.datetime_config.time, TIME_FORMAT)
+            .unwrap_or_else(|e| {
+                let msg = format!(
+                    "Failed to parse time '{}' with format '{}': {}",
+                    &config.datetime_config.time, TIME_FORMAT, e
+                );
+                log_error_and_panic(&msg);
+            });
+
+        let mut hours = time.hour();
+        let mut minutes = time.minute();
+        let mut seconds = time.second();
+
+        ui.horizontal(|ui| {
+            changed |= ui.add(egui::DragValue::new(&mut hours).range(0..=23)).changed();
+            ui.label("h");
+            changed |= ui.add(egui::DragValue::new(&mut minutes).range(0..=59)).changed();
+            ui.label("m");
+            changed |= ui.add(egui::DragValue::new(&mut seconds).range(0..=59)).changed();
+            ui.label("s");
+        });
+
+        if changed {
+            let combined = format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+            self.get_mut_env_config().datetime_config.time = combined;
+            self.rebuild_env();
+        }
+    }
+    fn ui_task_manager_config_select(&mut self, ui: &mut egui::Ui) {
+        let config = self.get_env_config().clone();
+        ui.label("choose_station_strat");
+        egui::ComboBox::from_id_salt("Choose Station Strategy")
+            .selected_text(config.task_manager_config.choose_station_strat.to_string())
             .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(ENV_CONFIGS_PATH);
-                let previous_value = self.current_env_config_string().clone();
-
-                for json_file in json_files {
-                    let new_value = format!("{}{}", ENV_CONFIGS_PATH, json_file.clone());
-                    ui.selectable_value(self.current_env_config_string_mut(), new_value.clone(), json_file);
+                let previous_value = config.task_manager_config.choose_station_strat.clone();
+                for strat in ChooseStationStrat::variants() {
+                    ui.selectable_value(&mut self.get_mut_env_config().task_manager_config.choose_station_strat, strat.clone(), strat.clone().to_string());
                 }
-
-                if *self.current_env_config_string() != previous_value {
-                    let new_config_file_path = self.current_env_config_string();
-                    self.create_env(new_config_file_path.clone());
+                if self.get_env_config().task_manager_config.choose_station_strat != previous_value {
+                    self.rebuild_env();
+                }
+            });
+        ui.label("charging_strat");
+        egui::ComboBox::from_id_salt("Charging Strategy")
+            .selected_text(config.task_manager_config.charging_strat.to_string())
+            .show_ui(ui, |ui| {
+                let previous_value = config.task_manager_config.charging_strat.clone();
+                for strat in ChargingStrat::variants() {
+                    ui.selectable_value(&mut self.get_mut_env_config().task_manager_config.charging_strat, strat.clone(), strat.clone().to_string());
+                }
+                if self.get_env_config().task_manager_config.charging_strat != previous_value {
+                    self.rebuild_env();
                 }
             });
     }
-    fn recalc_charging_stations(&mut self) {
-        let colors = generate_colors(self.env().stations.len(), 0.01);
-        for (i, station) in self.env_mut().stations.iter_mut().enumerate() {
-            *station = Station::new(i as u32, station.position, station.queue_direction, station.waiting_offset, colors[i], station.n_slots);
-        }
-    }
-    fn recalc_field_config_on_add_remove(&mut self) {
-        let colors = generate_colors(self.env().field_config.configs.len(), 0.1);
-        for (i, config_variant) in self.env_mut().field_config.configs.iter_mut().enumerate() {
-            match config_variant {
-                VariantFieldConfig::Line(config) => {
-                    config.id = i as u32;
-                    config.color = colors[i];
-                },
-                VariantFieldConfig::Point(config) => {
-                    config.id = i as u32;
-                    config.color = colors[i];
-                },
-            }
-        }
-        self.recalc_field_config_on_param_changed();
-    }
-    fn recalc_field_config_on_param_changed(&mut self) {
-        let obstacles = self.env().field_config.get_obstacles();
-        let graph_points = &self.env().field_config.get_graph_points();
-        self.env_mut().obstacles = obstacles.clone();
-        self.env_mut().visibility_graph.recalculate(graph_points, &obstacles);
-    }
+
 }
 
 macro_rules! impl_has_env {
     ($t:ty) => {
         impl HasEnv for $t {
-            fn current_env_config_string(&self) -> &String {
-                &self.current_env_config_string
+            fn set_running(&mut self, value: bool) {
+                self.running = value;
             }
-            fn current_env_config_string_mut(&mut self) -> &mut String {
-                &mut self.current_env_config_string
+            fn set_tick(&mut self, value: u32) {
+                self.tick = value;
             }
-            fn env(&self) -> &Env {
-                &self.env
+            fn set_env(&mut self, value: Env) {
+                self.env = value;
             }
-            fn env_mut(&mut self) -> &mut Env {
-                &mut self.env
+
+            fn get_env_config(&self) -> &EnvConfig {
+                &self.env_config
+            }
+            fn get_mut_env_config(&mut self) -> &mut EnvConfig {
+                &mut self.env_config
             }
         }
     };
 }
-
 impl_has_env!(super::simulation_tool::SimulationTool);
 impl_has_env!(super::path_tool::PathTool);
 impl_has_env!(super::task_tool::TaskTool);

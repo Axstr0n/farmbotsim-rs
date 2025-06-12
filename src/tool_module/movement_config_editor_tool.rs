@@ -1,7 +1,5 @@
-use egui::Ui;
-
 use crate::{
-    agent_module::movement::{Movement, RombaMovement}, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, units::{angular_velocity::{AngularVelocity, AngularVelocityUnit}, length::{Length, LengthUnit}, linear_velocity::{LinearVelocity, LinearVelocityUnit}}, utilities::utils::{get_json_files_in_folder, load_json_or_panic}
+    agent_module::movement::{Movement, RombaMovement}, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{json_config_combo, load_json_or_panic}
 };
 
 
@@ -37,7 +35,7 @@ impl Tool for MovementConfigEditorTool {
         self.draw_save_ui(ui, &mut save_file_name);
         self.save_file_name = save_file_name;
 
-        self.config_select(ui);
+        self.ui_movement_select(ui);
 
         self.render_help(ui);
     }
@@ -48,23 +46,16 @@ impl Tool for MovementConfigEditorTool {
 }
 
 impl MovementConfigEditorTool {
-    fn config_select(&mut self, ui: &mut Ui) {
-        egui::ComboBox::from_label("")
-            .selected_text(format!("{:?}", self.current_movement_config_path))
-            .show_ui(ui, |ui| {
-                let json_files = get_json_files_in_folder(MOVEMENT_CONFIGS_PATH);
-                let previous_value = self.current_movement_config_path.clone();
+    fn ui_movement_select(&mut self, ui: &mut egui::Ui) {
+        let mut new_path = self.current_movement_config_path.clone();
 
-                for json_file in json_files {
-                    let new_value = format!("{}{}", MOVEMENT_CONFIGS_PATH, json_file.clone());
-                    ui.selectable_value(&mut self.current_movement_config_path, new_value.clone(), json_file);
-                }
-
-                if *self.current_movement_config_path != previous_value {
-                    let movement = load_json_or_panic(self.current_movement_config_path.clone());
-                    self.movement = movement;
-                }
-            });
+        if json_config_combo(ui, "", &mut new_path, MOVEMENT_CONFIGS_PATH)
+            && new_path != self.current_movement_config_path
+        {
+            self.current_movement_config_path = new_path;
+            let movement = load_json_or_panic(self.current_movement_config_path.clone());
+            self.movement = movement;
+        }
     }
 
     fn movement_ui(&mut self, ui: &mut egui::Ui) {
@@ -78,33 +69,12 @@ impl MovementConfigEditorTool {
                     Movement::RombaMovement(_) => "RombaMovement",
                 })
                 .show_ui(ui, |ui| {
-                    // You can extend this with more variants later
                     if ui.selectable_label(matches!(self.movement, Movement::RombaMovement(_)), "RombaMovement").clicked() {
-                        self.movement = Movement::RombaMovement(RombaMovement {
-                            max_velocity: LinearVelocity { value: 10.0, unit: LinearVelocityUnit::KilometersPerHour },
-                            max_angular_velocity: AngularVelocity { value: 0.1, unit: AngularVelocityUnit::RadiansPerSecond },
-                            wheel_distance: Length { value: 0.2, unit: LengthUnit::Meters },
-                            wheel_radius: Length { value: 0.05, unit: LengthUnit::Meters },
-                        });
+                        self.movement = Movement::RombaMovement(RombaMovement::default())
                     }
+                    // More variants ...
                 });
         });
-        // // Type selection
-        // egui::ComboBox::from_id_salt("Type")
-        //     .selected_text(match self.movement {
-        //         Movement::RombaMovement(_) => "RombaMovement",
-        //     })
-        //     .show_ui(ui, |ui| {
-        //         // You can extend this with more variants later
-        //         if ui.selectable_label(matches!(self.movement, Movement::RombaMovement(_)), "RombaMovement").clicked() {
-        //             self.movement = Movement::RombaMovement(RombaMovement {
-        //                 max_velocity: LinearVelocity { value: 10.0, unit: LinearVelocityUnit::KilometersPerHour },
-        //                 max_angular_velocity: AngularVelocity { value: 0.1, unit: AngularVelocityUnit::RadiansPerSecond },
-        //                 wheel_distance: Length { value: 0.2, unit: LengthUnit::Meters },
-        //                 wheel_radius: Length { value: 0.05, unit: LengthUnit::Meters },
-        //             });
-        //         }
-        //     });
 
         // Param fields
         match &mut self.movement {
