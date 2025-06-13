@@ -1,5 +1,5 @@
 use crate::{
-    agent_module::movement::{Movement, RombaMovement}, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{json_config_combo, load_json_or_panic}
+    agent_module::movement::{Movement, RombaMovement}, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{json_config_combo, load_json_or_panic, value_with_unit_selector_ui}
 };
 
 
@@ -32,7 +32,7 @@ impl Tool for MovementConfigEditorTool {
         ui.separator();
 
         let mut save_file_name = self.save_file_name.clone();
-        self.draw_save_ui(ui, &mut save_file_name);
+        self.draw_save_ui(ui, &mut save_file_name, true);
         self.save_file_name = save_file_name;
 
         self.ui_movement_select(ui);
@@ -82,42 +82,22 @@ impl MovementConfigEditorTool {
                 ui.label("    params: {");
 
                 // Max velocity
-                Self::param_with_unit_ui(ui, "max_velocity", &mut params.max_velocity.value, &mut params.max_velocity.unit);
+                value_with_unit_selector_ui(ui, "max_velocity", "max_velocity", &mut params.max_velocity.value, &mut params.max_velocity.unit, Some(0.0), None);
 
                 // Angular velocity
-                Self::param_with_unit_ui(ui, "max_angular_velocity", &mut params.max_angular_velocity.value, &mut params.max_angular_velocity.unit);
+                value_with_unit_selector_ui(ui, "max_angular_velocity", "max_angular_velocity", &mut params.max_angular_velocity.value, &mut params.max_angular_velocity.unit, Some(0.0), None);
 
                 // Wheel distance
-                Self::param_with_unit_ui(ui, "wheel_distance", &mut params.wheel_distance.value, &mut params.wheel_distance.unit);
+                value_with_unit_selector_ui(ui, "wheel_distance", "wheel_distance", &mut params.wheel_distance.value, &mut params.wheel_distance.unit, Some(0.0), None);
 
                 // Wheel radius
-                Self::param_with_unit_ui(ui, "wheel_radius", &mut params.wheel_radius.value, &mut params.wheel_radius.unit);
+                value_with_unit_selector_ui(ui, "wheel_radius", "wheel_radius", &mut params.wheel_radius.value, &mut params.wheel_radius.unit, Some(0.0), None);
 
                 ui.label("    }");
             }
         }
         ui.label("}");
     }
-    fn param_with_unit_ui<T: ToString + PartialEq + Copy + enum_iterator::Sequence>(
-        ui: &mut egui::Ui,
-        label: &str,
-        value: &mut f32,
-        unit: &mut T,
-    ) {
-        ui.horizontal(|ui| {
-            ui.label(format!("        \"{}\":", label));
-            ui.add(egui::DragValue::new(value).speed(0.1));
-
-            egui::ComboBox::from_id_salt(label)
-                .selected_text(unit.to_string())
-                .show_ui(ui, |ui| {
-                    for u in enum_iterator::all::<T>() {
-                        ui.selectable_value(unit, u, u.to_string());
-                    }
-                });
-        });
-    }
-
 }
 
 impl HasConfigSaving for MovementConfigEditorTool {
@@ -150,9 +130,5 @@ impl HasHelp for MovementConfigEditorTool {
     pub wheel_radius: Length
 }"#,
     );
-        ui.label("Where linear velocity, angular velocity, length can be specified as:");
-        ui.label("Linear velocity: m/s-meters per second, km/h-kilometers per hour");
-        ui.label("Angular velocity: rad/s-radians per second");
-        ui.label("Length: m-meters, cm-centimeters, mm-millimeters");
     }
 }

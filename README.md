@@ -9,20 +9,17 @@
 **farmbotsim-rs** was made to assist with real-world agricultural automation by providing a reliable simulation. In this simulation we can focus on charging strategies and productivity matrix.
 
 **Screenshots of application:**
-<table>
-  <tr>
-    <td><img src="media/tool_simulation.png" alt="simulation_tool" ></td>
-    <td><img src="media/tool_path.png" alt="path_tool" ></td>
-  </tr>
-  <tr>
-    <td><img src="media/tool_task.png" alt="task_tool" ></td>
-    <td><img src="media/tool_editor.png" alt="editor_tool"></td>
-  </tr>
-  <tr>
-    <td><img src="media/tool_battery.png" alt="battery_tool"></td>
-    <td></td>
-  </tr>
-</table>
+
+<img src="media/tool_movement_config_editor.png" alt="movement_config_editor_tool">
+<img src="media/tool_battery.png" alt="battery_tool">
+<img src="media/tool_agent_config_editor.png" alt="agent_config_editor_tool">
+<img src="media/tool_farm_entity_plan_editor.png" alt="farm_entity_plan_editor_tool">
+<img src="media/tool_field_config_editor.png" alt="field_config_editor_tool">
+<img src="media/tool_scene_config_editor.png" alt="scene_config_editor_tool">
+<img src="media/tool_simulation.png" alt="simulation_tool">
+<img src="media/tool_path.png" alt="path_tool">
+<img src="media/tool_task.png" alt="path_task">
+<img src="media/tool_performance_matrix.png" alt="performance_matrix_task">
 
 ## Table of Contents
 - [Prerequisites](#prerequisites)

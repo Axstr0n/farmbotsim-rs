@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq)]
 pub enum AppMode {
     Simulation,
     Path,
@@ -8,21 +9,21 @@ pub enum AppMode {
     AgentConfigEditor,
     FieldConfigEditor,
     SceneConfigEditor,
-    PerformanceMatrixTool,
+    PerformanceMatrix,
 }
 impl AppMode {
     pub fn variants() -> Vec<AppMode> {
         vec![
+            AppMode::MovementConfigEditor,
+            AppMode::Battery,
+            AppMode::AgentConfigEditor,
             AppMode::Simulation,
             AppMode::Path,
             AppMode::Task,
-            AppMode::Battery,
             AppMode::FarmEntityPlanEditor,
-            AppMode::MovementConfigEditor,
-            AppMode::AgentConfigEditor,
             AppMode::FieldConfigEditor,
             AppMode::SceneConfigEditor,
-            AppMode::PerformanceMatrixTool,
+            AppMode::PerformanceMatrix,
         ]
     }
     pub fn to_string(&self) -> &str {
@@ -36,7 +37,7 @@ impl AppMode {
             AppMode::AgentConfigEditor => "AgentConfigEditor",
             AppMode::FieldConfigEditor => "FieldConfigEditor",
             AppMode::SceneConfigEditor => "SceneConfigEditor",
-            AppMode::PerformanceMatrixTool => "PerformanceMatrixTool"
+            AppMode::PerformanceMatrix => "PerformanceMatrix"
         }
     }
 }

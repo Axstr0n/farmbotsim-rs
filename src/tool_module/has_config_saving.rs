@@ -17,11 +17,16 @@ pub trait HasConfigSaving{
         &mut self,
         ui: &mut egui::Ui,
         save_file_name: &mut String,
+        editable_save_name: bool,
     ) {
         ui.horizontal(|ui| {
-            ui.label(Self::base_path());
-            ui.add(egui::TextEdit::singleline(save_file_name).desired_width(100.0));
-            ui.label(".json");
+            if editable_save_name {
+                ui.label(Self::base_path());
+                ui.add(egui::TextEdit::singleline(save_file_name).desired_width(100.0));
+                ui.label(".json");
+            } else {
+                ui.label(format!("{}{}.json", Self::base_path(), save_file_name));
+            }
 
             if ui.button("Save config").clicked() && !save_file_name.is_empty() {
                 let base_path = Self::base_path();

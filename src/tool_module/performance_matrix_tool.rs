@@ -281,7 +281,6 @@ impl Tool for PerformanceMatrixTool {
             }
         });
         ui.separator();
-        ui.label("Make sure you set tps/fps ratio high in settings");
         ui.horizontal(|ui| {
             ui.label(PERFORMANCE_MATRIX_PATH);
             ui.add(egui::TextEdit::singleline(&mut self.save_file_name).desired_width(100.0));
@@ -306,7 +305,10 @@ impl Tool for PerformanceMatrixTool {
             self.env_episode = 0;
         }
         if self.running {
+            ui.label(egui::RichText::new("Make sure you set tps/fps ratio high in settings").color(egui::Color32::RED));
             ui.label("Evaluating...");
+            let progress = (self.env_index as u32*self.n_episodes+self.env_episode) as f32 / (self.env_configs.len() as u32*self.n_episodes) as f32;
+            ui.add(egui::ProgressBar::new(progress).show_percentage());
         }
 
 
@@ -321,7 +323,6 @@ impl Tool for PerformanceMatrixTool {
 
         if self.env.is_none() {
             self.env = Some(Env::from_config(self.env_configs[self.env_index].clone()));
-            println!("Set first env");
         }
         if let Some(env) = &mut self.env {
             env.task_manager.assign_tasks(&mut env.agents, &mut env.stations);
@@ -415,7 +416,6 @@ impl PerformanceMatrixTool {
 
     fn increment_update_data(&mut self, n_completed_tasks: u32, duration: Duration) {
         // write data
-        println!("Finished {} {}", self.env_index, self.env_episode);
         self.env_durations[self.env_index].push(duration);
         self.env_n_completed_tasks[self.env_index].push(n_completed_tasks);
         // change env

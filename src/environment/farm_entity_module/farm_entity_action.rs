@@ -33,6 +33,28 @@ pub enum FarmEntityAction {
         duration: Duration,
     }
 }
+impl FarmEntityAction {
+    pub fn default_point() -> Self {
+        FarmEntityAction::Point {
+            action_name: "point".to_string(),
+            duration: Duration::seconds(40.0),
+            power: Power::watts(100.0),
+        }
+    }
+    pub fn default_line() -> Self {
+        FarmEntityAction::Line {
+            action_name: "line".to_string(),
+            velocity: LinearVelocity::kilometers_per_hour(2.0),
+            power: Power::watts(150.0),
+        }
+    }
+    pub fn default_wait() -> Self {
+        FarmEntityAction::Wait {
+            action_name: "wait".to_string(),
+            duration: Duration::minutes(5.0),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FarmEntityActionInstance {

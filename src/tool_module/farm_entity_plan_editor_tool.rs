@@ -1,16 +1,15 @@
-use std::{fs::{self, File}, io::Write};
 use egui::Ui;
 
 use crate::{
     cfg::{DEFAULT_POINT_FARM_ENTITY_PLAN_PATH, FARM_ENTITY_PLANS_PATH},
-    environment::farm_entity_module::farm_entity_plan::FarmEntityPlan,
-    tool_module::{has_help::HasHelp, tool::Tool},
-    utilities::utils::{json_config_combo}
+    environment::farm_entity_module::{farm_entity_action::FarmEntityAction, farm_entity_plan::FarmEntityPlan},
+    tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool},
+    utilities::utils::{json_config_combo, load_json_or_panic, value_with_unit_selector_ui}
 };
 
 
 pub struct FarmEntityPlanEditorTool {
-    content: String,
+    plan: FarmEntityPlan,
     save_file_name: String,
     pub current_farm_entity_plan_path: String,
     pub help_open: bool,
@@ -18,12 +17,11 @@ pub struct FarmEntityPlanEditorTool {
 
 impl Default for FarmEntityPlanEditorTool {
     fn default() -> Self {
-        let file_path = DEFAULT_POINT_FARM_ENTITY_PLAN_PATH;
-        let json_str = fs::read_to_string(file_path).expect("File not found");
+        let plan: FarmEntityPlan = load_json_or_panic(DEFAULT_POINT_FARM_ENTITY_PLAN_PATH);
         Self {
-            content: json_str,
+            plan,
             save_file_name: String::new(),
-            current_farm_entity_plan_path: file_path.to_string(),
+            current_farm_entity_plan_path: DEFAULT_POINT_FARM_ENTITY_PLAN_PATH.to_string(),
             help_open: false,
         }
     }
@@ -31,41 +29,122 @@ impl Default for FarmEntityPlanEditorTool {
 
 impl Tool for FarmEntityPlanEditorTool {
     fn render_main(&mut self, ui: &mut egui::Ui) {
-
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut self.content)
-                    .font(egui::TextStyle::Monospace)
-                    .code_editor()
-                    .desired_rows(10)
-                    .lock_focus(true)
-                    .desired_width(f32::INFINITY)
-            );
+        ui.label("{");
+        ui.horizontal(|ui| {
+            ui.label("    name:");
+            ui.add(egui::TextEdit::singleline(&mut self.plan.crop_name).desired_width(100.0));
         });
-    
+        self.save_file_name = self.plan.crop_name.clone();
+        // Type selection
+        ui.horizontal(|ui| {
+            ui.label("    type:");
+            egui::ComboBox::from_id_salt("Type")
+                .selected_text(self.plan.type_.clone())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.plan.type_, "point".to_string(), "point");
+                    ui.selectable_value(&mut self.plan.type_, "line".to_string(), "line");
+                    let mut to_delete: Vec<usize> = vec![];
+                    for (i, action) in self.plan.schedule.iter().enumerate() {
+                        match action {
+                            FarmEntityAction::Point { .. } => {
+                                if self.plan.type_ != "point" {
+                                    to_delete.push(i);
+                                }
+                            },
+                            FarmEntityAction::Line { .. } => {
+                                if self.plan.type_ != "line" {
+                                    to_delete.push(i);
+                                }
+                            },
+                            FarmEntityAction::Wait { .. } => {},
+                        }
+                    }
+                    for &i in to_delete.iter().rev() {
+                        self.plan.schedule.remove(i);
+                    }
+                    self.check_cycle();
+                });
+        });
+        // Cycle
+        ui.horizontal(|ui| {
+            ui.label("    cycle:");
+            ui.horizontal(|ui| {
+                let is_none = self.plan.cycle.is_none();
+                if ui.selectable_label(is_none, "None").clicked() {
+                    self.plan.cycle = None;
+                }
+
+                for i in 0..self.plan.schedule.len() {
+                    let label = format!("{i}");
+                    let is_selected = self.plan.cycle == Some(i as u32);
+                    if ui.selectable_label(is_selected, label).clicked() {
+                        self.plan.cycle = Some(i as u32);
+                    }
+                }
+            });
+        });
+        // Plan
+        ui.horizontal(|ui| {
+            ui.label("    plan: [");
+            if self.plan.type_ == "point" && ui.button("Add point").clicked() { self.plan.schedule.push(FarmEntityAction::default_point()); }
+            if self.plan.type_ == "line" && ui.button("Add line").clicked() { self.plan.schedule.push(FarmEntityAction::default_line()); }
+            if ui.button("Add wait").clicked() { self.plan.schedule.push(FarmEntityAction::default_wait()); } 
+            if ui.button("Remove all").clicked() { self.plan.schedule.clear(); }
+            self.check_cycle();
+        });
+        let mut to_delete: Vec<usize> = vec![];
+        for (i,action) in &mut self.plan.schedule.iter_mut().enumerate() {
+            ui.horizontal(|ui| {
+                match action {
+                    FarmEntityAction::Point{ action_name, duration, power } => {
+                        ui.label(format!("        [{}]", i));
+                        ui.label("{ \"Point\": {");
+                        ui.label("\"action_name\":");
+                        ui.add(egui::TextEdit::singleline(action_name).desired_width(100.0));
+                        value_with_unit_selector_ui(ui, &format!("duration{}",i),"duration", &mut duration.value, &mut duration.unit, Some(0.0), None);
+                        value_with_unit_selector_ui(ui, &format!("power{}",i),"power", &mut power.value, &mut power.unit, Some(0.0), None);
+                        ui.label("} }");
+                    },
+                    FarmEntityAction::Line { action_name, velocity, power } => {
+                        ui.label(format!("        [{}]", i));
+                        ui.label("{ \"Line\": {");
+                        ui.label("\"action_name\":");
+                        ui.add(egui::TextEdit::singleline(action_name).desired_width(100.0));
+                        value_with_unit_selector_ui(ui, &format!("velocity{}",i),"velocity", &mut velocity.value, &mut velocity.unit, Some(0.0), None);
+                        value_with_unit_selector_ui(ui, &format!("power{}",i),"power", &mut power.value, &mut power.unit, Some(0.0), None);
+                        ui.label("} }");
+                    },
+                    FarmEntityAction::Wait { action_name, duration } => {
+                        ui.label(format!("        [{}]", i));
+                        ui.label("{ \"Wait\": {");
+                        ui.label("\"action_name\":");
+                        ui.add(egui::TextEdit::singleline(action_name).desired_width(100.0));
+                        value_with_unit_selector_ui(ui, &format!("duration{}",i),"duration", &mut duration.value, &mut duration.unit, Some(0.0), None);
+                        ui.label("} }");
+                    },
+                }
+                if ui.button("Remove").clicked() {
+                    to_delete.push(i);
+                }
+            });
+        }
+        for &i in to_delete.iter().rev() {
+            self.plan.schedule.remove(i);
+        }
+        self.check_cycle();
+        ui.label("    ]");
+
+        ui.label("}");
     }
 
     fn render_ui(&mut self, ui: &mut egui::Ui) {
         self.render_help_button(ui);
         ui.separator();
 
-        ui.horizontal(|ui| {
-            ui.label(FARM_ENTITY_PLANS_PATH);
-            ui.add(egui::TextEdit::singleline(&mut self.save_file_name).desired_width(100.0));
-            ui.label(".json");
-            ui.spacing();
-            if ui.button("Save farm entity plan").clicked() && !self.save_file_name.is_empty() {
-                let save_file_path = format!("{}{}.json", FARM_ENTITY_PLANS_PATH, self.save_file_name.clone());
-                let result = self.save_as_json(&save_file_path);
-                match result {
-                    Ok(_) => {
-                        println!("File saved");
-                        self.current_farm_entity_plan_path = save_file_path;
-                    },
-                    Err(error) => eprintln!("{}", error)
-                }
-            }
-        });
+        let mut save_file_name = self.save_file_name.clone();
+        self.draw_save_ui(ui, &mut save_file_name, false);
+        self.save_file_name = save_file_name;
+
         self.ui_farm_entity_plan_select(ui);
 
         self.render_help(ui);
@@ -84,23 +163,29 @@ impl FarmEntityPlanEditorTool {
             && new_value != self.current_farm_entity_plan_path
         {
             self.current_farm_entity_plan_path = new_value;
-            let json_str = fs::read_to_string(self.current_farm_entity_plan_path.clone()).expect("File not found");
-            self.content = json_str;
+            let plan: FarmEntityPlan = load_json_or_panic(self.current_farm_entity_plan_path.clone());
+            self.plan = plan;
         }
     }
 
-    fn save_as_json(&self, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // Check if it can be serialized
-        let _: FarmEntityPlan = serde_json::from_str(&self.content)?;
+    fn check_cycle(&mut self) {
+        if let Some(cycle) = self.plan.cycle {
+            if self.plan.schedule.is_empty() { self.plan.cycle = None; }
+            else if cycle >= self.plan.schedule.len() as u32 { self.plan.cycle = Some(self.plan.schedule.len() as u32-1) }
+        }
+    }
 
-        // Create file
-        let mut file = File::create(file_path)?;
-        
-        // Write JSON to file
-        file.write_all(self.content.as_bytes())?;
-        
-        println!("Successfully saved to {}", file_path);
-        Ok(())
+}
+
+impl HasConfigSaving for FarmEntityPlanEditorTool {
+    fn base_path() -> &'static str {
+        FARM_ENTITY_PLANS_PATH
+    }
+    fn config(&self) -> impl serde::Serialize {
+        self.plan.clone()
+    }
+    fn update_current_path(&mut self, path: String) {
+        self.current_farm_entity_plan_path = path;
     }
 }
 
@@ -113,31 +198,33 @@ impl HasHelp for FarmEntityPlanEditorTool {
         ui.label("This is a Farm Entity Plan Editor where you can see, change, create, save plans.");
         ui.separator();
 
-        ui.label("Type specifies if whole plan is point/stationary or line/moving. (point and line)");
+        ui.label("Type specifies if whole plan is point/stationary or line/moving.");
         ui.label("Cycle parameter specify if after the last action the plan cycles and from which index");
 
         ui.label("There are 3 types of actions:");
         ui.monospace(
-        r#"pub enum FarmEntityAction {
-    Point {
-        action_name: String,
-        duration: Duration,
-        power: Power,
-    },
-    Line {
-        action_name: String,
-        velocity: LinearVelocity,
-        power: Power,
-    },
-    Wait {
-        action_name: String,
-        duration: Duration,
-    }
-}"#,
-    );
-        ui.label("Where power, duration and linear velocity can be specified as:");
-        ui.label("Power: W-watt");
-        ui.label("Duration: s-second, min-minute, h-hour, d-day");
-        ui.label("Linear velocity: m/s-meters per second, km/h-kilometers per hour");
+            r#"pub enum FarmEntityAction {
+                Point {
+                    action_name: String,
+                    duration: Duration,
+                    power: Power,
+                    },
+                    Line {
+                        action_name: String,
+                        velocity: LinearVelocity,
+                        power: Power,
+                        },
+                        Wait {
+                            action_name: String,
+                            duration: Duration,
+                            }
+                        }"#,
+                    );
+        ui.label("If type is point then only point and wait actions are available");
+        ui.label("If type is line then only line and wait actions are available");
+        ui.label("This actions will be converted to tasks where:");
+        ui.label("  point - stationary task");
+        ui.label("  line - moving task");
+        ui.label("  wait - internal task in task manager where task manager waits duration before adding next task");
     }
 }

@@ -180,3 +180,31 @@ pub fn folder_select_combo(
     changed
 }
 
+pub fn value_with_unit_selector_ui<T: ToString + PartialEq + Copy + enum_iterator::Sequence>(
+    ui: &mut egui::Ui,
+    id_salt: &str,
+    label: &str,
+    value: &mut f32,
+    unit: &mut T,
+    min_value: Option<f32>,
+    max_value: Option<f32>,
+) {
+    ui.horizontal(|ui| {
+        ui.label(format!("        \"{}\":", label));
+        ui.add(egui::DragValue::new(value).speed(0.1));
+        if let Some(min) = min_value {
+            if *value < min { *value = min; }
+        }
+        if let Some(max) = max_value {
+            if *value > max { *value = max; }
+        }
+
+        egui::ComboBox::from_id_salt(id_salt)
+            .selected_text(unit.to_string())
+            .show_ui(ui, |ui| {
+                for u in enum_iterator::all::<T>() {
+                    ui.selectable_value(unit, u, u.to_string());
+                }
+            });
+    });
+}

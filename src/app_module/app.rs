@@ -124,7 +124,7 @@ impl App {
             AppMode::AgentConfigEditor => {},
             AppMode::FieldConfigEditor => {},
             AppMode::SceneConfigEditor => {},
-            AppMode::PerformanceMatrixTool => self.performance_matrix_tool.update(),
+            AppMode::PerformanceMatrix => self.performance_matrix_tool.update(),
         }
         
     }
@@ -136,14 +136,21 @@ impl App {
 
         // Top menu bar
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {     
-                for mode in AppMode::variants() {
-                    if ui.button(mode.to_string()).clicked() {
-                        println!("{}", mode.to_string());
-                        self.mode = mode;
-                    }         
-                }
-                // Spacer
+            egui::menu::bar(ui, |ui| {
+                ui.selectable_value(&mut self.mode, AppMode::MovementConfigEditor, "MovementConfigEditor");
+                ui.selectable_value(&mut self.mode, AppMode::Battery, "Battery");
+                ui.selectable_value(&mut self.mode, AppMode::AgentConfigEditor, "AgentConfigEditor");
+                ui.separator();
+                ui.selectable_value(&mut self.mode, AppMode::FarmEntityPlanEditor, "FarmEntityPlanEditor");
+                ui.selectable_value(&mut self.mode, AppMode::FieldConfigEditor, "FieldConfigEditor");
+                ui.selectable_value(&mut self.mode, AppMode::SceneConfigEditor, "SceneConfigEditor");
+                ui.separator();
+                ui.selectable_value(&mut self.mode, AppMode::Simulation, "Simulation");
+                ui.selectable_value(&mut self.mode, AppMode::Path, "Path");
+                ui.selectable_value(&mut self.mode, AppMode::Task, "Task");
+                ui.selectable_value(&mut self.mode, AppMode::PerformanceMatrix, "PerformanceMatrix");
+
+                ui.separator();
                 ui.separator();
 
                 // Settings menu
@@ -193,7 +200,7 @@ impl App {
                         AppMode::AgentConfigEditor => self.agent_config_editor_tool.render_ui(ui),
                         AppMode::FieldConfigEditor => self.field_config_editor_tool.render_ui(ui),
                         AppMode::SceneConfigEditor => self.scene_config_editor_tool.render_ui(ui),
-                        AppMode::PerformanceMatrixTool => self.performance_matrix_tool.render_ui(ui),
+                        AppMode::PerformanceMatrix => self.performance_matrix_tool.render_ui(ui),
                     }
                 });
         });
@@ -217,15 +224,15 @@ impl App {
                             }
                         });
                     },
-                    AppMode::Battery | AppMode::FarmEntityPlanEditor | AppMode::MovementConfigEditor | AppMode::AgentConfigEditor | AppMode::PerformanceMatrixTool => {
-                        // Tools without camera
-                        match self.mode {
-                        AppMode::Battery => { self.battery_tool.render_main(ui); }
+                AppMode::Battery | AppMode::FarmEntityPlanEditor | AppMode::MovementConfigEditor | AppMode::AgentConfigEditor | AppMode::PerformanceMatrix => {
+                    // Tools without camera
+                    match self.mode {
+                        AppMode::Battery => self.battery_tool.render_main(ui),
                         AppMode::FarmEntityPlanEditor => self.farm_entity_plan_editor_tool.render_main(ui),
                         AppMode::MovementConfigEditor => self.movement_config_editor_tool.render_main(ui),
                         AppMode::AgentConfigEditor => self.agent_config_editor_tool.render_main(ui),
-                        AppMode::PerformanceMatrixTool => self.performance_matrix_tool.render_main(ui),
-                        _ => {}
+                        AppMode::PerformanceMatrix => self.performance_matrix_tool.render_main(ui),
+                    _ => {}
                     }
                 },
             }

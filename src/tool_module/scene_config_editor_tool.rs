@@ -70,7 +70,7 @@ impl Tool for SceneConfigEditorTool {
         self.ui_scene_config_select(ui);
         
         let mut save_file_name = self.save_file_name.clone();
-        self.draw_save_ui(ui, &mut save_file_name);
+        self.draw_save_ui(ui, &mut save_file_name, true);
         self.save_file_name = save_file_name;
         ui.separator();
         

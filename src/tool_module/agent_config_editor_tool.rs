@@ -59,7 +59,7 @@ impl Tool for AgentConfigEditorTool {
 
         
         let mut save_file_name = self.save_file_name.clone();
-        self.draw_save_ui(ui, &mut save_file_name);
+        self.draw_save_ui(ui, &mut save_file_name, true);
         self.save_file_name = save_file_name;
 
         self.ui_agent_config_select(ui);

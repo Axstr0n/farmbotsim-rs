@@ -60,7 +60,7 @@ impl Tool for FieldConfigEditorTool {
         self.ui_field_config_select(ui);
         
         let mut save_file_name = self.save_file_name.clone();
-        self.draw_save_ui(ui, &mut save_file_name);
+        self.draw_save_ui(ui, &mut save_file_name, true);
         self.save_file_name = save_file_name;
         ui.separator();
         
@@ -304,5 +304,6 @@ impl HasHelp for FieldConfigEditorTool {
 
         ui.label("Fields:");
         ui.label("Add, remove, change variant field config (Supported Line, Point).");
+        ui.label("Select farm entity plan for field (see FarmEntityPlanEditor).");
     }
 }
