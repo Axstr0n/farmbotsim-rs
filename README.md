@@ -7,8 +7,8 @@
 ---
 
 **farmbotsim-rs** was made to assist with real-world agricultural automation by providing a reliable simulation. In this simulation we can focus on charging strategies and productivity matrix.
-
-**Screenshots of application:**
+<details>
+<summary><strong>Screenshots of application:</strong></summary>
 
 <img src="media/tool_movement_config_editor.png" alt="movement_config_editor_tool">
 <img src="media/tool_battery.png" alt="battery_tool">
@@ -20,6 +20,7 @@
 <img src="media/tool_path.png" alt="path_tool">
 <img src="media/tool_task.png" alt="path_task">
 <img src="media/tool_performance_matrix.png" alt="performance_matrix_task">
+</details>
 
 ## Table of Contents
 - [Prerequisites](#prerequisites)

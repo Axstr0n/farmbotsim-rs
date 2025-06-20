@@ -40,7 +40,9 @@ pub static LOGGER: Lazy<Mutex<Logger>> = Lazy::new(|| {
 });
 
 pub fn log_error_and_panic(msg: &str) -> ! {
-    let logger = LOGGER.lock().expect("Failed to lock logger");
+    let logger = LOGGER.lock().unwrap_or_else(|e| {
+        panic!("Failed to acquired LOGGER mutex: {}", e);
+    });
     let _ = logger.log(LogLevel::Error, msg);
     panic!("{}", msg);
 }

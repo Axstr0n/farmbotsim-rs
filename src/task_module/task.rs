@@ -1,7 +1,5 @@
-use egui::Pos2;
-
 use crate::{
-    units::{duration::Duration, linear_velocity::LinearVelocity, power::Power}
+    movement_module::pose::Pose, units::{duration::Duration, linear_velocity::LinearVelocity, power::Power}
 };
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -16,7 +14,7 @@ pub enum Intent {
 pub enum Task {
     Stationary {
         id: u32,
-        pos: Pos2,
+        pose: Pose,
         duration: Duration,
         intent: Intent,
         farm_entity_id: u32,
@@ -27,7 +25,7 @@ pub enum Task {
     },
     Moving {
         id: u32,
-        path: Vec<Pos2>,
+        path: Vec<Pose>,
         velocity: LinearVelocity,
         intent: Intent,
         field_id: u32,
@@ -36,7 +34,7 @@ pub enum Task {
         info: String,
     },
     Travel {
-        path: Vec<Pos2>,
+        path: Vec<Pose>,
         velocity: LinearVelocity,
         intent: Intent,
     },
@@ -50,7 +48,7 @@ pub enum Task {
 }
 
 impl Task {
-    pub fn travel(path: Vec<Pos2>, velocity: LinearVelocity, intent: Intent) -> Self {
+    pub fn travel(path: Vec<Pose>, velocity: LinearVelocity, intent: Intent) -> Self {
         Task::Travel {
             path,
             velocity,
@@ -85,18 +83,18 @@ impl Task {
             _ => None,
         }
     }
-    pub fn get_path(&self) -> Option<Vec<Pos2>> {
+    pub fn get_path(&self) -> Option<Vec<Pose>> {
         match self {
-            Task::Stationary {pos, .. } => { Some(vec![*pos]) },
+            Task::Stationary {pose, .. } => { Some(vec![pose.clone()]) },
             Task::Moving {path, .. } => { Some(path.clone()) },
             Task::Travel {path, .. } => { Some(path.clone()) },
             Task::WaitDuration { .. } => { None },
             Task::WaitInfinite { .. } => { None },
         }
     }
-    pub fn get_first_pos(&self) -> Option<&Pos2> {
+    pub fn get_first_pose(&self) -> Option<&Pose> {
         match self {
-            Task::Stationary {pos, .. } => { Some(pos) },
+            Task::Stationary {pose, .. } => { Some(pose) },
             Task::Moving {path, .. } => { Some(&path[0]) },
             Task::Travel {path, .. } => { Some(&path[0]) },
             Task::WaitDuration { .. } => { None },
@@ -104,13 +102,12 @@ impl Task {
         }
     }
     pub fn get_velocity(&self) -> LinearVelocity {
-        let vel_zero = LinearVelocity::kilometers_per_hour(0.0);
         match self {
-            Task::Stationary {..} => { vel_zero },
+            Task::Stationary {..} => { LinearVelocity::ZERO },
             Task::Moving {velocity, .. } => { *velocity },
             Task::Travel {velocity, .. } => { *velocity },
-            Task::WaitDuration { .. } => { vel_zero },
-            Task::WaitInfinite { .. } => { vel_zero },
+            Task::WaitDuration { .. } => { LinearVelocity::ZERO },
+            Task::WaitInfinite { .. } => { LinearVelocity::ZERO },
         }
     }
     pub fn get_intent(&self) -> &Intent {

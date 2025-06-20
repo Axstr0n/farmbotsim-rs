@@ -1,13 +1,13 @@
 use crate::{
-    cfg::{MAX_VELOCITY}, environment::env_module::{
+    cfg::MAX_VELOCITY, environment::env_module::{
         env::Env,
         env_config::EnvConfig,
-    }, path_finding_module::path_finding::PathFinding, rendering::{
+    }, movement_module::pose::path_to_poses, path_finding_module::path_finding::PathFinding, rendering::{
         camera::Camera,
         render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_visibility_graph, ui_render_agents_path},
     }, task_module::task::{Intent, Task}, tool_module::{
         has_camera::HasCamera, has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
-    },
+    }
 };
 
 
@@ -97,9 +97,10 @@ impl PathTool {
             if response.clicked_by(egui::PointerButton::Primary) {
                 let scene_pos = self.camera.screen_to_scene_pos(mouse_position);
                 for agent in &mut self.env.agents {
-                    let path = self.env.visibility_graph.find_path(agent.position, scene_pos);
-                    if let Some(p) = path {
-                        let task = Task::travel(p, MAX_VELOCITY, Intent::Idle);
+                    let path = self.env.visibility_graph.find_path(agent.pose.position, scene_pos);
+                    if let Some(path) = path {
+                        let path = path_to_poses(path);
+                        let task = Task::travel(path, MAX_VELOCITY, Intent::Idle);
                         agent.current_task = Some(task);
                     }
                 }

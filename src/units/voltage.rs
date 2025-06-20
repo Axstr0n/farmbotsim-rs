@@ -33,6 +33,8 @@ pub struct Voltage {
 }
 
 impl Voltage {
+    pub const ZERO: Voltage = Voltage::volts(0.0);
+
     pub const fn new(value: f32, unit: VoltageUnit) -> Self {
         Self { value, unit }
     }

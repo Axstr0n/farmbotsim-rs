@@ -36,6 +36,8 @@ pub struct Length {
 }
 
 impl Length {
+    pub const ZERO: Length = Length::meters(0.0);
+
     pub const fn new(value: f32, unit: LengthUnit) -> Self {
         Self { value, unit }
     }

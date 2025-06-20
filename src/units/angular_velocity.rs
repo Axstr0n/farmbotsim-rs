@@ -33,6 +33,8 @@ pub struct AngularVelocity {
 }
 
 impl AngularVelocity {
+    pub const ZERO: AngularVelocity = AngularVelocity::radians_per_second(0.0);
+
     pub const fn new(value: f32, unit: AngularVelocityUnit) -> Self {
         Self { value, unit }
     }

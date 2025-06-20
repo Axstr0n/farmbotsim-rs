@@ -14,7 +14,7 @@ pub enum TerminationCondition {
     EnvDuration(Duration),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct SimulationSummary {
     start_datetime: chrono::DateTime<chrono::Local>,
     evaluation_duration: std::time::Duration,
@@ -23,7 +23,7 @@ struct SimulationSummary {
     results: Vec<EpisodeResult>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct EpisodeResult {
     env_config: EnvConfig,
     #[serde(rename = "n_completed_tasks(min,avg,max)")]
@@ -336,24 +336,24 @@ impl Tool for PerformanceMatrixTool {
                         if env.task_manager.completed_tasks.len() as u32 == n_actions {
                             (true, env.task_manager.completed_tasks.len(), env.duration)
                         } else {
-                            (false, 0, Duration::seconds(0.0))
+                            (false, 0, Duration::ZERO)
                         }
                     } else {
-                        (false, 0, Duration::seconds(0.0))
+                        (false, 0, Duration::ZERO)
                     }
                 },
                 TerminationCondition::EnvDuration(duration) => {
                     if env.duration >= duration {
                         (true, env.task_manager.completed_tasks.len(), env.duration)
                     } else {
-                        (false, 0, Duration::seconds(0.0))
+                        (false, 0, Duration::ZERO)
                     }
                 },
                 TerminationCondition::NumberCompletedTasks(n_tasks) => {
                     if env.task_manager.completed_tasks.len() as u32 == n_tasks {
                         (true, env.task_manager.completed_tasks.len(), env.duration)
                     } else {
-                        (false, 0, Duration::seconds(0.0))
+                        (false, 0, Duration::ZERO)
                     }
                 }
             };
@@ -448,9 +448,9 @@ impl PerformanceMatrixTool {
                             tasks.iter().max().unwrap_or(&0),
                         );
                         let env_duration = format!("({}, {}, {})",
-                            format_duration(durations.iter().min().unwrap_or(&Duration::seconds(0.0))),
+                            format_duration(durations.iter().min().unwrap_or(&Duration::ZERO)),
                             format_duration(&average_duration(durations)),
-                            format_duration(durations.iter().max().unwrap_or(&Duration::seconds(0.0)))
+                            format_duration(durations.iter().max().unwrap_or(&Duration::ZERO))
                         );
                         EpisodeResult {
                             env_config: config.clone(),
@@ -459,10 +459,19 @@ impl PerformanceMatrixTool {
                         }
                     }).collect(),
                 };
-                let json = serde_json::to_string_pretty(&summary).expect("");
+                let json = serde_json::to_string_pretty(&summary).unwrap_or_else(|e| {
+                    let msg = format!("Failed to serialize summary {:?}: {}", summary, e);
+                    log_error_and_panic(&msg);
+                });
                 let path = format!("{}{}.json", PERFORMANCE_MATRIX_PATH, self.save_file_name);
-                let mut file = std::fs::File::create(path.clone()).expect("");
-                file.write_all(json.as_bytes()).expect("");
+                let mut file = std::fs::File::create(path.clone()).unwrap_or_else(|e| {
+                    let msg = format!("Failed to open file {:?}: {}", path, e);
+                    log_error_and_panic(&msg);
+                });
+                file.write_all(json.as_bytes()).unwrap_or_else(|e| {
+                    let msg = format!("Failed to write {:?}: {}", json, e);
+                    log_error_and_panic(&msg);
+                });
                 
                 self.current_content = Some(json);
                 self.current_pm_path = Some(path);

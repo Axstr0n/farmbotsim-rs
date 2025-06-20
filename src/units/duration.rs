@@ -39,6 +39,8 @@ pub struct Duration {
 }
 
 impl Duration {
+    pub const ZERO: Duration = Duration::seconds(0.0);
+
     pub const fn new(value: f32, unit: DurationUnit) -> Self {
         Self { value, unit }
     }
@@ -95,15 +97,8 @@ pub fn format_duration(dur: &Duration) -> String {
 
 pub fn average_duration(durations: &[Duration]) -> Duration {
     if durations.is_empty() {
-        return Duration::seconds(0.0);
+        return Duration::ZERO;
     }
     let total_secs: f32 = durations.iter().map(|d| d.to_base_unit()).sum();
     Duration::seconds(total_secs / durations.len() as f32)
-}
-
-impl Eq for Duration {}
-impl Ord for Duration {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap_or(std::cmp::Ordering::Equal)
-    }
 }

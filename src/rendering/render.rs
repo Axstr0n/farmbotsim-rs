@@ -5,6 +5,7 @@ use egui_plot::{Line, Plot, PlotPoint, PlotPoints, Text};
 use crate::{
     agent_module::{
         agent::Agent,
+        battery::Battery,
     },
     environment::{
         datetime::DateTimeManager,
@@ -85,7 +86,7 @@ pub fn render_obstacles(ui: &mut Ui, camera: &Camera, obstacles: &Vec<Obstacle>)
 pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
     let painter = ui.painter();
     for agent in agents {
-        let center = camera.scene_to_screen_pos(agent.position);
+        let center = camera.scene_to_screen_pos(agent.pose.position);
         let radius = camera.scene_to_screen_val(0.15);
         painter.add(CircleShape {
             center,
@@ -94,7 +95,7 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
             stroke: Stroke::default(),
         });
         let start = center;
-        let end = center + (agent.direction*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
+        let end = center + (agent.pose.direction*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
         let stroke = Stroke {
             width: camera.scene_to_screen_val(0.02),
             color: agent.color,
@@ -113,15 +114,15 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
         };
         
         if let Some(task) = &agent.current_task {
-            let mut path = vec![agent.position];
+            let mut path = vec![agent.pose.clone()];
             if let Some(path_) = task.get_path() {
                 path.extend(path_);
             }
         
             if path.len() > 1 {
                 for i in 0..path.len() - 1 {
-                    let start = camera.scene_to_screen_pos(path[i]);
-                    let end = camera.scene_to_screen_pos(path[i + 1]);
+                    let start = camera.scene_to_screen_pos(path[i].position);
+                    let end = camera.scene_to_screen_pos(path[i + 1].position);
                     painter.line(vec![start, end], stroke1);
                 }
             }
@@ -258,16 +259,16 @@ pub fn render_task_manager_on_field(ui: &mut Ui, camera: &Camera, task_manager: 
     fn render_task(ui: &mut Ui, camera: &Camera, task: &Task, color: Color32) {
         let painter = ui.painter();
         match task {
-            Task::Stationary { pos, .. } => {
+            Task::Stationary { pose, .. } => {
                 painter.add(CircleShape {
-                    center: camera.scene_to_screen_pos(*pos),
+                    center: camera.scene_to_screen_pos(pose.position),
                     radius: camera.scene_to_screen_val(0.1),
                     fill: color,
                     stroke: Stroke::default(),
                 });
             },
             Task::Moving { path, .. } => {
-                let path: Vec<Pos2> = path.iter().map(|pos| camera.scene_to_screen_pos(*pos)).collect();
+                let path: Vec<Pos2> = path.iter().map(|pose| camera.scene_to_screen_pos(pose.position)).collect();
                 path.windows(2).for_each(|window| {
                     if let [p1, p2] = window {
                         painter.line(
@@ -286,7 +287,7 @@ pub fn render_task_manager_on_field(ui: &mut Ui, camera: &Camera, task_manager: 
 
 // region: UI
 
-pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
+pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>, show_battery_plot: bool) {
     ui.label("Agents");
     Grid::new("agents")
     .striped(true)
@@ -305,10 +306,9 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
         for agent in agents {
             ui.label(RichText::new("⏺").color(agent.color)); //⏹⏺
             ui.label(agent.id.to_string());
-            ui.label(agent.position.fmt(2));
-            ui.label(agent.direction.fmt(2));
+            ui.label(agent.pose.position.fmt(2));
+            ui.label(agent.pose.direction.fmt(2));
             ui.label(format!("{:?}", agent.state));
-            // ui.label(format!("{:.2}%",agent.battery.get_soc()));
             match &agent.current_task {
                 Some(task) => {
                     ui.label(format!("{:?}", task.get_intent()));
@@ -316,40 +316,44 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>) {
                 None => { ui.label("False"); }
             }
             ui.label(agent.work_schedule.len().to_string());
+            if !show_battery_plot {
+                ui.label(format!("{:.2}%",agent.battery.get_soc()));
+            } else {
+                let points: PlotPoints = agent.battery.soc_history
+                    .iter()
+                    .enumerate()
+                    .map(|(i, y)| [i as f64, f64::from(*y)])
+                    .collect::<Vec<_>>()
+                    .into();
+    
+                let line = Line::new("soc", points);
+    
+                Plot::new(format!("battery_plot_{}", agent.id))
+                    .auto_bounds(false)
+                    .show_x(false)
+                    .show_y(false)
+                    .allow_boxed_zoom(false)
+                    .allow_double_click_reset(false)
+                    .allow_drag(false)
+                    .allow_scroll(false)
+                    .allow_zoom(false)
+                    .show_axes([false; 2])
+                    .height(50.0)
+                    .width(100.0)
+                    .default_y_bounds(0.0, 100.0)
+                    .default_x_bounds(0.0, 100.0)
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(line);
+    
+                        
+                        let text = Text::new("soc", PlotPoint::new(3, 0), format!("{:.2}", agent.battery.soc))
+                            .anchor(Align2::LEFT_BOTTOM)
+                            .color(egui::Color32::LIGHT_RED);
+                        plot_ui.text(text);
+                        
+                    });
+            }
 
-            let points: PlotPoints = agent.battery.soc_history
-                .iter()
-                .enumerate()
-                .map(|(i, y)| [i as f64, f64::from(*y)])
-                .collect::<Vec<_>>()
-                .into();
-
-            let line = Line::new("soc", points);
-
-            Plot::new(format!("battery_plot_{}", agent.id))
-                .auto_bounds(false)
-                .show_x(false)
-                .show_y(false)
-                .allow_boxed_zoom(false)
-                .allow_double_click_reset(false)
-                .allow_drag(false)
-                .allow_scroll(false)
-                .allow_zoom(false)
-                .show_axes([false; 2])
-                .height(50.0)
-                .width(100.0)
-                .default_y_bounds(0.0, 100.0)
-                .default_x_bounds(0.0, 100.0)
-                .show(ui, |plot_ui| {
-                    plot_ui.line(line);
-
-                    
-                    let text = Text::new("soc", PlotPoint::new(3, 0), format!("{:.2}", agent.battery.soc))
-                        .anchor(Align2::LEFT_BOTTOM)
-                        .color(egui::Color32::LIGHT_RED);
-                    plot_ui.text(text);
-                    
-                });
 
             ui.end_row();
         }
@@ -373,15 +377,15 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
         for agent in agents {
             ui.label(RichText::new("⏺").color(agent.color)); //⏹⏺
             ui.label(agent.id.to_string());
-            ui.label(agent.position.fmt(2));
-            ui.label(agent.direction.fmt(2));
+            ui.label(agent.pose.position.fmt(2));
+            ui.label(agent.pose.direction.fmt(2));
             ui.label(format!("{:?}", agent.state));
             ui.label(format!("{:.2}", agent.battery.soc));
             let mut path_str = String::new();
             if let Some(task) = &agent.current_task {
                 if let Some(path) = task.get_path() {
                     for p in path {
-                        path_str += &format!("{:?}",p);
+                        path_str += &format!("{:?}",p.position);
                     }
                 }
             } else {
@@ -391,27 +395,6 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
             ui.end_row();
         }
     });
-
-
-
-    // for agent in agents {
-    //     ui.horizontal(|ui| {
-    //         ui.label(RichText::new("⏺").color(agent.color));
-    //         ui.label(format!(" {} {} {} {:?} {:.2}%", agent.id, agent.position.fmt(2), agent.direction.fmt(2), agent.state, agent.battery.get_soc()));
-    //     });
-
-    //     let mut path_str = String::new();
-    //     if let Some(task) = &agent.current_task {
-    //         if let Some(path) = task.get_path() {
-    //             for p in path {
-    //                 path_str += &format!("{:?}",p);
-    //             }
-    //         }
-    //     } else {
-    //         path_str = "None".to_string();
-    //     }
-    //     ui.label(format!("Path: {}", path_str));
-    // }
 }
 
 pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
@@ -476,9 +459,9 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
 
                     for task in vec {
                         match task {
-                            Task::Stationary { id, field_id, line_id, pos, duration, power , info,..} => {
+                            Task::Stationary { id, field_id, line_id, pose, duration, power , info,..} => {
                                 let task_type = "Stationary";
-                                let path = vec![pos.fmt(2)];
+                                let path = vec![pose.position.fmt(2)];
                                 let vel = "-".to_string();
                                 let dur = format!("{}", duration);
                                 let fid = field_id;
@@ -489,7 +472,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                             Task::Moving { id, field_id, farm_entity_id, path, velocity, power ,info,..} => {
                                 let task_type = "Moving";
                                 let path: Vec<String> = path.iter()
-                                    .map(|pos| pos.fmt(2))
+                                    .map(|pose| pose.position.fmt(2))
                                     .collect();
                                 let vel = format!("{}", velocity);
                                 let dur = "-".to_string();

@@ -64,7 +64,7 @@ impl Env {
         let task_manager = TaskManager::from_config(config.task_manager_config, field_config.clone());
         Self {
             step_count: 0,
-            duration: Duration::seconds(0.0),
+            duration: Duration::ZERO,
             n_agents,
             agent_path: config.agent_config_path,
             agents,

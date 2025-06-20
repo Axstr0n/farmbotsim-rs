@@ -39,6 +39,8 @@ pub struct Energy {
 }
 
 impl Energy {
+    pub const ZERO: Energy = Energy::joules(0.0);
+
     pub const fn new(value: f32, unit: EnergyUnit) -> Self {
         Self {value, unit}
     }

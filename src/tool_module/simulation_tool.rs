@@ -85,7 +85,7 @@ impl Tool for SimulationTool {
 
         ui.label(egui::RichText::new("Env information:").size(16.0));
         ui_render_datetime(ui, &self.env.date_time_manager);
-        ui_render_agents(ui, &self.env.agents);
+        ui_render_agents(ui, &self.env.agents, true);
         ui_render_stations(ui, &self.env.stations);
         ui_render_task_manager(ui, &self.env.task_manager);
 

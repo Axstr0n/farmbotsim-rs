@@ -33,6 +33,8 @@ pub struct Angle {
 }
 
 impl Angle {
+    pub const ZERO: Angle = Angle::radians(0.0);
+
     pub const fn new(value: f32, unit: AngleUnit) -> Self {
         Self { value, unit }
     }

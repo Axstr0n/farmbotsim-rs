@@ -33,6 +33,8 @@ pub struct Power {
 }
 
 impl Power {
+    pub const ZERO: Power = Power::watts(0.0);
+
     pub const fn new(value: f32, unit: PowerUnit) -> Self {
         Self { value, unit }
     }

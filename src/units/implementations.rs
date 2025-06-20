@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use std::fmt;
 
@@ -15,13 +14,22 @@ use crate::units::{
 
 macro_rules! impl_ordering {
     ($type:ty) => {
+        impl Eq for $type {}
+        impl Ord for $type {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.to_base_unit()
+                    .partial_cmp(&other.to_base_unit())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            }
+        }
         impl PartialOrd for $type {
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                self.to_base_unit().partial_cmp(&other.to_base_unit())
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
             }
         }
     };
 }
+
 
 impl_ordering!(Angle);
 impl_ordering!(AngularVelocity);

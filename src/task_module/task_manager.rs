@@ -15,7 +15,7 @@ use crate::{
         },
         field_config::FieldConfig,
         station_module::station::{Station, StationPosType}
-    }, path_finding_module::{
+    }, logger::log_error_and_panic, movement_module::pose::path_to_poses, path_finding_module::{
         path_finding::PathFinding,
         visibility_graph::VisibilityGraph,
     }, task_module::task_manager_config::TaskManagerConfig, units::duration::Duration};
@@ -281,7 +281,8 @@ impl TaskManager {
                             pos = station.get_waiting_position(i-updated_agents_count);
                             intent = Intent::Queue;
                         }
-                        if let Some(path) = self.visibility_graph.find_path(agent.position, pos) {
+                        if let Some(path) = self.visibility_graph.find_path(agent.pose.position, pos) {
+                            let path = path_to_poses(path);
                             let travel_task = Task::travel(path, MAX_VELOCITY, intent.clone());
                             let wait_task = Task::wait_infinite(intent);
                             agent.work_schedule.clear();
@@ -359,8 +360,9 @@ impl TaskManager {
         let station_index = self.choose_station_index(agent, stations);
         let station = &mut stations[station_index];
         let (pos, pos_type) = station.request_charge(agent.id);
-        let path = self.visibility_graph.find_path(agent.position, pos);
+        let path = self.visibility_graph.find_path(agent.pose.position, pos);
         if let Some(path) = path {
+            let path = path_to_poses(path);
             let intent = match pos_type {
                 StationPosType::ChargingSlot => Intent::Charge,
                 StationPosType::QueueSlot => Intent::Queue,
@@ -406,14 +408,14 @@ impl TaskManager {
                 })
                 .collect();
             related_tasks.push(task.clone());
-            let reference_pos = agent.position;
+            let reference_pos = agent.pose.position;
             related_tasks.sort_by(|a, b| {
                 let a_pos = match a {
-                    Task::Stationary { pos, .. } => *pos,
+                    Task::Stationary { pose, .. } => pose.position,
                     _ => Pos2::ZERO, // shouldn't happen
                 };
                 let b_pos = match b {
-                    Task::Stationary { pos, .. } => *pos,
+                    Task::Stationary { pose, .. } => pose.position,
                     _ => Pos2::ZERO, // shouldn't happen
                 };
                 
@@ -422,19 +424,20 @@ impl TaskManager {
             
                 a_distance.partial_cmp(&b_distance).unwrap_or(std::cmp::Ordering::Equal)
             });
-            let target_pos = related_tasks[0].get_first_pos();
-            if let Some(target_pos) = target_pos {
+            let target_pose = related_tasks[0].get_first_pose();
+            if let Some(target_pose) = target_pose {
 
-                let path = self.visibility_graph.find_path(agent.position, *target_pos);
+                let path = self.visibility_graph.find_path(agent.pose.position, target_pose.position);
                 if let Some(path) = path {
                     for (i,task) in related_tasks.iter().enumerate() {
                         let (velocity, path_) = match i {
                             0 => (MAX_VELOCITY, path.clone()),
                             _ => {
-                                if let Some(pos) = task.get_first_pos() {(MAX_VELOCITY_BETWEEN_POINTS,vec![*pos])}
+                                if let Some(pose) = task.get_first_pose() {(MAX_VELOCITY_BETWEEN_POINTS,vec![pose.position])}
                                 else {(MAX_VELOCITY_BETWEEN_POINTS,vec![])}
                             },
                         };
+                        let path_ = path_to_poses(path_);
                         tasks.push(Task::travel(path_, velocity, Intent::Work)); // Travel to task
                         tasks.push(task.clone()); // Task
                     }
@@ -458,8 +461,9 @@ impl TaskManager {
     pub fn get_idle_tasks(&mut self, agent: &Agent) -> Vec<Task> {
         let mut tasks: Vec<Task> = vec![];
 
-        let path = self.visibility_graph.find_path(agent.position, agent.spawn_position);
+        let path = self.visibility_graph.find_path(agent.pose.position, agent.spawn_position);
         if let Some(path) = path {
+            let path = path_to_poses(path);
             let travel_task = Task::travel(path, MAX_VELOCITY, Intent::Idle);
             //let wait_task = Task::wait_infinite(Intent::Idle);
             tasks.extend([travel_task]);
@@ -547,7 +551,7 @@ impl TaskManager {
             ChooseStationStrat::Closest => {
                 let mut distances = vec![];
                 for station in stations {
-                    let maybe_path = self.visibility_graph.find_path(agent.position, station.position);
+                    let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.position);
                     if let Some(path) = maybe_path {
                         let distance = path.windows(2)
                             .map(|w| w[0].distance(w[1]))
@@ -559,14 +563,22 @@ impl TaskManager {
                 }
                 let closest_maybe = distances.iter()
                     .enumerate()
-                    .min_by(|a, b| a.1.partial_cmp(b.1).expect("Couldn't find closest station index"))  // safe if no NaNs
+                    .min_by(|a, b| {
+                        a.1.partial_cmp(b.1).unwrap_or_else(|| {
+                            let msg = format!(
+                                "Failed to compare distances at indices {} and {}. Values: {} and {}",
+                                a.0, b.0, a.1, b.1
+                            );
+                            log_error_and_panic(&msg)
+                        })
+                    })
                     .map(|(index, _)| index);
                 closest_maybe.unwrap_or(0)
             },
             ChooseStationStrat::ClosestMinQueue => {
                 let mut distances = vec![];
                 for station in stations {
-                    let maybe_path = self.visibility_graph.find_path(agent.position, station.position);
+                    let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.position);
                     if let Some(path) = maybe_path {
                         let distance: f32 = path.windows(2)
                             .map(|w| w[0].distance(w[1]))
@@ -578,7 +590,15 @@ impl TaskManager {
                 }
                 let closest_maybe = distances.iter()
                     .enumerate()
-                    .min_by(|a, b| a.1.partial_cmp(b.1).expect("Couldn't find closest station index"))  // safe if no NaNs
+                    .min_by(|a, b| {
+                        a.1.partial_cmp(b.1).unwrap_or_else(|| {
+                            let msg = format!(
+                                "Failed to compare distances at indices {} and {}. Values: {} and {}",
+                                a.0, b.0, a.1, b.1
+                            );
+                            log_error_and_panic(&msg)
+                        })
+                    })
                     .map(|(index, _)| index);
                 closest_maybe.unwrap_or(0)
             }

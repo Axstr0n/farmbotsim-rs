@@ -153,10 +153,10 @@ impl BatteryPack {
 
 impl Battery for BatteryPack {
     fn discharge(&mut self, power: Power, duration: Duration) {
-        if self.energy <= Energy::joules(0.0) { return } // is empty
+        if self.energy <= Energy::ZERO { return } // is empty
         let energy_removed = power * duration;
         let new_energy = self.energy - energy_removed;
-        if new_energy < Energy::joules(0.0) { self.energy = Energy::joules(0.0); }
+        if new_energy < Energy::ZERO { self.energy = Energy::ZERO; }
         else { self.energy = new_energy; }
         self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
 

@@ -33,6 +33,8 @@ pub struct LinearVelocity {
 }
 
 impl LinearVelocity {
+    pub const ZERO: LinearVelocity = LinearVelocity::meters_per_second(0.0);
+
     pub const fn new(value: f32, unit: LinearVelocityUnit) -> Self {
         Self { value, unit }
     }

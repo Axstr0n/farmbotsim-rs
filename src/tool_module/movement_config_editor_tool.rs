@@ -1,5 +1,5 @@
 use crate::{
-    agent_module::movement::{Movement, RombaMovement}, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{json_config_combo, load_json_or_panic, value_with_unit_selector_ui}
+    movement_module::{movement::Movement, romba_movement::RombaMovement}, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{json_config_combo, load_json_or_panic, value_with_unit_selector_ui}
 };
 
 
