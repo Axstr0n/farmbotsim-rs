@@ -1,4 +1,4 @@
-use egui::{Color32, Pos2};
+use egui::Color32;
 use std::collections::VecDeque;
 
 use crate::{movement_module::pose::Pose, units::{angle::Angle, length::Length}};
@@ -13,8 +13,7 @@ pub enum StationPosType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Station {
     pub id: u32,
-    pub position: Pos2,
-    pub angle: Angle,
+    pub pose: Pose,
     pub queue_direction: Angle,
     pub waiting_offset: Length,
     pub color: Color32,
@@ -30,8 +29,7 @@ impl Default for Station {
         let config = StationConfig::default();
         Self {
             id: 0,
-            position: config.position,
-            angle: config.angle,
+            pose: config.pose,
             queue_direction: config.queue_direction,
             waiting_offset: config.waiting_offset,
             color: Color32::RED,
@@ -48,8 +46,7 @@ impl Station {
     pub fn from_config(id: u32, color: Color32, config: StationConfig) -> Self {
         Self {
             id,
-            position: config.position,
-            angle: config.angle,
+            pose: config.pose,
             queue_direction: config.queue_direction,
             waiting_offset: config.waiting_offset,
             color,
@@ -60,16 +57,15 @@ impl Station {
         }
     }
     pub fn to_config(&self) -> StationConfig {
-        StationConfig::new(self.position, self.angle, self.queue_direction, self.waiting_offset, self.n_slots, self.slots_pose.clone())
+        StationConfig::new(self.pose.clone(), self.queue_direction, self.waiting_offset, self.n_slots, self.slots_pose.clone())
     }
 }
 
 impl Station {
-    pub fn new(id: u32, position: Pos2, angle: Angle, queue_direction: Angle, waiting_offset: Length, color: Color32, n_slots: u32, slots_pose: Vec<Pose>) -> Self {
+    pub fn new(id: u32, pose: Pose, queue_direction: Angle, waiting_offset: Length, color: Color32, n_slots: u32, slots_pose: Vec<Pose>) -> Self {
         Self {
             id,
-            position,
-            angle,
+            pose,
             queue_direction,
             waiting_offset,
             color,
@@ -97,11 +93,14 @@ impl Station {
     pub fn request_charge(&mut self, agent_id: u32) -> (Pose, StationPosType) {
         if let Some(index) = self.get_empty_slot() {
             self.slots[index] = Some(agent_id);
-            (self.slots_pose[index].clone(), StationPosType::ChargingSlot)
-        } else {
-            self.queue.push_back(agent_id);
-            (self.get_waiting_pose(self.queue.len()-1), StationPosType::QueueSlot)
+            if let Some(pose) = self.get_pose_for_slot(index) {
+                return (pose, StationPosType::ChargingSlot)
+            } else {
+                self.slots[index] = None;
+            }
         }
+        self.queue.push_back(agent_id);
+        (self.get_waiting_pose(self.queue.len()-1), StationPosType::QueueSlot)
     }
     pub fn release_agent(&mut self, agent_id: u32) -> bool {
         // Remove from slot or queue
@@ -114,13 +113,10 @@ impl Station {
         if let Some(index) = self.get_empty_slot() {
             if self.remove_agent_from_queue(agent_id) {
                 self.slots[index] = Some(agent_id);
-                Some(self.slots_pose[index].clone())
-            } else {
-                None
+                return self.get_pose_for_slot(index)
             }
-        } else {
-            None
         }
+        None
     }
     fn remove_agent_from_slots(&mut self, agent_id: u32) -> bool {
         if self.slots.iter().any(|slot| *slot == Some(agent_id)) {
@@ -143,9 +139,15 @@ impl Station {
 
     pub fn get_waiting_pose(&self, queue_index: usize) -> Pose {
         let distance = (queue_index as f32 + 1.0) * self.waiting_offset;
-        let queue_vec2 = self.queue_direction.to_vec2();
-        let position = self.position + queue_vec2 * distance;
-        Pose::new(position, self.queue_direction)
+        let orientation = self.pose.orientation + self.queue_direction;
+        let position = self.pose.position + orientation.to_vec2() * distance;
+        Pose::new(position, orientation+Angle::degrees(180.0))
+    }
+    pub fn get_pose_for_slot(&self, index: usize) -> Option<Pose> {
+        if index >= self.slots_pose.len() {None}
+        else {
+            Some(self.slots_pose[index].clone() + self.pose.clone())
+        }
     }
 }
 

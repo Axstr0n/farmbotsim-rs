@@ -155,7 +155,7 @@ pub fn render_visibility_graph(ui: &mut Ui, camera: &Camera, visibility_graph: &
 
 pub fn render_station(ui: &mut Ui, camera: &Camera, station: Station, with_params: bool) {
     let painter = ui.painter();
-    let center = camera.scene_to_screen_pos(station.position);
+    let center = camera.scene_to_screen_pos(station.pose.position);
 
     // Scene dimensions
     let width = match station.n_slots {
@@ -169,7 +169,7 @@ pub fn render_station(ui: &mut Ui, camera: &Camera, station: Station, with_param
     let inner_width = camera.scene_to_screen_val(width - 0.1);
     let inner_height = camera.scene_to_screen_val(0.3);
 
-    let angle = -station.angle.to_radians();
+    let angle = -station.pose.orientation.to_radians();
     let cos_a = angle.cos();
     let sin_a = angle.sin();
 
@@ -213,7 +213,7 @@ pub fn render_station(ui: &mut Ui, camera: &Camera, station: Station, with_param
 
     if with_params {
         // queue direction
-        let end = center + (station.queue_direction.to_vec2()*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(station.waiting_offset.to_base_unit());
+        let end = camera.scene_to_screen_pos(station.get_waiting_pose(0).position);
         let stroke = Stroke {
                 width: camera.scene_to_screen_val(0.02),
                 color: Color32::MAGENTA,
@@ -228,25 +228,28 @@ pub fn render_station(ui: &mut Ui, camera: &Camera, station: Station, with_param
         });
     }
     // slots
-    for (i, pose) in station.slots_pose.iter().enumerate() {
-        let center = camera.scene_to_screen_pos(pose.position);
-        if with_params {
-            // slot orientation
-            let end = center + (pose.orientation.to_vec2()*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
-            let stroke = Stroke {
-                width: camera.scene_to_screen_val(0.02),
-                color: Color32::YELLOW,
-            };
-            painter.line(vec![center, end], stroke);
+    for i in 0..station.slots_pose.len() {
+        let pose = station.get_pose_for_slot(i);
+        if let Some(pose) = pose {
+            let center = camera.scene_to_screen_pos(pose.position);
+            if with_params {
+                // slot orientation
+                let end = center + (pose.orientation.to_vec2()*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
+                let stroke = Stroke {
+                    width: camera.scene_to_screen_val(0.02),
+                    color: Color32::YELLOW,
+                };
+                painter.line(vec![center, end], stroke);
+            }
+            // slot position
+            let color = if station.slots[i].is_some() {Color32::RED} else {Color32::LIGHT_BLUE};
+            painter.add(CircleShape {
+                center,
+                radius: camera.scene_to_screen_val(0.1),
+                fill: color,
+                stroke: Stroke::default(),
+            });
         }
-        // slot position
-        let color = if station.slots[i].is_some() {Color32::RED} else {Color32::LIGHT_BLUE};
-        painter.add(CircleShape {
-            center,
-            radius: camera.scene_to_screen_val(0.1),
-            fill: color,
-            stroke: Stroke::default(),
-        });
     }
 
 }
@@ -484,6 +487,7 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
         ui.label(" ");
         ui.label("Id");
         ui.label("Position");
+        ui.label("Orientation");
         ui.label("N slots");
         ui.label("Occupied slots");
         ui.label("Queue");
@@ -492,7 +496,8 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
         for station in stations {
             ui.label(RichText::new("⏺").color(station.color)); //⏹⏺
             ui.label(station.id.to_string());
-            ui.label(station.position.fmt(2));
+            ui.label(station.pose.position.fmt(2));
+            ui.label(format!("{}°", station.pose.orientation.to_degrees().round() as i32));
             ui.label(station.n_slots.to_string());
             ui.label(station.n_occupied_slots().to_string());
             ui.label(station.queue.len().to_string());

@@ -135,11 +135,11 @@ impl Tool for SceneConfigEditorTool {
             })
             .default_open(false)
             .show(ui, |ui| {
-                ui.label(format!("Position {}", station.position.fmt(2)));
+                ui.label(format!("Position {}", station.pose.position.fmt(2)));
                 if ui.add(Slider::new(
-                    &mut station.angle.value,
+                    &mut station.pose.orientation.value,
                     0.0..=360.0)
-                    .text(format!("angle [{}]", station.angle.unit))
+                    .text(format!("orientation [{}]", station.pose.orientation.unit))
                     .step_by(1.0)
                 ).changed() {station.update_slots_pose();}
                 ui.add(Slider::new(
@@ -195,7 +195,7 @@ impl SceneConfigEditorTool {
         
         let mut pts = vec![];
         for station_config in &mut self.scene_config.station_configs {
-            let screen_pos = self.camera.scene_to_screen_pos(station_config.position);
+            let screen_pos = self.camera.scene_to_screen_pos(station_config.pose.position);
             pts.push(screen_pos);
         }
         let spawn_pos = self.camera.scene_to_screen_pos(self.scene_config.spawn_area_config.left_top_pos);
@@ -206,7 +206,7 @@ impl SceneConfigEditorTool {
         let drag_point_size = self.camera.scene_to_screen_val(0.1);
         // Drag stations
         for (i, station_config) in &mut self.scene_config.station_configs.iter_mut().enumerate() {
-            let screen_pos = self.camera.scene_to_screen_pos(station_config.position);
+            let screen_pos = self.camera.scene_to_screen_pos(station_config.pose.position);
             let rect = egui::Rect::from_center_size(screen_pos, egui::Vec2::splat(drag_point_size));
             let response = ui.interact(rect, ui.make_persistent_id(format!("station_drag_{}", i)), egui::Sense::click_and_drag());
             
@@ -214,13 +214,7 @@ impl SceneConfigEditorTool {
                 let drag_delta = response.drag_delta();
                 let new_screen_pos = screen_pos + drag_delta;
                 let new_scene_pos = self.camera.screen_to_scene_pos(new_screen_pos);
-                station_config.position = new_scene_pos;
-                for slot_pose in station_config.slots_pose.iter_mut() {
-                    let screen_pos = self.camera.scene_to_screen_pos(slot_pose.position);
-                    let new_screen_pos = screen_pos + drag_delta;
-                    let new_scene_pos = self.camera.screen_to_scene_pos(new_screen_pos);
-                    slot_pose.position = new_scene_pos;
-                }
+                station_config.pose.position = new_scene_pos;
             }
         }
 

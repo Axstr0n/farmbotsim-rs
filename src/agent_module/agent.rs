@@ -3,7 +3,7 @@ use egui::{Color32, Pos2, Vec2};
 use crate::{
     agent_module::{
         agent_config::AgentConfig, agent_state::AgentState, battery::{BatteryConfig, BatteryPack}, work_schedule::WorkSchedule
-    }, cfg::TOLERANCE_DISTANCE, environment::datetime::DateTimeManager, movement_module::{is_movement::IsMovement, movement::{Movement, MovementInputs}, pose::Pose}, task_module::task::Task, units::{
+    }, cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE}, environment::datetime::DateTimeManager, movement_module::{is_movement::IsMovement, movement::{Movement, MovementInputs}, pose::Pose}, task_module::task::Task, units::{
         angle::Angle, angular_velocity::AngularVelocity, duration::Duration, linear_velocity::LinearVelocity
     }, utilities::pos2::ExtendedPos2
 };
@@ -123,28 +123,9 @@ impl Agent {
                     }
                 }
                 Task::WaitInfinite { .. } => { }
-                Task::Moving { path, .. } => {
-                    while !path.is_empty() {
-                        if self.pose.position.is_close_to(path[0].position, TOLERANCE_DISTANCE) {
-                            path.remove(0);
-                        } else {
-                            break;
-                        }
-                    }
-                    if path.is_empty() {
-                        if let Some(id) = task.get_id() {
-                            self.completed_task_ids.push(*id);
-                        }
-                        self.current_task = self.work_schedule.pop_front();
-                    }
-                }
-                Task::Travel { path, .. } => {
-                    while !path.is_empty() {
-                        if self.pose.position.is_close_to(path[0].position, TOLERANCE_DISTANCE) {
-                            path.remove(0);
-                        } else {
-                            break;
-                        }
+                Task::Moving { path, .. } | Task::Travel { path, .. } => {
+                    if !path.is_empty() && self.pose.is_close_to(&path[0], TOLERANCE_DISTANCE, TOLERANCE_ANGLE) {
+                        path.remove(0);
                     }
                     if path.is_empty() {
                         if let Some(id) = task.get_id() {

@@ -80,4 +80,8 @@ impl Angle {
         };
         Vec2::new(radians.cos(), radians.sin())
     }
+    pub fn is_close_to(&self, other: Angle, tolerance: Angle) -> bool {
+        let diff_deg = (self.to_degrees() - other.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
+        diff_deg.abs() <= tolerance.to_degrees()
+    }
 }

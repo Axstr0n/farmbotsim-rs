@@ -553,7 +553,7 @@ impl TaskManager {
             ChooseStationStrat::Closest => {
                 let mut distances = vec![];
                 for station in stations {
-                    let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.position);
+                    let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.pose.position);
                     if let Some(path) = maybe_path {
                         let distance = path.windows(2)
                             .map(|w| w[0].distance(w[1]))
@@ -580,7 +580,7 @@ impl TaskManager {
             ChooseStationStrat::ClosestMinQueue => {
                 let mut distances = vec![];
                 for station in stations {
-                    let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.position);
+                    let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.pose.position);
                     if let Some(path) = maybe_path {
                         let distance: f32 = path.windows(2)
                             .map(|w| w[0].distance(w[1]))

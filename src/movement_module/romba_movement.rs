@@ -86,7 +86,7 @@ impl IsMovement for RombaMovement {
                 }
 
                 let v = (v_left + v_right) / 2.0;
-                let new_orientation = current_pose.orientation + omega * simulation_step;
+                let new_orientation = Angle::degrees((current_pose.orientation + omega * simulation_step).to_degrees().rem_euclid(360.0));
 
                 let direction = Vec2::new(new_orientation.to_radians().cos(), new_orientation.to_radians().sin());
                 let new_position = current_pose.position + direction * (v * simulation_step);
@@ -104,65 +104,52 @@ impl IsMovement for RombaMovement {
     }
     
     fn calculate_inputs_for_target(&self, current_pose: Pose, target_pose: Pose) -> MovementInputs {
-        
-        let distance = Length::meters(current_pose.position.distance(target_pose.position));
-
-        let (m1, m2) = if distance > TOLERANCE_DISTANCE {
-            // Compute angle to target
-            let direction_to_target = (target_pose.position - current_pose.position).normalized();
-            let angle_to_target = Angle::radians(direction_to_target.angle());
-            let angle_of_agent = current_pose.orientation;
-
-            // Compute angle difference
-            let delta_angle_value = (angle_to_target.to_degrees() - angle_of_agent.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
-
-            // Normalize delta_angle to -1...1 range
-            let normalized_delta = delta_angle_value / 180.0;
-
-            // Basic differential drive control for turning and moving forward
-            if Angle::degrees(delta_angle_value.abs()) > TOLERANCE_ANGLE {
-                // If we need to turn, adjust motor speeds accordingly
-                let turn_strength = f32::min(1.0, normalized_delta.abs()/10.0); // Scale turn strength
-
-                if normalized_delta < 0.0 {  // Turn right
-                    (turn_strength, -turn_strength)
-                } else {  // Turn left
-                    (-turn_strength, turn_strength)
-                }
-            } else {
-                // Move straight towards the target (no turning needed)
-                let input_strength = f32::min(distance.to_base_unit()*0.3, 1.0);  // Scale speed based on distance, up to a maximum of 1
-                (input_strength, input_strength)
-            }
-        }
-
-        // If at the target position
-        else {
-            let angle_of_target = target_pose.orientation;
-            let angle_of_agent = current_pose.orientation;
-            let delta_angle = (angle_of_target.to_degrees() - angle_of_agent.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
-            
-            // Normalize delta_angle to -1...1 range
-            let normalized_delta = delta_angle / 180.0;
-            
-            // Only turn in place when adjusting final heading
-            let turn_strength = f32::min(1.0, normalized_delta.abs()*0.5);
-            
-            if normalized_delta < 0.0 { // Turn right
-                (turn_strength, -turn_strength)
-            } else { // Turn left
-                (-turn_strength, turn_strength)
-            }
+        let position_error = current_pose.position.distance(target_pose.position);
+        let desired_orientation = if position_error > TOLERANCE_DISTANCE.to_base_unit() {
+            // Face the next position when far away
+            let direction = (target_pose.position - current_pose.position).normalized();
+            Angle::radians(direction.angle())
+        } else {
+            // Close enough, face the final orientation
+            target_pose.orientation
         };
-    
-        // let threshold = 1e-4;
-        // if (-threshold..threshold).contains(&m1) {
-        //     m1 = 0.0;
-        // }
-        // if (-threshold..threshold).contains(&m2) {
-        //     m2 = 0.0;
-        // }
-        let romba_inputs = RombaMovementInputs::new(m1, m2);
-        MovementInputs::Romba(romba_inputs)
+
+        let should_turn = !desired_orientation.is_close_to(current_pose.orientation, TOLERANCE_ANGLE);
+        let should_move = position_error > TOLERANCE_DISTANCE.to_base_unit();
+
+        let (left, right) = match (should_move, should_turn) {
+            (true, true) => {
+                // Need to rotate toward the direction of the next target position
+                let desired_direction = (target_pose.position - current_pose.position).normalized();
+                let angle_to_target = Angle::radians(desired_direction.angle());
+                Self::turning_inputs(current_pose.orientation, angle_to_target)
+            }
+            (true, false) => {
+                // Drive straight toward the target
+                let forward_strength = (position_error * 0.3).clamp(0.0, 1.0);
+                (forward_strength, forward_strength)
+            }
+            (false, true) => {
+                // We're close to the target position, now match final orientation
+                Self::turning_inputs(current_pose.orientation, target_pose.orientation)
+            }
+            (false, false) => (0.0, 0.0), // Done
+        };
+
+        MovementInputs::Romba(RombaMovementInputs::new(left, right))
+    }
+}
+
+impl RombaMovement {
+    fn turning_inputs(current: Angle, target: Angle) -> (f32, f32) {
+        let delta = (target.to_degrees() - current.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
+        let norm = delta / 180.0;
+        let strength = (norm.abs() * 0.1).clamp(0.0, 1.0);
+
+        if norm < 0.0 {
+            (strength, -strength) // Turn right
+        } else {
+            (-strength, strength) // Turn left
+        }
     }
 }

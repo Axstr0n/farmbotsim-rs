@@ -1,6 +1,6 @@
 use egui::{Pos2, Vec2};
 
-use crate::units::angle::Angle;
+use crate::{units::{angle::Angle, length::Length}, utilities::pos2::ExtendedPos2};
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Pose {
@@ -11,6 +11,21 @@ pub struct Pose {
 impl Pose {
     pub fn new(position: Pos2, orientation: Angle) -> Self {
         Self { position, orientation }
+    }
+
+    pub fn is_close_to(&self, other: &Pose, tol_dist: Length, tol_ang: Angle) -> bool {
+        self.position.is_close_to(other.position, tol_dist) && self.orientation.is_close_to(other.orientation, tol_ang)
+    }
+}
+
+impl std::ops::Add for Pose {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Pose {
+            position: self.position + other.position.to_vec2(),
+            orientation: self.orientation + other.orientation,
+        }
     }
 }
 
