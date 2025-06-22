@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use egui::Vec2;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AngleUnit {
     Degrees,
@@ -69,5 +71,13 @@ impl Angle {
             AngleUnit::Degrees => Self::degrees(value_in_radians.to_degrees()),
             AngleUnit::Radians => Self::radians(value_in_radians),
         }
+    }
+
+    pub fn to_vec2(&self) -> Vec2 {
+        let radians = match self.unit {
+            AngleUnit::Degrees => self.value.to_radians(),
+            AngleUnit::Radians => self.value,
+        };
+        Vec2::new(radians.cos(), radians.sin())
     }
 }

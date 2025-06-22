@@ -6,8 +6,7 @@ pub const TOLERANCE_ANGLE: Angle = Angle::degrees(0.1);
 pub const POWER_CONSUMPTION_WAIT: Power = Power::watts(10.0); // W/s
 pub const POWER_CONSUMPTION_TRAVEL: Power = Power::watts(2.0*350.0); // W/s
 
-pub const MAX_VELOCITY: LinearVelocity = LinearVelocity::kilometers_per_hour(10.0);
-pub const MAX_VELOCITY_BETWEEN_POINTS: LinearVelocity = LinearVelocity::kilometers_per_hour(3.0); // between crops
+pub const MAX_VELOCITY_BETWEEN_POINTS: LinearVelocity = LinearVelocity::kilometers_per_hour(3.0); // between farm entities
 
 
 pub const FARM_ENTITY_PLANS_PATH: &str = "configs/farm_entity_plans/";

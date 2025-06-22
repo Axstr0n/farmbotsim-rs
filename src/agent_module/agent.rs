@@ -4,9 +4,7 @@ use crate::{
     agent_module::{
         agent_config::AgentConfig, agent_state::AgentState, battery::{BatteryConfig, BatteryPack}, work_schedule::WorkSchedule
     }, cfg::TOLERANCE_DISTANCE, environment::datetime::DateTimeManager, movement_module::{is_movement::IsMovement, movement::{Movement, MovementInputs}, pose::Pose}, task_module::task::Task, units::{
-        angular_velocity::AngularVelocity,
-        duration::Duration,
-        linear_velocity::LinearVelocity,
+        angle::Angle, angular_velocity::AngularVelocity, duration::Duration, linear_velocity::LinearVelocity
     }, utilities::pos2::ExtendedPos2
 };
 
@@ -33,7 +31,7 @@ impl Agent {
     pub fn from_config(config: AgentConfig, id: u32, position: Pos2, direction: Vec2, color: Color32) -> Self {
         Self {
             id,
-            pose: Pose::new(position, direction),
+            pose: Pose::new(position, Angle::radians(direction.angle())),
             movement: Movement::from_json_file(config.movement),
             velocity_lin: LinearVelocity::ZERO,
             velocity_ang: AngularVelocity::ZERO,

@@ -1,5 +1,6 @@
 use std::{any, error::Error, fs::{self, File}, io::Write, path::Path};
 
+use egui::Pos2;
 use serde::Serialize;
 use serde_json::to_string_pretty;
 
@@ -207,4 +208,32 @@ pub fn value_with_unit_selector_ui<T: ToString + PartialEq + Copy + enum_iterato
                 }
             });
     });
+}
+
+pub fn line_positions(n: usize, spacing: f32, angle: f32) -> Vec<Pos2> {
+    let mut positions = Vec::with_capacity(n);
+
+    let cos_a = angle.cos();
+    let sin_a = angle.sin();
+
+    if n == 1 {
+        positions.push(Pos2::new(0.0, 0.0));
+    } else if n % 2 == 1 {
+        let mid = (n / 2) as isize;
+        for i in 0..n {
+            let x = (i as isize - mid) as f32 * spacing;
+            // Rotate (x,0) by angle: (x*cos - 0*sin, x*sin + 0*cos) = (x*cos, x*sin)
+            let pos = Pos2::new(x * cos_a, x * sin_a);
+            positions.push(pos);
+        }
+    } else {
+        let mid = (n / 2) as f32;
+        for i in 0..n {
+            let x = (i as f32 - mid + 0.5) * spacing;
+            let pos = Pos2::new(x * cos_a, x * sin_a);
+            positions.push(pos);
+        }
+    }
+
+    positions
 }

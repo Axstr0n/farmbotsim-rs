@@ -12,7 +12,7 @@ use crate::{
         power::Power,
     },
     cfg::{
-        POWER_CONSUMPTION_WAIT, POWER_CONSUMPTION_TRAVEL, MAX_VELOCITY,
+        POWER_CONSUMPTION_WAIT, POWER_CONSUMPTION_TRAVEL,
     },
 };
 
@@ -50,7 +50,7 @@ impl AgentState {
             None
         }
         fn calculate_power_travel(agent: &Agent) -> Power {
-            POWER_CONSUMPTION_TRAVEL * (agent.velocity_lin / MAX_VELOCITY)
+            POWER_CONSUMPTION_TRAVEL * (agent.velocity_lin / agent.movement.max_velocity())
         }
         fn calculate_power_work(agent: &Agent, task: &Task) -> Power {
             match task {

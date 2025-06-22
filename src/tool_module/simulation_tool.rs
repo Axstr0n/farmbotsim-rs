@@ -44,7 +44,7 @@ impl Tool for SimulationTool {
         render_spawn_area(ui, &self.camera, &self.env.spawn_area);
         render_obstacles(ui, &self.camera, &self.env.obstacles);
         render_task_manager_on_field(ui, &self.camera, &self.env.task_manager);
-        render_stations(ui, &self.camera, &self.env.stations);
+        render_stations(ui, &self.camera, &self.env.stations, false);
         render_agents(ui, &self.camera, &self.env.agents);
     }
     fn render_ui(&mut self, ui: &mut egui::Ui) {

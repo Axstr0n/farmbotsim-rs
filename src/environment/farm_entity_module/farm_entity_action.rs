@@ -1,8 +1,8 @@
-use egui::{Pos2, Vec2};
+use egui::{Pos2};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    movement_module::pose::Pose, task_module::task::{Intent, Task}, units::{duration::Duration, linear_velocity::LinearVelocity, power::Power}
+    movement_module::pose::Pose, task_module::task::{Intent, Task}, units::{angle::Angle, duration::Duration, linear_velocity::LinearVelocity, power::Power}
 };
 
 
@@ -96,7 +96,7 @@ impl FarmEntityActionInstance {
             FarmEntityActionInstance::Point { id, field_id, line_id, pos, duration, power, action_name } => {
                 Some(Task::Stationary {
                 id: task_id,
-                pose: Pose::new(*pos, Vec2::X),
+                pose: Pose::new(*pos, Angle::ZERO),
                 duration: *duration,
                 intent: Intent::Work,
                 farm_entity_id: *id,
@@ -111,7 +111,7 @@ impl FarmEntityActionInstance {
                     .iter()
                     .map(|pos| Pose {
                         position: *pos,
-                        direction: Vec2::X,
+                        orientation: Angle::ZERO,
                     })
                     .collect();
                 Some(Task::Moving {

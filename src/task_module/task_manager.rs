@@ -7,7 +7,7 @@ use crate::{
         agent::Agent,
         agent_state::AgentState,
         battery::Battery
-    }, cfg::{MAX_VELOCITY, MAX_VELOCITY_BETWEEN_POINTS}, environment::{
+    }, cfg::{MAX_VELOCITY_BETWEEN_POINTS}, environment::{
         farm_entity_module::{
             farm_entity::FarmEntity,
             farm_entity_action::FarmEntityActionInstance,
@@ -15,7 +15,7 @@ use crate::{
         },
         field_config::FieldConfig,
         station_module::station::{Station, StationPosType}
-    }, logger::log_error_and_panic, movement_module::pose::path_to_poses, path_finding_module::{
+    }, logger::log_error_and_panic, movement_module::pose::{path_to_poses, Pose}, path_finding_module::{
         path_finding::PathFinding,
         visibility_graph::VisibilityGraph,
     }, task_module::task_manager_config::TaskManagerConfig, units::duration::Duration};
@@ -199,7 +199,7 @@ impl TaskManager {
                     }
                     agent.work_schedule.clear();
                     for station in stations.iter_mut() {
-                        if station.slots.contains(&agent.id) || station.queue.contains(&agent.id) {
+                        if station.slots.contains(&Some(agent.id)) || station.queue.contains(&agent.id) {
                             station.release_agent(agent.id);
                         }
                     }
@@ -221,7 +221,7 @@ impl TaskManager {
             else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 100.0 {
                 agent_ids_updated.push(agent.id);
                 for station in &mut *stations {
-                    if station.slots.contains(&agent.id) {
+                    if station.slots.contains(&Some(agent.id)) {
                         station.release_agent(agent.id);
                         station_ids_updated.push(station.id);
                     }
@@ -251,8 +251,8 @@ impl TaskManager {
             if agent_ids_updated.contains(&agent.id) { continue; }
 
             // Agents that need to work
-            if agent.current_task.is_none() && agent.work_schedule.is_empty() {
-                self.assign_work_tasks_to_agent(agent);
+            if agent.current_task.is_none() && agent.work_schedule.is_empty() && !self.assign_work_tasks_to_agent(agent) {
+                self.assign_idle_tasks_to_agent(agent);
             }
         }
     }
@@ -269,21 +269,21 @@ impl TaskManager {
                 let mut updated_agents_count = 0; // moved in queue count
                 for (i, agent_id) in queue_snapshot.iter().enumerate() {
                     if let Some(agent) = agents.iter_mut().find(|a| a.id == *agent_id) {
-                        let pos: Pos2;
+                        let pose: Pose;
                         let intent: Intent;
-                        if station.slots.len() < station.n_slots as usize { // Move in slot
-                            pos = station.position;
+                        if let Some(pose_) = station.move_agent_from_queue_to_slot(*agent_id) {
+                            pose = pose_;
                             intent = Intent::Charge;
-                            station.release_agent(agent.id);
-                            station.slots.push(*agent_id);
                             updated_agents_count += 1;
                         } else { // Move in queue
-                            pos = station.get_waiting_position(i-updated_agents_count);
+                            pose = station.get_waiting_pose(i-updated_agents_count);
                             intent = Intent::Queue;
                         }
-                        if let Some(path) = self.visibility_graph.find_path(agent.pose.position, pos) {
-                            let path = path_to_poses(path);
-                            let travel_task = Task::travel(path, MAX_VELOCITY, intent.clone());
+                        if let Some(path) = self.visibility_graph.find_path(agent.pose.position, pose.position) {
+                            let mut path = path_to_poses(path);
+                            let path_len = path.len();
+                            path[path_len-1].orientation = pose.orientation;
+                            let travel_task = Task::travel(path, agent.movement.max_velocity(), intent.clone());
                             let wait_task = Task::wait_infinite(intent);
                             agent.work_schedule.clear();
                             agent.work_schedule.push_back(travel_task);
@@ -359,16 +359,18 @@ impl TaskManager {
         let mut tasks: Vec<Task> = vec![];
         let station_index = self.choose_station_index(agent, stations);
         let station = &mut stations[station_index];
-        let (pos, pos_type) = station.request_charge(agent.id);
-        let path = self.visibility_graph.find_path(agent.pose.position, pos);
+        let (pose, pos_type) = station.request_charge(agent.id);
+        let path = self.visibility_graph.find_path(agent.pose.position, pose.position);
         if let Some(path) = path {
-            let path = path_to_poses(path);
+            let mut path = path_to_poses(path);
+            let path_len = path.len();
+            path[path_len-1].orientation = pose.orientation;
             let intent = match pos_type {
                 StationPosType::ChargingSlot => Intent::Charge,
                 StationPosType::QueueSlot => Intent::Queue,
             };
             let task = Task::wait_infinite(intent.clone());
-            let travel_task = Task::travel(path, MAX_VELOCITY, intent);
+            let travel_task = Task::travel(path, agent.movement.max_velocity(), intent);
             tasks.push(travel_task);
             tasks.push(task);
 
@@ -431,10 +433,10 @@ impl TaskManager {
                 if let Some(path) = path {
                     for (i,task) in related_tasks.iter().enumerate() {
                         let (velocity, path_) = match i {
-                            0 => (MAX_VELOCITY, path.clone()),
+                            0 => (agent.movement.max_velocity(), path.clone()),
                             _ => {
-                                if let Some(pose) = task.get_first_pose() {(MAX_VELOCITY_BETWEEN_POINTS,vec![pose.position])}
-                                else {(MAX_VELOCITY_BETWEEN_POINTS,vec![])}
+                                if let Some(pose) = task.get_first_pose() {(MAX_VELOCITY_BETWEEN_POINTS.min(agent.movement.max_velocity()),vec![pose.position])}
+                                else {(MAX_VELOCITY_BETWEEN_POINTS.min(agent.movement.max_velocity()),vec![])}
                             },
                         };
                         let path_ = path_to_poses(path_);
@@ -464,7 +466,7 @@ impl TaskManager {
         let path = self.visibility_graph.find_path(agent.pose.position, agent.spawn_position);
         if let Some(path) = path {
             let path = path_to_poses(path);
-            let travel_task = Task::travel(path, MAX_VELOCITY, Intent::Idle);
+            let travel_task = Task::travel(path, agent.movement.max_velocity(), Intent::Idle);
             //let wait_task = Task::wait_infinite(Intent::Idle);
             tasks.extend([travel_task]);
         }
@@ -520,7 +522,7 @@ impl TaskManager {
             ChargingStrat::ThresholdWithLimit => {
                 let mut n_of_all_charging_agents = 0;
                 for station in stations.iter() {
-                    n_of_all_charging_agents += station.slots.len()+station.queue.len();
+                    n_of_all_charging_agents += station.n_occupied_slots()as usize+station.queue.len();
                 }
                 let max_agents_charging = stations.len();
                 for agent in agents {
@@ -583,7 +585,7 @@ impl TaskManager {
                         let distance: f32 = path.windows(2)
                             .map(|w| w[0].distance(w[1]))
                             .sum();
-                        distances.push(distance + 40.0*(station.slots.len()+station.queue.len()) as f32);
+                        distances.push(distance + 40.0*(station.n_occupied_slots() as usize+station.queue.len()) as f32);
                     } else {
                         distances.push(f32::INFINITY)
                     }

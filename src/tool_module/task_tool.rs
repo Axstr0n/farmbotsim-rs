@@ -43,7 +43,7 @@ impl Tool for TaskTool {
         render_visibility_graph(ui, &self.camera, &self.env.visibility_graph);
         render_obstacles(ui, &self.camera, &self.env.obstacles);
         render_task_manager_on_field(ui, &self.camera, &self.env.task_manager);
-        render_stations(ui, &self.camera, &self.env.stations);
+        render_stations(ui, &self.camera, &self.env.stations, false);
         render_agents(ui, &self.camera, &self.env.agents);
     }
     fn render_ui(&mut self, ui: &mut egui::Ui) {

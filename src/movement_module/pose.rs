@@ -1,14 +1,16 @@
 use egui::{Pos2, Vec2};
 
-#[derive(Clone, Debug, PartialEq)]
+use crate::units::angle::Angle;
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Pose {
     pub position: Pos2,
-    pub direction: Vec2,
+    pub orientation: Angle,
 }
 
 impl Pose {
-    pub fn new(position: Pos2, direction: Vec2) -> Self {
-        Self { position, direction }
+    pub fn new(position: Pos2, orientation: Angle) -> Self {
+        Self { position, orientation }
     }
 }
 
@@ -29,7 +31,10 @@ pub fn path_to_poses(path: Vec<Pos2>) -> Vec<Pose> {
             Vec2::X
         };
 
-        poses.push(Pose { position, direction });
+        let orientation_value = direction.y.atan2(direction.x);
+        let orientation = Angle::radians(orientation_value);
+
+        poses.push(Pose { position, orientation });
     }
 
     poses

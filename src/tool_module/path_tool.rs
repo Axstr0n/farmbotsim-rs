@@ -1,5 +1,5 @@
 use crate::{
-    cfg::MAX_VELOCITY, environment::env_module::{
+    environment::env_module::{
         env::Env,
         env_config::EnvConfig,
     }, movement_module::pose::path_to_poses, path_finding_module::path_finding::PathFinding, rendering::{
@@ -44,7 +44,7 @@ impl Tool for PathTool {
         render_spawn_area(ui, &self.camera, &self.env.spawn_area);
         render_visibility_graph(ui, &self.camera, &self.env.visibility_graph);
         render_obstacles(ui, &self.camera, &self.env.obstacles);
-        render_stations(ui, &self.camera, &self.env.stations);
+        render_stations(ui, &self.camera, &self.env.stations, false);
         render_agents(ui, &self.camera, &self.env.agents);
     }
     fn render_ui(&mut self, ui: &mut egui::Ui) {
@@ -100,7 +100,7 @@ impl PathTool {
                     let path = self.env.visibility_graph.find_path(agent.pose.position, scene_pos);
                     if let Some(path) = path {
                         let path = path_to_poses(path);
-                        let task = Task::travel(path, MAX_VELOCITY, Intent::Idle);
+                        let task = Task::travel(path, agent.movement.max_velocity(), Intent::Idle);
                         agent.current_task = Some(task);
                     }
                 }

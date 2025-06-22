@@ -1,7 +1,11 @@
-use std::f32::consts::PI;
+use egui::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::{cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE}, movement_module::{is_movement::IsMovement, movement::MovementInputs, pose::Pose}, units::{angle::Angle, angular_velocity::{AngularVelocity, AngularVelocityUnit}, duration::Duration, length::{Length, LengthUnit}, linear_velocity::{LinearVelocity, LinearVelocityUnit}}, utilities::vec2::Vec2Rotate};
+use crate::{
+    cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE},
+    movement_module::{is_movement::IsMovement, movement::MovementInputs, pose::Pose},
+    units::{angle::Angle, angular_velocity::{AngularVelocity, AngularVelocityUnit}, duration::Duration, length::{Length, LengthUnit}, linear_velocity::{LinearVelocity, LinearVelocityUnit}}
+};
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -82,13 +86,13 @@ impl IsMovement for RombaMovement {
                 }
 
                 let v = (v_left + v_right) / 2.0;
-                let angle = omega * simulation_step;
-                let new_direction = current_pose.direction.rotate(angle).normalized();
+                let new_orientation = current_pose.orientation + omega * simulation_step;
 
-                let new_position = current_pose.position + current_pose.direction * (v * simulation_step);
+                let direction = Vec2::new(new_orientation.to_radians().cos(), new_orientation.to_radians().sin());
+                let new_position = current_pose.position + direction * (v * simulation_step);
                 let current_velocity = v;
 
-                let new_pose = Pose::new(new_position, new_direction);
+                let new_pose = Pose::new(new_position, new_orientation);
 
                 (new_pose, current_velocity, omega)
             },
@@ -107,7 +111,7 @@ impl IsMovement for RombaMovement {
             // Compute angle to target
             let direction_to_target = (target_pose.position - current_pose.position).normalized();
             let angle_to_target = Angle::radians(direction_to_target.angle());
-            let angle_of_agent = Angle::radians(current_pose.direction.angle());
+            let angle_of_agent = current_pose.orientation;
 
             // Compute angle difference
             let delta_angle_value = (angle_to_target.to_degrees() - angle_of_agent.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
@@ -134,9 +138,9 @@ impl IsMovement for RombaMovement {
 
         // If at the target position
         else {
-            let angle_of_target = target_pose.direction.angle() * (180.0 / PI);
-            let angle_of_agent = current_pose.direction.angle() * (180.0 / PI);
-            let delta_angle = (angle_of_target - angle_of_agent + 180.0).rem_euclid(360.0) - 180.0;
+            let angle_of_target = target_pose.orientation;
+            let angle_of_agent = current_pose.orientation;
+            let delta_angle = (angle_of_target.to_degrees() - angle_of_agent.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
             
             // Normalize delta_angle to -1...1 range
             let normalized_delta = delta_angle / 180.0;

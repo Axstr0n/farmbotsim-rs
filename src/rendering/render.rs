@@ -22,7 +22,7 @@ use crate::{
     },
     units::power::Power,
     utilities::{
-        vec2::{ExtendedVec2, Vec2Rotate},
+        vec2::Vec2Rotate,
         pos2::ExtendedPos2,
     }
 };
@@ -95,7 +95,7 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
             stroke: Stroke::default(),
         });
         let start = center;
-        let end = center + (agent.pose.direction*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
+        let end = center + (agent.pose.orientation.to_vec2()*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
         let stroke = Stroke {
             width: camera.scene_to_screen_val(0.02),
             color: agent.color,
@@ -153,28 +153,107 @@ pub fn render_visibility_graph(ui: &mut Ui, camera: &Camera, visibility_graph: &
     }
 }
 
-pub fn render_station(ui: &mut Ui, camera: &Camera, station: Station) {
+pub fn render_station(ui: &mut Ui, camera: &Camera, station: Station, with_params: bool) {
     let painter = ui.painter();
     let center = camera.scene_to_screen_pos(station.position);
-    let radius = camera.scene_to_screen_val(0.25);
-    painter.add(CircleShape {
-        center,
-        radius,
-        fill: station.color,
-        stroke: Stroke::default(),
-    });
-    let radius = camera.scene_to_screen_val(0.20);
-    painter.add(CircleShape {
-        center,
-        radius,
-        fill: Color32::BLACK,
-        stroke: Stroke::default(),
-    });
+
+    // Scene dimensions
+    let width = match station.n_slots {
+        1 => 0.4,
+        2 => 0.7,
+        3 => 1.0,
+        _ => 100.0,
+    };
+    let outer_width = camera.scene_to_screen_val(width);
+    let outer_height = camera.scene_to_screen_val(0.4);
+    let inner_width = camera.scene_to_screen_val(width - 0.1);
+    let inner_height = camera.scene_to_screen_val(0.3);
+
+    let angle = -station.angle.to_radians();
+    let cos_a = angle.cos();
+    let sin_a = angle.sin();
+
+    // Define corners in local space (centered at origin, from -0.5 to 0.5)
+    let rect_corners = [
+        Vec2::new(-0.5, -0.5),
+        Vec2::new( 0.5, -0.5),
+        Vec2::new( 0.5,  0.5),
+        Vec2::new(-0.5,  0.5),
+    ];
+
+    // Helper to rotate and scale corners
+    fn transform_corners(
+        corners: &[Vec2; 4],
+        center: Pos2,
+        width: f32,
+        height: f32,
+        cos_a: f32,
+        sin_a: f32,
+    ) -> Vec<Pos2> {
+        corners
+            .iter()
+            .map(|corner| {
+                let scaled = Vec2::new(corner.x * width, corner.y * height);
+                let rotated = Vec2::new(
+                    scaled.x * cos_a - scaled.y * sin_a,
+                    scaled.x * sin_a + scaled.y * cos_a,
+                );
+                center + rotated
+            })
+            .collect()
+    }
+
+    // Draw outer rectangle (border)
+    let outer_rect = transform_corners(&rect_corners, center, outer_width, outer_height, cos_a, sin_a);
+    painter.add(Shape::convex_polygon(outer_rect, station.color, Stroke::default()));
+
+    // Draw inner rectangle (background)
+    let inner_rect = transform_corners(&rect_corners, center, inner_width, inner_height, cos_a, sin_a);
+    painter.add(Shape::convex_polygon(inner_rect, Color32::BLACK, Stroke::default()));
+
+    if with_params {
+        // queue direction
+        let end = center + (station.queue_direction.to_vec2()*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(station.waiting_offset.to_base_unit());
+        let stroke = Stroke {
+                width: camera.scene_to_screen_val(0.02),
+                color: Color32::MAGENTA,
+        };
+        painter.line(vec![center, end], stroke);
+        let radius = camera.scene_to_screen_val(0.05);
+        painter.add(CircleShape {
+            center: end,
+            radius,
+            fill: Color32::from_rgba_premultiplied(255, 0, 0, 150),
+            stroke: Stroke::default(),
+        });
+    }
+    // slots
+    for (i, pose) in station.slots_pose.iter().enumerate() {
+        let center = camera.scene_to_screen_pos(pose.position);
+        if with_params {
+            // slot orientation
+            let end = center + (pose.orientation.to_vec2()*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
+            let stroke = Stroke {
+                width: camera.scene_to_screen_val(0.02),
+                color: Color32::YELLOW,
+            };
+            painter.line(vec![center, end], stroke);
+        }
+        // slot position
+        let color = if station.slots[i].is_some() {Color32::RED} else {Color32::LIGHT_BLUE};
+        painter.add(CircleShape {
+            center,
+            radius: camera.scene_to_screen_val(0.1),
+            fill: color,
+            stroke: Stroke::default(),
+        });
+    }
+
 }
 
-pub fn render_stations(ui: &mut Ui, camera: &Camera, stations: &Vec<Station>) {
+pub fn render_stations(ui: &mut Ui, camera: &Camera, stations: &Vec<Station>, with_params: bool) {
     for station in stations {
-        render_station(ui, camera, station.clone());
+        render_station(ui, camera, station.clone(), with_params);
     }
 }
 
@@ -295,7 +374,7 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>, show_battery_plot: boo
         ui.label(" ");
         ui.label("Id");
         ui.label("Position            ");
-        ui.label("Direction         ");
+        ui.label("Orientation         ");
         ui.label("State             ");
         // ui.label("Battery  ");
         ui.label("Current task");
@@ -307,7 +386,7 @@ pub fn ui_render_agents(ui: &mut Ui, agents: &Vec<Agent>, show_battery_plot: boo
             ui.label(RichText::new("⏺").color(agent.color)); //⏹⏺
             ui.label(agent.id.to_string());
             ui.label(agent.pose.position.fmt(2));
-            ui.label(agent.pose.direction.fmt(2));
+            ui.label(format!("{}°", agent.pose.orientation.to_degrees().round() as i32));
             ui.label(format!("{:?}", agent.state));
             match &agent.current_task {
                 Some(task) => {
@@ -368,7 +447,7 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
         ui.label(" ");
         ui.label("Id");
         ui.label("Position            ");
-        ui.label("Direction         ");
+        ui.label("Orientation         ");
         ui.label("State             ");
         ui.label("Battery  ");
         ui.label("Path");
@@ -378,7 +457,7 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
             ui.label(RichText::new("⏺").color(agent.color)); //⏹⏺
             ui.label(agent.id.to_string());
             ui.label(agent.pose.position.fmt(2));
-            ui.label(agent.pose.direction.fmt(2));
+            ui.label(format!("{}°", agent.pose.orientation.to_degrees().round() as i32));
             ui.label(format!("{:?}", agent.state));
             ui.label(format!("{:.2}", agent.battery.soc));
             let mut path_str = String::new();
@@ -406,7 +485,7 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
         ui.label("Id");
         ui.label("Position");
         ui.label("N slots");
-        ui.label("Slots");
+        ui.label("Occupied slots");
         ui.label("Queue");
         ui.end_row();
 
@@ -415,7 +494,7 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
             ui.label(station.id.to_string());
             ui.label(station.position.fmt(2));
             ui.label(station.n_slots.to_string());
-            ui.label(station.slots.len().to_string());
+            ui.label(station.n_occupied_slots().to_string());
             ui.label(station.queue.len().to_string());
             ui.end_row();
         }

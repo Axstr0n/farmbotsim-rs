@@ -34,4 +34,9 @@ impl Movement {
     pub fn from_json_file(file_path: String) -> Self {
         load_json_or_panic(file_path)
     }
+    pub fn max_velocity(&self) -> LinearVelocity {
+        match  &self {
+            Movement::RombaMovement(rm) => rm.max_velocity
+        }
+    }
 }

@@ -7,10 +7,10 @@ use crate::environment::scene_config::SceneConfig;
 use crate::environment::spawn_area_module::spawn_area::SpawnArea;
 use crate::environment::station_module::station_config::StationConfig;
 use crate::path_finding_module::visibility_graph::VisibilityGraph;
-use crate::rendering::render::render_station;
+use crate::rendering::render::{render_station};
 use crate::tool_module::has_camera::HasCamera;
 use crate::tool_module::has_config_saving::HasConfigSaving;
-use crate::utilities::utils::{json_config_combo, load_json_or_panic};
+use crate::utilities::utils::{generate_colors, json_config_combo, load_json_or_panic};
 use crate::{
     environment::{
         station_module::station::Station
@@ -57,8 +57,9 @@ impl Tool for SceneConfigEditorTool {
         render_obstacles(ui, &self.camera, &self.field_config.get_obstacles());
         render_visibility_graph(ui, &self.camera, &VisibilityGraph::new(&self.field_config.get_graph_points(), self.field_config.get_obstacles()));
         render_field_config(ui, &self.camera, &self.field_config);
-        for station_config in &self.scene_config.station_configs {
-            render_station(ui, &self.camera, Station::from_config(0, egui::Color32::WHITE, station_config.clone()));
+        let colors = generate_colors(self.scene_config.station_configs.len(), 0.0);
+        for (i, station_config) in self.scene_config.station_configs.iter().enumerate() {
+            render_station(ui, &self.camera, Station::from_config(0, colors[i], station_config.clone()), true);
         }
         self.handle_dragging(ui);
     }
@@ -101,32 +102,30 @@ impl Tool for SceneConfigEditorTool {
             .step_by(0.1)
         );
 
-
         ui.label(egui::RichText::new(format!("Stations ({}):", self.scene_config.station_configs.len())).size(16.0));
         ui.horizontal_top(|ui| {
             if ui.button("Add station").clicked() {
                 self.scene_config.station_configs.push(StationConfig::default());
-                //self.recalc_charging_stations();
             }
             if ui.button("Remove all").clicked() {
                 self.scene_config.station_configs.clear();
-                //self.recalc_charging_stations();
             }
         });
-
+        
+        let colors = generate_colors(self.scene_config.station_configs.len(), 0.0);
         let mut to_remove: Option<usize> = None;
 
         for (i, station) in self.scene_config.station_configs.iter_mut().enumerate() {
             egui::CollapsingHeader::new({
                 let mut job = egui::text::LayoutJob::default();
-                    // job.append(
-                    //     "⏺",
-                    //     0.0,
-                    //     egui::TextFormat {
-                    //         color: station.color,
-                    //         ..Default::default()
-                    //     },
-                    // );
+                    job.append(
+                        "⏺",
+                        0.0,
+                        egui::TextFormat {
+                            color: colors[i],
+                            ..Default::default()
+                        },
+                    );
                     job.append(
                         format!(" {}", i).as_str(),
                         0.0,
@@ -137,6 +136,45 @@ impl Tool for SceneConfigEditorTool {
             .default_open(false)
             .show(ui, |ui| {
                 ui.label(format!("Position {}", station.position.fmt(2)));
+                if ui.add(Slider::new(
+                    &mut station.angle.value,
+                    0.0..=360.0)
+                    .text(format!("angle [{}]", station.angle.unit))
+                    .step_by(1.0)
+                ).changed() {station.update_slots_pose();}
+                ui.add(Slider::new(
+                    &mut station.queue_direction.value,
+                    0.0..=360.0)
+                    .text(format!("queue_direction [{}]", station.queue_direction.unit))
+                    .step_by(1.0)
+                );
+                ui.add(Slider::new(
+                    &mut station.waiting_offset.value,
+                    0.1..=3.0)
+                    .text("waiting_offset [m]")
+                    .step_by(0.1)
+                );
+                if ui.add(Slider::new(
+                    &mut station.n_slots,
+                    1..=3)
+                    .text("n_slots")
+                    .step_by(1.0)
+                ).changed() {station.update_slots_pose();}
+                ui.label("slots_pose:");
+                for (i, pose) in station.slots_pose.iter_mut().enumerate() {
+                    egui::CollapsingHeader::new(format!("slot_pose_{}", i))
+                        .default_open(false)
+                        .show(ui, |ui| {
+                                ui.label(format!("Position {}", pose.position.fmt(2)));
+                                ui.add(Slider::new(
+                                    &mut pose.orientation.value,
+                                    0.0..=360.0)
+                                    .text(format!("angle [{}]", pose.orientation.unit))
+                                    .step_by(1.0)
+                                );
+                        });
+                }
+                
                 if ui.button("Remove").clicked() {
                     to_remove = Some(i);
                 }
@@ -145,7 +183,6 @@ impl Tool for SceneConfigEditorTool {
 
         if let Some(index) = to_remove {
             self.scene_config.station_configs.remove(index);
-            //self.recalc_charging_stations();
         }
 
         self.render_help(ui);
@@ -178,6 +215,12 @@ impl SceneConfigEditorTool {
                 let new_screen_pos = screen_pos + drag_delta;
                 let new_scene_pos = self.camera.screen_to_scene_pos(new_screen_pos);
                 station_config.position = new_scene_pos;
+                for slot_pose in station_config.slots_pose.iter_mut() {
+                    let screen_pos = self.camera.scene_to_screen_pos(slot_pose.position);
+                    let new_screen_pos = screen_pos + drag_delta;
+                    let new_scene_pos = self.camera.screen_to_scene_pos(new_screen_pos);
+                    slot_pose.position = new_scene_pos;
+                }
             }
         }
 
