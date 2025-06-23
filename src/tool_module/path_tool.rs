@@ -10,7 +10,7 @@ use crate::{
     }
 };
 
-
+/// A tool to view pathfinding of agents
 pub struct PathTool {
     pub tick: u32,
     pub running: bool,
@@ -90,6 +90,7 @@ impl Tool for PathTool {
 }
 
 impl PathTool {
+    /// On left mouse click on scene assign task for agent to go there
     pub fn assign_path_on_mouse_click(&mut self, ui: &egui::Ui) {
         let response = ui.interact(ui.available_rect_before_wrap(), ui.id(), egui::Sense::click_and_drag());
         let mouse_position = response.hover_pos();

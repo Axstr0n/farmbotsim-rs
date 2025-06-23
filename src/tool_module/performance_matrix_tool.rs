@@ -4,16 +4,21 @@ use chrono::{NaiveDate, NaiveTime, Timelike};
 use egui::DragValue;
 use serde::{Deserialize, Serialize};
 
-use crate::{cfg::{AGENT_CONFIGS_PATH, DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, PERFORMANCE_MATRIX_PATH, SCENE_CONFIGS_PATH}, environment::{datetime::{DateTimeConfig, DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig}, field_config::FieldConfig, scene_config::SceneConfig}, logger::log_error_and_panic, task_module::task_manager::{ChargingStrat, ChooseStationStrat}, tool_module::{has_help::HasHelp, tool::Tool}, units::duration::{average_duration, format_duration, Duration}, utilities::utils::{json_config_combo, load_json_or_panic}};
+use crate::{cfg::{AGENT_CONFIGS_PATH, DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, PERFORMANCE_MATRIX_PATH, SCENE_CONFIGS_PATH}, environment::{datetime::{DateTimeConfig, DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig}, field_config::FieldConfig, scene_config::SceneConfig}, logger::log_error_and_panic, task_module::strategies::{ChargingStrategy, ChooseStationStrategy}, tool_module::{has_help::HasHelp, tool::Tool}, units::duration::{average_duration, format_duration, Duration}, utilities::utils::{json_config_combo, load_json_or_panic}};
 
-
+/// Defines conditions under which the simulation terminates.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TerminationCondition {
-    AllTasksCompleted, // only if there are no cycles in farm entity plans
+    /// Terminates when all tasks in the environment are completed.
+    /// Only valid if farm entity plans have no cycle.
+    AllTasksCompleted,
+    /// Terminates after a specified number of tasks are completed.
     NumberCompletedTasks(u32),
+    /// Terminates after a specified duration in simulation time.
     EnvDuration(Duration),
 }
 
+/// Summary of a simulation performance evaluation.
 #[derive(Debug, Serialize, Deserialize)]
 struct SimulationSummary {
     start_datetime: chrono::DateTime<chrono::Local>,
@@ -23,6 +28,7 @@ struct SimulationSummary {
     results: Vec<EpisodeResult>,
 }
 
+/// Results for a single simulation episode.
 #[derive(Debug, Serialize, Deserialize)]
 struct EpisodeResult {
     env_config: EnvConfig,
@@ -32,6 +38,7 @@ struct EpisodeResult {
     env_duration: String,
 }
 
+/// A tool for running and analyzing multiple environment configurations.
 pub struct PerformanceMatrixTool {
     current_pm_path: Option<String>,
     current_content: Option<String>,
@@ -200,7 +207,7 @@ impl Tool for PerformanceMatrixTool {
                     egui::ComboBox::from_id_salt("Choose Station Strategy")
                         .selected_text(config.task_manager_config.choose_station_strat.to_string())
                         .show_ui(ui, |ui| {
-                            let choose_station_options = ChooseStationStrat::variants();
+                            let choose_station_options = ChooseStationStrategy::variants();
                             for strat in choose_station_options {
                                 ui.selectable_value(&mut config.task_manager_config.choose_station_strat, strat.clone(), strat.clone().to_string());
                             }
@@ -209,7 +216,7 @@ impl Tool for PerformanceMatrixTool {
                     egui::ComboBox::from_id_salt("Charging Strategy")
                         .selected_text(config.task_manager_config.charging_strat.to_string())
                         .show_ui(ui, |ui| {
-                            let charge_strat_options = ChargingStrat::variants();
+                            let charge_strat_options = ChargingStrategy::variants();
                             for strat in charge_strat_options {
                                 ui.selectable_value(&mut config.task_manager_config.charging_strat, strat.clone(), strat.clone().to_string());
                             }
@@ -365,6 +372,7 @@ impl Tool for PerformanceMatrixTool {
 }
 
 impl PerformanceMatrixTool {
+    /// Renders dropdown to select summary file.
     fn ui_summary_select(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("Summary:").size(16.0));
 
@@ -383,6 +391,7 @@ impl PerformanceMatrixTool {
         }
     }
 
+    /// Renders dropdown to select scene configuration.
     fn ui_scene_config_select(&mut self, ui: &mut egui::Ui) {
         let mut new_value = self.scene_config_path.clone();
 
@@ -395,6 +404,8 @@ impl PerformanceMatrixTool {
             }
         }
     }
+    
+    /// Renders dropdown to select agent configuration.
     fn ui_agent_config_select(&mut self, ui: &mut egui::Ui) {
         let mut new_value = self.agent_config_path.clone();
 
@@ -408,12 +419,14 @@ impl PerformanceMatrixTool {
         }
     }
 
+    /// Checks if field configuration has any plan with cycle.
     fn has_cycle_plan(scene_path: String) -> bool {
         let scene_config: SceneConfig = load_json_or_panic(scene_path);
         let field_config: FieldConfig = load_json_or_panic(scene_config.field_config_path);
         field_config.has_cycle_farm_entity_plan()
     }
 
+    /// Increment episode/env config, stores data and writes to file.
     fn increment_update_data(&mut self, n_completed_tasks: u32, duration: Duration) {
         // write data
         self.env_durations[self.env_index].push(duration);

@@ -79,8 +79,9 @@ The **farmbotsim-rs** project is organized into several directories that help se
 `performance_matrix/` - Stores all evaluations
 
 `src/` - Contains the core logic of the application:
-- `agent_module/` - Contains the agent struct and its associated logic, such as battery, state machine.
+- `agent_module/` - Contains the agent struct and its associated logic, state machine.
 - `app_module/` - Main app functionality.
+- `battery_module/` - Containing battery logic.
 - `environment/` - Contains all environment structs (Crop, Field, Station, Env, Config, ...).
   - `env_module/` - Contains logic for env.
   - `farm_entity_module/` - Contains logic for farm entity.

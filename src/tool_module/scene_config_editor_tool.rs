@@ -20,7 +20,7 @@ use crate::{
     }, tool_module::{has_help::HasHelp, tool::Tool}, utilities::{pos2::ExtendedPos2}
 };
 
-
+/// A tool to edit, view, change scene configuration
 pub struct SceneConfigEditorTool {
     scene_config: SceneConfig,
     field_config: FieldConfig,
@@ -59,7 +59,7 @@ impl Tool for SceneConfigEditorTool {
         render_field_config(ui, &self.camera, &self.field_config);
         let colors = generate_colors(self.scene_config.station_configs.len(), 0.0);
         for (i, station_config) in self.scene_config.station_configs.iter().enumerate() {
-            render_station(ui, &self.camera, Station::from_config(0, colors[i], station_config.clone()), true);
+            render_station(ui, &self.camera, &Station::from_config(0, colors[i], station_config.clone()), true);
         }
         self.handle_dragging(ui);
     }
@@ -191,6 +191,7 @@ impl Tool for SceneConfigEditorTool {
 }
 
 impl SceneConfigEditorTool {
+    /// Handles dragging of spawn area and stations.
     fn handle_dragging(&mut self, ui: &mut Ui) {
         
         let mut pts = vec![];
@@ -232,16 +233,20 @@ impl SceneConfigEditorTool {
 
     }
 
+    /// Changes scene configuration.
     fn change_scene_config(&mut self) {
         let scene_config: SceneConfig = load_json_or_panic(self.current_scene_config_path.clone());
         self.scene_config = scene_config;
         self.field_config = load_json_or_panic(self.scene_config.field_config_path.clone());
     }
+
+    /// Changes field configuration.
     fn change_field_config(&mut self) {
         self.field_config = load_json_or_panic(self.scene_config.field_config_path.clone());
         self.field_config.recalc_id_color();
     }
 
+    /// Renders dropdown to select scene configuration file.
     fn ui_scene_config_select(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("Scene config:").size(16.0));
 
@@ -255,6 +260,7 @@ impl SceneConfigEditorTool {
         }
     }
 
+    /// Renders dropdown to select field configuration file.
     fn ui_field_config_select(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("Field config:").size(16.0));
 

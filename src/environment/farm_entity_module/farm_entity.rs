@@ -1,10 +1,10 @@
 use crate::environment::farm_entity_module::{
     crop::Crop,
-    farm_entity_action::FarmEntityActionInstance,
+    farm_entity_action_instance::FarmEntityActionInstance,
     farm_stages::FarmStages, row::Row
 };
 
-
+/// Represents a farm entity, either a point Crop or a line Row.
 #[derive(Debug, Clone, PartialEq)]
 pub enum FarmEntity {
     Crop(Crop),
@@ -12,6 +12,7 @@ pub enum FarmEntity {
 }
 
 impl FarmEntity {
+    /// Returns the unique identifier of the entity.
     pub fn get_id(&self) -> u32 {
         match self {
             FarmEntity::Crop(crop) => crop.id,

@@ -1,29 +1,10 @@
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-    path::Path,
-    collections::{HashMap, VecDeque},
-};
+use std::{collections::{HashMap, VecDeque}, fs::File, io::{BufRead, BufReader}, path::Path};
 
-use crate::{
-    cfg::BATTERIES_PATH, logger::log_error_and_panic, units::{
-        duration::Duration,
-        energy::Energy,
-        power::Power,
-        voltage::Voltage
-    }, utilities::utils::load_json_or_panic
-};
+use crate::{battery_module::{battery_config::BatteryConfig, battery_error::BatteryError, is_battery::IsBattery}, cfg::BATTERIES_PATH, logger::log_error_and_panic, units::{duration::Duration, energy::Energy, power::Power, voltage::Voltage}, utilities::utils::linear_interpolate};
 
-pub trait Battery {
-    fn discharge(&mut self, power: Power, duration: Duration);
-    fn charge(&mut self, duration: Duration, month: u32);
-    fn get_soc(&self) -> f32;
-
-    fn recalculate_energy(&mut self);
-}
-
+/// Represents a rechargeable battery with energy capacity, voltage, and seasonal data models.
 #[derive(Clone, Debug, PartialEq)]
-pub struct BatteryPack {
+pub struct Battery {
     pub voltage: Voltage,
     pub capacity: Energy,
     pub soc: f32,
@@ -37,7 +18,53 @@ pub struct BatteryPack {
     pub soc_history: VecDeque<f32>,
 }
 
-impl BatteryPack {
+impl IsBattery for Battery {
+    /// Reduces battery energy based on power draw and elapsed time.
+    fn discharge(&mut self, power: Power, duration: Duration) {
+        if self.energy <= Energy::ZERO { return } // is empty
+        let energy_removed = power * duration;
+        let new_energy = self.energy - energy_removed;
+        if new_energy < Energy::ZERO { self.energy = Energy::ZERO; }
+        else { self.energy = new_energy; }
+        self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
+
+        self.update();
+    }
+    
+    /// Increases battery energy using solar charge interpolation curves.
+    fn charge(&mut self, duration: Duration, month: u32) {
+        if self.energy >= self.capacity {
+            return; // Battery is full
+        }
+
+        match self.get_morph_x_y(self.energy.to_watt_hour(), month, duration.to_base_unit() as u32) {
+            Ok((_, new_energy)) => {
+                let new_energy = Energy::watt_hours(new_energy);
+                if new_energy < self.capacity { self.energy = new_energy; }
+                else { self.energy = self.capacity; }
+                self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
+    
+                self.update();
+            }
+            Err(e) => {
+                eprintln!("⚠️ Failed to charge: {}", e);
+            }
+        }
+    }
+    
+    /// Returns the current battery state of charge.
+    fn get_soc(&self) -> f32 {
+        (self.energy / self.capacity) * 100.0
+    }
+    
+    /// Updates the current energy based on state of charge.
+    fn recalculate_energy(&mut self) {
+        self.energy = self.capacity * self.soc * 0.01;
+    }
+}
+
+impl Battery {
+    /// Creates a battery from configuration and an initial SoC.
     pub fn from_config(config: BatteryConfig, initial_soc: f32) -> Self {
         let soc = initial_soc.clamp(0.0, 100.0);
         let path = format!("{}/{}/", BATTERIES_PATH, config.name);
@@ -56,6 +83,8 @@ impl BatteryPack {
             soc_history: VecDeque::from(vec![soc; 100]),
         }
     }
+    
+    /// Parses charging data points from a whitespace-delimited file.
     fn get_month_data_points<P: AsRef<Path>>(file_path: P) -> Vec<(u32, f32)> {
         let path_ref = file_path.as_ref();
         let file = File::open(path_ref).unwrap_or_else(|e| {
@@ -77,7 +106,8 @@ impl BatteryPack {
         points
         
     }
-
+    
+    /// Periodically stores the latest SoC in the history.
     fn update(&mut self) {
         self.update_count += 1;
         if self.update_count % 300 == 0 {
@@ -85,14 +115,8 @@ impl BatteryPack {
             self.soc_history.push_back(self.soc);
         }
     }
-
-    fn linear_interpolate(&self, x0: f32, y0: f32, x1: f32, y1: f32, x: f32) -> f32 {
-        if x1 == x0 {
-            return y0;
-        }
-        y0 + (x - x0) * (y1 - y0) / (x1 - x0)
-    }
-
+    
+    /// Finds interpolated energy output for a given input time in the month’s dataset.
     fn find_y_for_x_month(&mut self, month: &str, x: u32) -> Result<f32, BatteryError> {
         let data = match month {
             "jan" => &self.jan_min_data,
@@ -106,12 +130,13 @@ impl BatteryPack {
             let (x1, y1) = data[i];
             if x0 <= x && x <= x1 {
                 self.start_index.insert(month.to_string(), std::cmp::max(1, i - 1));
-                return Ok(self.linear_interpolate(x0 as f32, y0, x1 as f32, y1, x as f32));
+                return Ok(linear_interpolate(x0 as f32, y0, x1 as f32, y1, x as f32));
             }
         }
         Err(BatteryError::NoYForX(x.to_string()))
     }
-
+    
+    /// Finds interpolated time needed to reach a given energy in the month’s dataset.
     fn find_x_for_y_month(&mut self, month: &str, y: f32) -> Result<u32, BatteryError> {
         let data = match month {
             "jan" => &self.jan_min_data,
@@ -125,12 +150,13 @@ impl BatteryPack {
             let (x1, y1) = data[i];
             if y0 <= y && y <= y1 {
                 self.start_index.insert(month.to_string(), std::cmp::max(1, i - 1));
-                return Ok(self.linear_interpolate(y0, x0 as f32, y1, x1 as f32, y) as u32);
+                return Ok(linear_interpolate(y0, x0 as f32, y1, x1 as f32, y) as u32);
             }
         }
         Err(BatteryError::NoXForY(y.to_string()))
     }
-
+    
+    /// Calculates morphing time and energy for seasonal solar models.
     pub fn get_morph_x_y(&mut self, y: f32, month: u32, time: u32) -> Result<(u32, f32), BatteryError> {
         let jan_time = self.find_x_for_y_month("jan", y)?;
         let jun_time = self.find_x_for_y_month("jun", y)?;
@@ -150,86 +176,3 @@ impl BatteryPack {
         Ok((new_time as u32, new_wh))
     }
 }
-
-impl Battery for BatteryPack {
-    fn discharge(&mut self, power: Power, duration: Duration) {
-        if self.energy <= Energy::ZERO { return } // is empty
-        let energy_removed = power * duration;
-        let new_energy = self.energy - energy_removed;
-        if new_energy < Energy::ZERO { self.energy = Energy::ZERO; }
-        else { self.energy = new_energy; }
-        self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
-
-        self.update();
-    }
-    
-    fn charge(&mut self, duration: Duration, month: u32) {
-        if self.energy >= self.capacity {
-            return; // Battery is full
-        }
-
-        match self.get_morph_x_y(self.energy.to_watt_hour(), month, duration.to_base_unit() as u32) {
-            Ok((_, new_energy)) => {
-                let new_energy = Energy::watt_hours(new_energy);
-                if new_energy < self.capacity { self.energy = new_energy; }
-                else { self.energy = self.capacity; }
-                self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
-    
-                self.update();
-            }
-            Err(e) => {
-                eprintln!("⚠️ Failed to charge: {}", e);
-            }
-        }
-    }
-
-    fn get_soc(&self) -> f32 {
-        (self.energy / self.capacity) * 100.0
-    }
-
-    fn recalculate_energy(&mut self) {
-        self.energy = self.capacity * self.soc * 0.01;
-    }
-}
-
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct BatteryConfig {
-    pub name: String,
-    pub capacity: Energy,
-    pub voltage: Voltage,
-    pub jan_max: String,
-    pub jan_min: String,
-    pub jun_max: String,
-}
-impl BatteryConfig {
-    pub fn from_json_file(folder_name: String) -> Self {
-        let path_str = format!("{}/config.json", folder_name);
-        load_json_or_panic(path_str)
-    }
-}
-
-
-#[derive(Debug)]
-pub enum BatteryError {
-    UnsupportedMonth(String),
-    NoXForY(String),
-    NoYForX(String),
-}
-
-impl std::fmt::Display for BatteryError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BatteryError::UnsupportedMonth(month) => {
-                write!(f, "Unsupported month: {}", month)
-            }
-            BatteryError::NoXForY(y) => {
-                write!(f, "No x found for y: {}", y)
-            }
-            BatteryError::NoYForX(x) => {
-                write!(f, "No y found for x: {}", x)
-            }
-        }
-    }
-}
-impl std::error::Error for BatteryError {}

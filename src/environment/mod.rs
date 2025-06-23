@@ -1,3 +1,5 @@
+//! Module contains all environment components
+
 pub mod env_module;
 pub mod field_config;
 pub mod obstacle;

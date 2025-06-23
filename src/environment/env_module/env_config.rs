@@ -6,18 +6,25 @@ use crate::{
 };
 
 
+/// Configuration settings for the environment.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnvConfig {
+    /// Number of agents in the environment.
     pub n_agents: u32,
+    /// Path to the agent configuration file.
     pub agent_config_path: String,
+    /// Configuration for date and time settings.
     #[serde(rename = "date_time")]
     pub datetime_config: DateTimeConfig,
+    /// Path to the scene configuration file.
     pub scene_config_path: String,
+    /// Configuration for the task manager.
     #[serde(rename = "task_manager")]
     pub task_manager_config: TaskManagerConfig,
 }
 
 impl Default for EnvConfig {
+    /// Creates a default environment configuration with preset values.
     fn default() -> Self {
         Self {
             n_agents: 1,
@@ -30,6 +37,7 @@ impl Default for EnvConfig {
 }
 
 impl EnvConfig {
+    /// Creates a new `EnvConfig` with specified parameters.
     pub fn new(n_agents: u32, agent_config_path: String, datetime_config: DateTimeConfig, scene_config_path: String, task_manager_config: TaskManagerConfig) -> Self {
         Self {
             n_agents,
@@ -42,6 +50,8 @@ impl EnvConfig {
 }
 
 impl EnvConfig {
+    /// Loads an `EnvConfig` from a JSON file at the given path.
+    /// Panics if the JSON file cannot be loaded or parsed.
     pub fn from_json_file<P: AsRef<Path>>(file_path: P) -> Self {
         load_json_or_panic(file_path)
     }

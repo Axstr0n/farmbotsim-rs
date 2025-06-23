@@ -1,3 +1,4 @@
+/// Represents the current mode of the application.
 #[derive(Debug, PartialEq)]
 pub enum AppMode {
     Simulation,
@@ -12,6 +13,7 @@ pub enum AppMode {
     PerformanceMatrix,
 }
 impl AppMode {
+    /// Returns a list of all available application modes.
     pub fn variants() -> Vec<AppMode> {
         vec![
             AppMode::MovementConfigEditor,
@@ -26,6 +28,7 @@ impl AppMode {
             AppMode::PerformanceMatrix,
         ]
     }
+    /// Converts the application mode to its displayable name.
     pub fn to_string(&self) -> &str {
         match self {
             AppMode::Simulation => "Simulation",

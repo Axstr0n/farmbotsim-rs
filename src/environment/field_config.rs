@@ -17,7 +17,7 @@ use crate::{
     }, utilities::{utils::{generate_colors, load_json_or_panic}, vec2::Vec2Rotate}
 };
 
-
+/// Configuration for a line-based field layout.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct LineFieldConfig {
     #[serde(skip)]
@@ -46,6 +46,7 @@ impl Default for LineFieldConfig {
     }
 }
 impl LineFieldConfig {
+    /// Creates a new `LineFieldConfig` with specified parameters.
     pub fn new(left_top_pos: Pos2, angle: Angle, n_lines: u32, length: Length, line_spacing: Length, farm_entity_plan_path: String) -> Self {
         Self {
             id: 0,
@@ -60,6 +61,7 @@ impl LineFieldConfig {
     }
 }
 
+/// Configuration for a point-based field layout.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct PointFieldConfig {
     #[serde(skip)]
@@ -90,6 +92,7 @@ impl Default for PointFieldConfig {
     }
 }
 impl PointFieldConfig {
+    /// Creates a new `PointFieldConfig` with specified parameters.
     pub fn new(left_top_pos: Pos2, angle: Angle, n_lines: u32, n_points_per_line: u32, line_spacing: Length, point_spacing: Length, farm_entity_plan_path: String) -> Self {
         Self {
             id: 0,
@@ -105,25 +108,28 @@ impl PointFieldConfig {
     }
 }
 
+/// Enum representing either a line or point field configuration.
 #[derive(PartialEq, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum VariantFieldConfig {
     Line(LineFieldConfig),
     Point(PointFieldConfig),
 }
 
-
+/// Container for multiple field configurations.
 #[derive(PartialEq, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FieldConfig {
     pub configs: Vec<VariantFieldConfig>,
 }
 
 impl FieldConfig {
+    /// Creates a new `FieldConfig` from a vector of `VariantFieldConfig`s.
     pub fn new(configs: Vec<VariantFieldConfig>) -> Self {
         Self {
             configs
         }
     }
 
+    /// Generates obstacle polygons representing physical obstacles for all configured fields.
     pub fn get_obstacles(&self) -> Vec<Obstacle> {
         let mut obstacles: Vec<Obstacle> = Vec::new();
 
@@ -164,6 +170,7 @@ impl FieldConfig {
         obstacles
     }
 
+    /// Returns key points for path finding.
     pub fn get_graph_points(&self) -> Vec<Pos2> {
         let mut points = Vec::new();
 
@@ -194,6 +201,7 @@ impl FieldConfig {
         points
     }
     
+    /// Constructs a map of farm entities (rows or crops) keyed by unique IDs.
     pub fn get_farm_entities(&self) -> HashMap<u32, FarmEntity> {
         let mut farm_entities = HashMap::new();
 
@@ -229,6 +237,7 @@ impl FieldConfig {
         farm_entities
     }
 
+    /// Checks if any farm entity plan contains a cycle.
     pub fn has_cycle_farm_entity_plan(&self) -> bool {
         for config in &self.configs {
             let plan_path = match config {
@@ -243,6 +252,8 @@ impl FieldConfig {
         false
     }
 
+    /// Calculates the total number of scheduled actions across all farm entities,
+    /// returns `None` if any plan contains cycles.
     pub fn number_of_actions(&self) -> Option<u32> {
         if self.has_cycle_farm_entity_plan() { return None; }
 
@@ -263,6 +274,7 @@ impl FieldConfig {
         Some(n_actions)
     }
 
+    /// Recalculates and assigns unique IDs and colors for all contained field configurations.
     pub fn recalc_id_color(&mut self) {
         let colors = generate_colors(self.configs.len(), 0.1);
         for (i, config_variant) in self.configs.iter_mut().enumerate() {

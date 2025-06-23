@@ -7,7 +7,7 @@ use crate::{
     utilities::utils::{json_config_combo, load_json_or_panic, value_with_unit_selector_ui}
 };
 
-
+/// A tool for defining, viewing, changing farm entity plan
 pub struct FarmEntityPlanEditorTool {
     plan: FarmEntityPlan,
     save_file_name: String,
@@ -156,6 +156,7 @@ impl Tool for FarmEntityPlanEditorTool {
 }
 
 impl FarmEntityPlanEditorTool {
+    /// Renders a dropdown to select a different farm entity plan configuration file.
     fn ui_farm_entity_plan_select(&mut self, ui: &mut Ui) {
         let mut new_value = self.current_farm_entity_plan_path.clone();
 
@@ -168,6 +169,7 @@ impl FarmEntityPlanEditorTool {
         }
     }
 
+    // Updates cycle paramater in plan so it is always valid
     fn check_cycle(&mut self) {
         if let Some(cycle) = self.plan.cycle {
             if self.plan.schedule.is_empty() { self.plan.cycle = None; }

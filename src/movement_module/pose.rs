@@ -2,17 +2,21 @@ use egui::{Pos2, Vec2};
 
 use crate::{units::{angle::Angle, length::Length}, utilities::pos2::ExtendedPos2};
 
+/// Represents a 2D pose consisting of a position and an orientation.
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Pose {
+    /// The 2D position (x, y) of the pose.
     pub position: Pos2,
+    /// The orientation angle (rad or degrees)
     pub orientation: Angle,
 }
 
 impl Pose {
+    /// Creates a new pose from a position and an orientation.
     pub fn new(position: Pos2, orientation: Angle) -> Self {
         Self { position, orientation }
     }
-
+    /// Returns true if this pose is close to another pose within given tolerances.
     pub fn is_close_to(&self, other: &Pose, tol_dist: Length, tol_ang: Angle) -> bool {
         self.position.is_close_to(other.position, tol_dist) && self.orientation.is_close_to(other.orientation, tol_ang)
     }
@@ -29,6 +33,7 @@ impl std::ops::Add for Pose {
     }
 }
 
+/// Converts a list of positions into poses by inferring orientation from path direction.
 pub fn path_to_poses(path: Vec<Pos2>) -> Vec<Pose> {
     let mut poses = Vec::with_capacity(path.len());
 

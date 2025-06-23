@@ -2,6 +2,7 @@ use egui::Pos2;
 
 use crate::units::{angle::Angle, length::Length};
 
+/// Configuration for a spawn area.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SpawnAreaConfig {
     pub left_top_pos: Pos2,

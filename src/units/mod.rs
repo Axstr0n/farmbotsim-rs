@@ -1,3 +1,5 @@
+//! Module for unit system
+
 pub mod angle;               // base unit: RADIANS
 pub mod angular_velocity;    // base unit: RADIANS/SECOND
 pub mod duration;            // base unit: SECOND

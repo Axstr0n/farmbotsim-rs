@@ -1,8 +1,12 @@
 use crate::rendering::camera::Camera;
 use crate::utilities::pos2::ExtendedPos2;
 
+/// Trait for types that provide access to a `Camera` instance.
 pub trait HasCamera {
+    /// Returns a reference to the contained `Camera`.
     fn camera(&self) -> &Camera;
+    
+    /// Displays the current mouse position information in the UI.
     fn ui_mouse_position(&self, ui: &mut egui::Ui) {
         let (mouse_pos, scene_pos) = match self.camera().mouse_position {
             Some(pos) => {

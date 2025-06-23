@@ -7,8 +7,11 @@ use crate::{
     }
 };
 
+/// The main application struct that holds state and manages tools and UI.
 pub struct App {
+    /// The current mode of the application.
     mode: AppMode,
+    /// Whether dark mode is enabled.
     is_dark_mode: bool,
 
     simulation_tool: SimulationTool,
@@ -22,21 +25,32 @@ pub struct App {
     scene_config_editor_tool: SceneConfigEditorTool,
     performance_matrix_tool: PerformanceMatrixTool,
 
+    /// Frames per second.
     fps: f32,
+    /// Ticks per second.
     tps: f32,
+    /// Ratio of ticks per second to frames per second.
     ratio_tps_fps: f32,
 
+    /// Total number of ticks since app started.
     ticks: u64,
+    /// Total number of frames rendered since app started.
     frames: u64,
-    frame_count: u32,
+    /// Tick count since last stats update.
     tick_count: u32,
+    /// Frame count since last stats update.
+    frame_count: u32,
+    /// Last time FPS/TPS stats were updated.
     last_stat_time: Instant,
 
+    /// Accumulator used to control tick timing when TPS < FPS.
     accumulator: f32,
 }
 
 
 impl Default for App {
+    /// Creates a new `App` instance with all tools in their default state
+    /// and the application set to `Simulation` mode with dark mode enabled.
     fn default() -> Self {
         Self {
             mode: AppMode::Simulation,
@@ -70,6 +84,7 @@ impl Default for App {
 
 
 impl eframe::App for App {
+    /// Called each frame by `eframe`. Updates logic and renders UI based on TPS/FPS ratio.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         if self.ticks <= 1 {
             if self.is_dark_mode { ctx.set_visuals(egui::Visuals::dark()); }
@@ -111,6 +126,7 @@ impl eframe::App for App {
 }
 
 impl App {
+    /// Performs a single logical update (tick) for the active tool based on the current `AppMode`.
     pub fn update_(&mut self) {
         self.tick_count += 1;
         self.ticks += 1;
@@ -128,6 +144,7 @@ impl App {
         }
         
     }
+    /// Renders the full user interface based on the current application mode.
     pub fn render(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.frame_count += 1;
         self.frames += 1;

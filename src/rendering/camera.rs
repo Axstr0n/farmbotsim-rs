@@ -1,6 +1,8 @@
 use egui::{Pos2, Ui};
 
 
+/// A 2D camera that handles zooming, panning, and coordinate transformations
+/// between scene (world) space and screen (pixel) space.
 pub struct Camera {
     pub zoom_level: f32,
     zoom_factor: f32,
@@ -17,6 +19,7 @@ pub struct Camera {
 }
 
 impl Default for Camera {
+    /// Creates a default camera with initial zoom level 70 and position at (4, 4).
     fn default() -> Self {
         let zoom_level = 70.0;
         let initial_pos = Pos2::new(4.0, 4.0);
@@ -36,7 +39,7 @@ impl Default for Camera {
 }
 
 impl Camera {
-    
+    /// Handles user input events to update camera position and zoom.
     pub fn handle_events(&mut self, ui: &mut Ui) {
         let main_rect = ui.available_rect_before_wrap();
         let min_pos = main_rect.min;
@@ -84,16 +87,20 @@ impl Camera {
         }
     }
 
-
+    /// Converts a position from scene (world) coordinates to screen coordinates.
     pub fn scene_to_screen_pos(&self, pos: Pos2) -> Pos2 {
         let screen_center =  Pos2::new(self.width/2.0, self.height/2.0);
         let mut camera_relative = (pos - self.position) * self.zoom_level;
         camera_relative.y *= -1.0;
         screen_center + camera_relative
     }
+    
+    /// Converts a scalar value from scene units to screen units, applying zoom scale.
     pub fn scene_to_screen_val(&self, val: f32) -> f32 {
         val * self.zoom_level
     }
+
+    /// Converts a position from screen coordinates back to scene (world) coordinates.
     pub fn screen_to_scene_pos(&self, pos: Pos2) -> Pos2 {
         let screen_center =  Pos2::new(self.width/2.0, self.height/2.0);
         let mut scene_relative = pos - screen_center;

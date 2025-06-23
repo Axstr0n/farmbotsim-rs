@@ -10,6 +10,7 @@ use crate::{
     },
 };
 
+/// A tool to set environment and test task assignment.
 pub struct TaskTool {
     pub tick: u32,
     pub running: bool,

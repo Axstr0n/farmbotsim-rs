@@ -1,3 +1,5 @@
+//! Module contains all tool related logic
+
 pub mod tool;
 pub mod has_camera;
 pub mod has_env;

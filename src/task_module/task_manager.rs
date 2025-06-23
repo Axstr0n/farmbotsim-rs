@@ -1,16 +1,14 @@
 use std::{collections::{HashMap, VecDeque}};
-
 use egui::Pos2;
 
 use crate::{
     agent_module::{
         agent::Agent,
         agent_state::AgentState,
-        battery::Battery
-    }, cfg::{MAX_VELOCITY_BETWEEN_POINTS}, environment::{
+    }, battery_module::is_battery::IsBattery, cfg::MAX_VELOCITY_BETWEEN_POINTS, environment::{
         farm_entity_module::{
             farm_entity::FarmEntity,
-            farm_entity_action::FarmEntityActionInstance,
+            farm_entity_action_instance::FarmEntityActionInstance,
             farm_stages::FarmStages
         },
         field_config::FieldConfig,
@@ -18,52 +16,10 @@ use crate::{
     }, logger::log_error_and_panic, movement_module::pose::{path_to_poses, Pose}, path_finding_module::{
         path_finding::PathFinding,
         visibility_graph::VisibilityGraph,
-    }, task_module::task_manager_config::TaskManagerConfig, units::duration::Duration};
+    }, task_module::{strategies::{ChargingStrategy, ChooseStationStrategy}, task_manager_config::TaskManagerConfig}, units::duration::Duration};
 use super::task::{Intent, Task};
 
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ChooseStationStrat {
-    First,
-    Closest,
-    ClosestMinQueue,
-}
-impl ChooseStationStrat {
-    pub fn variants() -> Vec<ChooseStationStrat> {
-        vec![ChooseStationStrat::First, ChooseStationStrat::Closest, ChooseStationStrat::ClosestMinQueue]
-    }
-}
-impl std::fmt::Display for ChooseStationStrat {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let str = match self {
-            Self::First => "First".to_string(),
-            Self::Closest => "Closest".to_string(),
-            Self::ClosestMinQueue => "ClosestMinQueue".to_string(),
-        };
-        write!(f, "{str}")
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ChargingStrat {
-    CriticalOnly,
-    ThresholdWithLimit,
-}
-impl ChargingStrat {
-    pub fn variants() -> Vec<ChargingStrat> {
-        vec![ChargingStrat::CriticalOnly, ChargingStrat::ThresholdWithLimit]
-    }
-}
-impl std::fmt::Display for ChargingStrat {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let str = match self {
-            Self::CriticalOnly => "CriticalOnly".to_string(),
-            Self::ThresholdWithLimit => "ThresholdWithLimit".to_string(),
-        };
-        write!(f, "{str}")
-    }
-}
-
+/// Manages task assignment, tracking, and execution for farm entities.
 #[derive(Debug, Clone)]
 pub struct TaskManager {
     id_counter: u32,
@@ -77,11 +33,12 @@ pub struct TaskManager {
     pub completed_tasks: Vec<Task>,
     visibility_graph: VisibilityGraph,
 
-    pub charging_strat: ChargingStrat,
-    pub choose_station_strat: ChooseStationStrat,
+    pub charging_strat: ChargingStrategy,
+    pub choose_station_strat: ChooseStationStrategy,
 }
 
 impl TaskManager {
+    /// Creates a new `TaskManager` instance from given configurations and initializes state.
     pub fn from_config(task_manager_config: TaskManagerConfig, field_config: FieldConfig) -> Self {
         let farm_entities = field_config.get_farm_entities();
         let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
@@ -101,10 +58,12 @@ impl TaskManager {
         }
     }
 
+    /// Converts the `TaskManager` back into a `TaskManagerConfig`.
     pub fn to_config(&self) -> TaskManagerConfig {
         TaskManagerConfig { charging_strat: self.charging_strat.clone(), choose_station_strat: self.choose_station_strat.clone() }
     }
 
+    /// Resets the TaskManager’s internal state, clearing assigned and completed tasks and reinitializing the work list.
     pub fn reset(&mut self) {
         let farm_entities = self.field_config.get_farm_entities();
         let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
@@ -114,6 +73,7 @@ impl TaskManager {
         self.completed_tasks.clear();
     }
 
+    /// Generates the initial task list and ID counter from the provided farm entities.
     fn get_initial_work_list(farm_entities: &HashMap<u32, FarmEntity>) -> (u32, VecDeque<Task>) {
         let mut work_list = VecDeque::new();
         let mut task_id_counter = 0;
@@ -128,6 +88,7 @@ impl TaskManager {
         (task_id_counter, work_list)
     }
 
+    /// Processes a completed task, updating the corresponding farm entity and scheduling the next task or wait period.
     fn on_work_task_completed(&mut self, task: Task) {
         if let Some(farm_entity_id) = task.get_farm_entity_id() {
             if let Some(entity) = self.farm_entities.get_mut(&farm_entity_id) {
@@ -145,6 +106,7 @@ impl TaskManager {
         }
     }
 
+    /// Updates the waiting tasks by decrementing their remaining durations and scheduling new tasks when wait ends.
     pub fn update_waiting_list(&mut self, duration_: Duration) {
         let mut finished_ids = Vec::new();
         for (&id, duration) in self.waiting.iter_mut() {
@@ -159,6 +121,7 @@ impl TaskManager {
         }
     }
     
+    /// Adds a new task for the farm entity with the given ID, advancing its stage and handling waits if necessary.
     fn add_new_task_for_id(&mut self, id: u32) {
         if let Some(entity) = self.farm_entities.get_mut(&id) {
             entity.increment_stage();
@@ -175,6 +138,7 @@ impl TaskManager {
         }
     }
 
+    /// (main) Assigns tasks to agents and manages their states, including handling discharged, charging, and idle agents.
     pub fn assign_tasks(&mut self, agents: &mut Vec<Agent>, stations: &mut [Station]) {
         let mut agent_ids_updated: Vec<u32> = vec![];
         let mut station_ids_updated: Vec<u32> = vec![];
@@ -257,7 +221,7 @@ impl TaskManager {
         }
     }
 
-
+    /// Updates stations by moving agents from queues to slots, updating their tasks and paths accordingly, and returns updated agent IDs.
     pub fn update_stations_on_agent_release(&mut self, station_ids_updated: Vec<u32>, stations: &mut [Station], agents: &mut [Agent]) -> Vec<u32> {
         let mut agent_ids_updated = vec![];
 
@@ -299,6 +263,7 @@ impl TaskManager {
         agent_ids_updated
     }
 
+    /// Assigns station-related tasks to the given agent, returning any current work tasks back to the work list.
     pub fn assign_station_tasks_to_agent(&mut self, agent: &mut Agent, stations: &mut [Station]) {
         let mut tasks_to_return: Vec<Task> = vec![];
         if let Some(task) = &agent.current_task {
@@ -324,6 +289,7 @@ impl TaskManager {
         agent.current_task = agent.work_schedule.pop_front();
     }
 
+    /// Assigns available work tasks to the agent and returns whether any were assigned.
     pub fn assign_work_tasks_to_agent(&mut self, agent: &mut Agent) -> bool {
         let tasks = self.get_work_tasks(agent);
         if tasks.is_empty() { return false }
@@ -339,6 +305,7 @@ impl TaskManager {
         true
     }
 
+    /// Assigns idle tasks (e.g., moving to spawn position) to the agent and returns whether any were assigned.
     pub fn assign_idle_tasks_to_agent(&mut self, agent: &mut Agent) -> bool {
         let tasks = self.get_idle_tasks(agent);
         if tasks.is_empty() { return false }
@@ -355,6 +322,7 @@ impl TaskManager {
     }
 
 
+    /// Generates a vector of charging-related tasks for the agent based on station availability and selection strategy.
     pub fn get_station_tasks(&mut self, agent: &Agent, stations: &mut [Station]) -> Vec<Task> {
         let mut tasks: Vec<Task> = vec![];
         let station_index = self.choose_station_index(agent, stations);
@@ -381,6 +349,7 @@ impl TaskManager {
         tasks
     }
 
+    /// Retrieves and organizes work tasks for the agent based on proximity and task grouping.
     pub fn get_work_tasks(&mut self, agent: &Agent) -> Vec<Task> {
         let mut tasks: Vec<Task> = vec![];
 
@@ -460,6 +429,7 @@ impl TaskManager {
         tasks
     }
 
+    /// Generates idle tasks for the agent, typically involving traveling to its spawn position.
     pub fn get_idle_tasks(&mut self, agent: &Agent) -> Vec<Task> {
         let mut tasks: Vec<Task> = vec![];
 
@@ -474,6 +444,8 @@ impl TaskManager {
         tasks
     }
 
+
+    /// Adds a list of tasks to the agent's work schedule.
     fn assign_tasks_to_agent(&mut self, agent: &mut Agent, tasks: Vec<Task>) {
         if tasks.is_empty() { return }
         for task in tasks {
@@ -481,6 +453,7 @@ impl TaskManager {
         }
     }
 
+    /// Updates internal records of completed tasks from the agent and triggers task completion handling.
     pub fn update_completed_tasks(&mut self, agent: &mut Agent) {
         if !agent.completed_task_ids.is_empty() {
             let mut completed_task: Option<Task> = None;
@@ -504,12 +477,13 @@ impl TaskManager {
         }
     }
 
-
+    
+    /// Applies the charging strategy to assign charging-related tasks to agents based on battery levels and station availability.
     fn charging_strategy(&mut self, agent_ids_updated: &mut Vec<u32>, agents: &mut[Agent], stations: &mut [Station]) -> Vec<u32> {
         let critical_battery_level = 45.0;
         let low_battery_threshold = 60.0;
         match self.charging_strat {
-            ChargingStrat::CriticalOnly => {
+            ChargingStrategy::CriticalOnly => {
                 for agent in agents {
                     if agent_ids_updated.contains(&agent.id) { continue; }
                     // If below critical battery go to charging
@@ -519,7 +493,7 @@ impl TaskManager {
                     }
                 }
             },
-            ChargingStrat::ThresholdWithLimit => {
+            ChargingStrategy::ThresholdWithLimit => {
                 let mut n_of_all_charging_agents = 0;
                 for station in stations.iter() {
                     n_of_all_charging_agents += station.n_occupied_slots()as usize+station.queue.len();
@@ -545,12 +519,13 @@ impl TaskManager {
         agent_ids_updated.to_vec()
     }
 
+    /// Selects a station index for the agent based on the configured strategy.
     fn choose_station_index(&mut self, agent: &Agent, stations: &[Station]) -> usize {
         match self.choose_station_strat {
-            ChooseStationStrat::First => {
+            ChooseStationStrategy::First => {
                 0
             },
-            ChooseStationStrat::Closest => {
+            ChooseStationStrategy::Closest => {
                 let mut distances = vec![];
                 for station in stations {
                     let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.pose.position);
@@ -577,7 +552,7 @@ impl TaskManager {
                     .map(|(index, _)| index);
                 closest_maybe.unwrap_or(0)
             },
-            ChooseStationStrat::ClosestMinQueue => {
+            ChooseStationStrategy::ClosestMinQueue => {
                 let mut distances = vec![];
                 for station in stations {
                     let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.pose.position);

@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 use crate::{
     cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE},
     movement_module::{is_movement::IsMovement, movement::MovementInputs, pose::Pose},
-    units::{angle::Angle, angular_velocity::{AngularVelocity, AngularVelocityUnit}, duration::Duration, length::{Length, LengthUnit}, linear_velocity::{LinearVelocity, LinearVelocityUnit}}
+    units::{angle::Angle, angular_velocity::AngularVelocity, duration::Duration, length::Length, linear_velocity::LinearVelocity}
 };
 
 
+/// Motor input values for a Romba-style differential drive robot.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RombaMovementInputs {
     pub left: f32,
@@ -15,22 +16,24 @@ pub struct RombaMovementInputs {
 }
 
 impl RombaMovementInputs {
+    /// Creates new motor inputs.
     pub fn new(left: f32, right: f32) -> Self {
         Self {
             left, right
         }
     }
+    /// Clamps motor values between -1.0 and 1.0.
     pub fn clamped(self) -> Self {
         Self {
             left: self.left.clamp(-1.0, 1.0),
             right: self.right.clamp(-1.0, 1.0),
         }
     }
-
+    /// Returns the motor values as a vector.
     pub fn as_vec(&self) -> Vec<f32> {
         vec![self.left, self.right]
     }
-
+    /// Creates inputs from a two-element vector.
     pub fn from_vec(vec: Vec<f32>) -> Option<Self> {
         if vec.len() != 2 {
             None
@@ -40,6 +43,7 @@ impl RombaMovementInputs {
     }
 }
 
+/// Defines physical properties for a Romba-style movement model.
 #[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 pub struct RombaMovement {
     pub max_velocity: LinearVelocity,
@@ -48,21 +52,22 @@ pub struct RombaMovement {
     pub wheel_radius: Length
 }
 impl Default for RombaMovement {
+    /// Returns a default Romba movement configuration.
     fn default() -> Self {
         Self {
-            max_velocity: LinearVelocity { value: 10.0, unit: LinearVelocityUnit::KilometersPerHour },
-            max_angular_velocity: AngularVelocity { value: 0.1, unit: AngularVelocityUnit::RadiansPerSecond },
-            wheel_distance: Length { value: 0.2, unit: LengthUnit::Meters },
-            wheel_radius: Length { value: 0.05, unit: LengthUnit::Meters },
+            max_velocity: LinearVelocity::kilometers_per_hour(10.0),
+            max_angular_velocity: AngularVelocity::radians_per_second(0.1),
+            wheel_distance: Length::meters(0.2),
+            wheel_radius: Length::meters(0.05),
         }
     }
 }
 
 impl IsMovement for RombaMovement {
+    /// Computes the new pose based on motor inputs and simulation time.
     fn calculate_new_pose_from_inputs(&self, simulation_step: Duration, inputs: MovementInputs, current_pose: Pose, max_velocity: LinearVelocity) -> (Pose, LinearVelocity, AngularVelocity) {
         match inputs {
             MovementInputs::Romba(romba_inputs) => {
-                // Clamp if it is not
                 let romba_inputs = romba_inputs.clamped();
                 let mut m1 = romba_inputs.left;
                 let mut m2 = romba_inputs.right;
@@ -102,7 +107,7 @@ impl IsMovement for RombaMovement {
             // },
         }
     }
-    
+    /// Computes motor inputs needed to move toward the target pose.
     fn calculate_inputs_for_target(&self, current_pose: Pose, target_pose: Pose) -> MovementInputs {
         let position_error = current_pose.position.distance(target_pose.position);
         let desired_orientation = if position_error > TOLERANCE_DISTANCE.to_base_unit() {
@@ -141,6 +146,7 @@ impl IsMovement for RombaMovement {
 }
 
 impl RombaMovement {
+    /// Computes input values to rotate toward a desired angle.
     fn turning_inputs(current: Angle, target: Angle) -> (f32, f32) {
         let delta = (target.to_degrees() - current.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
         let norm = delta / 180.0;

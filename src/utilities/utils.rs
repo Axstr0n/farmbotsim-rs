@@ -1,5 +1,4 @@
 use std::{any, error::Error, fs::{self, File}, io::Write, path::Path};
-
 use egui::Pos2;
 use serde::Serialize;
 use serde_json::to_string_pretty;
@@ -7,6 +6,7 @@ use serde_json::to_string_pretty;
 use crate::logger::log_error_and_panic;
 
 
+/// Converts hsv to rgb
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
     let h = (h % 1.0) * 6.0; // Hue in [0, 6)
     let f = h - h.floor();
@@ -32,6 +32,7 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
     )
 }
 
+/// Generates n amount of colors with hue offset.
 pub fn generate_colors(n: usize, hue_offset: f32) -> Vec<egui::Color32> {
     let mut colors = Vec::with_capacity(n);
 
@@ -44,6 +45,7 @@ pub fn generate_colors(n: usize, hue_offset: f32) -> Vec<egui::Color32> {
     colors
 }
 
+/// Get json files that are in folder with path.
 pub fn get_json_files_in_folder(path: &str) -> Vec<String> {
     let mut json_files = Vec::new();
 
@@ -69,6 +71,7 @@ pub fn get_json_files_in_folder(path: &str) -> Vec<String> {
     json_files
 }
 
+/// Get folders that are in folder with path.
 pub fn get_folders_in_folder(path: &str) -> Vec<String> {
     let mut folders = Vec::new();
 
@@ -94,7 +97,7 @@ pub fn get_folders_in_folder(path: &str) -> Vec<String> {
     folders
 }
 
-
+/// Loads json or panics on failure.
 pub fn load_json_or_panic<T, P>(path: P) -> T
 where
     T: serde::de::DeserializeOwned,
@@ -117,6 +120,7 @@ where
     })
 }
 
+/// Saves data to file with path.
 pub fn save_as_json<T: Serialize>(data: &T, file_path: &str) -> Result<(), Box<dyn Error>> {
     let json = to_string_pretty(data)?;
 
@@ -127,6 +131,7 @@ pub fn save_as_json<T: Serialize>(data: &T, file_path: &str) -> Result<(), Box<d
     Ok(())
 }
 
+/// Renders dropdown of all json config files in folder path.
 pub fn json_config_combo(
     ui: &mut egui::Ui,
     id_salt: &str,
@@ -154,6 +159,7 @@ pub fn json_config_combo(
     changed
 }
 
+/// Renders dropdown of all folders in folder path.
 pub fn folder_select_combo(
     ui: &mut egui::Ui,
     id_salt: &str,
@@ -181,6 +187,7 @@ pub fn folder_select_combo(
     changed
 }
 
+/// Renders adjustable drag value and dropdown for unit.
 pub fn value_with_unit_selector_ui<T: ToString + PartialEq + Copy + enum_iterator::Sequence>(
     ui: &mut egui::Ui,
     id_salt: &str,
@@ -210,6 +217,7 @@ pub fn value_with_unit_selector_ui<T: ToString + PartialEq + Copy + enum_iterato
     });
 }
 
+/// Generates a set of `n` positions along a straight line with specified spacing and angle.
 pub fn line_positions(n: usize, spacing: f32, angle: f32) -> Vec<Pos2> {
     let mut positions = Vec::with_capacity(n);
 
@@ -236,4 +244,12 @@ pub fn line_positions(n: usize, spacing: f32, angle: f32) -> Vec<Pos2> {
     }
 
     positions
+}
+
+/// Performs linear interpolation between two points.
+pub fn linear_interpolate(x0: f32, y0: f32, x1: f32, y1: f32, x: f32) -> f32 {
+    if x1 == x0 {
+        return y0;
+    }
+    y0 + (x - x0) * (y1 - y0) / (x1 - x0)
 }

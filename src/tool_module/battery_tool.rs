@@ -3,15 +3,15 @@ use egui::Slider;
 use egui_plot::{HLine, Legend, Line, Plot, PlotPoints};
 
 use crate::{
-    agent_module::battery::{Battery, BatteryConfig, BatteryPack}, cfg::BATTERIES_PATH, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::get_folders_in_folder
+    battery_module::{battery::Battery, battery_config::BatteryConfig, is_battery::IsBattery}, cfg::BATTERIES_PATH, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::get_folders_in_folder
 };
 
-
+/// A tool for inspecting and interacting with battery configuration data.
 #[derive(Debug)]
 pub struct BatteryTool {
     selected: Option<String>,
     folder_names: Vec<String>,
-    battery_map: HashMap<String, BatteryPack>,
+    battery_map: HashMap<String, Battery>,
     month: u32,
     morph_data: Option<Vec<(u32, f32)>>,
     pub help_open: bool,
@@ -103,7 +103,7 @@ impl Tool for BatteryTool {
             if ui.button(whole_path.clone()).clicked() {
                 self.selected = Some(whole_path.clone());
                 self.battery_map.entry(whole_path.clone()).or_insert_with(|| {
-                    BatteryPack::from_config(BatteryConfig::from_json_file(whole_path), 70.0)
+                    Battery::from_config(BatteryConfig::from_json_file(whole_path), 70.0)
                 });
             }
         }

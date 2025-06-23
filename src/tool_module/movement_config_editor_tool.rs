@@ -2,7 +2,7 @@ use crate::{
     movement_module::{movement::Movement, romba_movement::RombaMovement}, cfg::{DEFAULT_ROMBA_MOVEMENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{json_config_combo, load_json_or_panic, value_with_unit_selector_ui}
 };
 
-
+/// A tool to edit, change, view movement configurations
 pub struct MovementConfigEditorTool {
     movement: Movement,
     save_file_name: String,
@@ -46,6 +46,7 @@ impl Tool for MovementConfigEditorTool {
 }
 
 impl MovementConfigEditorTool {
+    /// Renders dropdown to select movemnt configuration file
     fn ui_movement_select(&mut self, ui: &mut egui::Ui) {
         let mut new_path = self.current_movement_config_path.clone();
 
@@ -58,6 +59,7 @@ impl MovementConfigEditorTool {
         }
     }
 
+    /// Renders json like structure with editable values
     fn movement_ui(&mut self, ui: &mut egui::Ui) {
         ui.label("{");
         ui.horizontal(|ui| {

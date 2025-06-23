@@ -2,13 +2,13 @@ use egui::Pos2;
 
 use crate::{
     environment::farm_entity_module::{
-        farm_entity_action::{FarmEntityAction, FarmEntityActionInstance},
+        farm_entity_action::FarmEntityAction, farm_entity_action_instance::FarmEntityActionInstance,
         farm_entity_plan::FarmEntityPlan
-    }
+    }, logger::log_error_and_panic
 };
 
 
-
+/// Represents a point farm entity
 #[derive(PartialEq, Debug, Clone)]
 pub struct Crop {
     pub id: u32,
@@ -21,6 +21,8 @@ pub struct Crop {
 }
 
 impl Crop {
+    /// Creates a new `Crop` with explicit parameters.
+    /// Panics if the plan contains line actions (unsupported for point crops).
     pub fn new(id: u32, field_id: u32, row_id: u32, position: Pos2, plan: FarmEntityPlan) -> Self {
         let mut stages = vec![];
         for action in &plan.schedule {
@@ -32,7 +34,8 @@ impl Crop {
                     FarmEntityActionInstance::wait(id, *duration)
                 },
                 _ => {
-                    panic!("Can't have line action for point crop")
+                    let msg = "Can't have line action for point crop";
+                    log_error_and_panic(msg)
                 }
             };
             stages.push(data);

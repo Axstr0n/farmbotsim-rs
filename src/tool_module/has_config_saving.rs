@@ -2,17 +2,23 @@ use serde::Serialize;
 
 use crate::utilities::utils::save_as_json;
 
+/// A trait to provide standardized configuration saving functionality.
 pub trait HasConfigSaving{
+    /// Returns the base directory path as a static string slice
     fn base_path() -> &'static str;
 
+    /// Returns a serializable reference to the current configuration.
     fn config(&self) -> impl Serialize;
 
+    /// Updates the current saved file path after a successful save.
     fn update_current_path(&mut self, path: String);
 
+    /// Hook called after a successful save operation.
     fn update_after_save(&mut self) {
 
     }
 
+    /// Draws a save UI panel.
     fn draw_save_ui(
         &mut self,
         ui: &mut egui::Ui,

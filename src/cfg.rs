@@ -1,7 +1,7 @@
 use crate::units::{angle::Angle, length::Length, linear_velocity::LinearVelocity, power::Power};
 
 pub const TOLERANCE_DISTANCE: Length = Length::meters(0.005);
-pub const TOLERANCE_ANGLE: Angle = Angle::degrees(0.1);
+pub const TOLERANCE_ANGLE: Angle = Angle::degrees(0.05);
 
 pub const POWER_CONSUMPTION_WAIT: Power = Power::watts(10.0); // W/s
 pub const POWER_CONSUMPTION_TRAVEL: Power = Power::watts(2.0*350.0); // W/s

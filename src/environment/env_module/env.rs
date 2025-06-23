@@ -13,24 +13,41 @@ use crate::{
     }
 };
 
+/// Represents the environment of the simulation including agents, field, stations, obstacles,
+/// and management of time and tasks.
 #[derive(Debug, Clone)]
 pub struct Env {
+    /// Number of simulation steps performed.
     pub step_count: u32,
+    /// Total duration elapsed.
     pub duration: Duration,
+    /// Number of agents in the environment.
     pub n_agents: u32,
+    /// File path to the agent configuration.
     pub agent_path: String,
+    /// Collection of agents in the environment.
     pub agents: Vec<Agent>,
+    /// Configuration of the field layout.
     pub field_config: FieldConfig,
+    /// List of stations in the environment.
     pub stations: Vec<Station>,
+    /// Spawn area for agent placement.
     pub spawn_area: SpawnArea,
+    /// Obstacles present in the env.
     pub obstacles: Vec<Obstacle>,
+    /// Visibility graph used for pathfinding.
     pub visibility_graph: VisibilityGraph,
+    /// Configuration of the datetime system.
     pub datetime_config: DateTimeConfig,
+    /// Manages date and time.
     pub date_time_manager: DateTimeManager,
+    /// Manages tasks assigned to agents.
     pub task_manager: TaskManager,
 }
 
 impl Env {
+    /// Creates a new `Env` instance from a given `EnvConfig`.
+    /// Panics if any JSON file can't be parsed or is not present.
     pub fn from_config(config: EnvConfig) -> Self {
         let scene_config: SceneConfig = load_json_or_panic(config.scene_config_path);
         let field_config: FieldConfig = load_json_or_panic(scene_config.field_config_path);
@@ -78,7 +95,8 @@ impl Env {
             task_manager,
         }
     }
-    
+
+    /// Resets the environment to its initial state.
     pub fn reset(&mut self) {
         self.agents.clear();
         let agent_colors = generate_colors(self.n_agents as usize, 0.1);
@@ -100,6 +118,8 @@ impl Env {
         self.task_manager.reset();
         self.step_count = 0;
     }
+
+    /// Advances the environment by one step.
     pub fn step(&mut self) {
         let simulation_step = Duration::seconds(1.0);
         self.duration = self.duration + simulation_step;
@@ -111,5 +131,3 @@ impl Env {
         }
     }
 }
-
-

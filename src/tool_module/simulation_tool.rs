@@ -11,6 +11,7 @@ use crate::{
     },
 };
 
+/// A tool to set and view simulation in action.
 pub struct SimulationTool {
     pub tick: u32,
     pub running: bool,
@@ -18,6 +19,7 @@ pub struct SimulationTool {
     pub env: Env,
     pub camera: Camera,
     pub help_open: bool,
+    pub show_battery_plot: bool,
 }
 
 impl Default for SimulationTool {
@@ -31,6 +33,7 @@ impl Default for SimulationTool {
             env,
             camera: Camera::default(),
             help_open: false,
+            show_battery_plot: false,
         }
     }
 }
@@ -83,9 +86,10 @@ impl Tool for SimulationTool {
         self.ui_render_controls(ui);
         ui.separator();
 
+        ui.checkbox(&mut self.show_battery_plot, "Battery plot");
         ui.label(egui::RichText::new("Env information:").size(16.0));
         ui_render_datetime(ui, &self.env.date_time_manager);
-        ui_render_agents(ui, &self.env.agents, true);
+        ui_render_agents(ui, &self.env.agents, self.show_battery_plot);
         ui_render_stations(ui, &self.env.stations);
         ui_render_task_manager(ui, &self.env.task_manager);
 

@@ -4,6 +4,7 @@ use std::f32::consts::PI;
 
 use crate::units::angle::{Angle, AngleUnit};
 
+/// Get random Vec2 with lenght 1.
 pub fn random_vec2() -> Vec2 {
     let mut rng = rand::rng(); // Random number generator
 
@@ -18,6 +19,7 @@ pub fn random_vec2() -> Vec2 {
 }
 
 pub trait Vec2Rotate {
+    /// Rotates Vec2 by a given angle
     fn rotate(&self, angle: Angle) -> Vec2;
 }
 
@@ -36,6 +38,7 @@ impl Vec2Rotate for Vec2 {
 
 
 pub trait ExtendedVec2 {
+    /// Format Vec2 into `String` with decimals.
     fn fmt(&self, n_decimals: usize) -> String;
 }
 
@@ -45,6 +48,7 @@ impl ExtendedVec2 for Vec2 {
     }
 }
 
+/// Rotates Vec2 by angle in radians.
 fn rotate_radians(vec2: Vec2, angle_rad: f32) -> Vec2 {
     let cos = angle_rad.cos();
     let sin = angle_rad.sin();

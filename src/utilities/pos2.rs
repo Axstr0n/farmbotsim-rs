@@ -3,6 +3,7 @@ use rand::Rng;
 
 use crate::units::{angle::Angle, length::Length};
 
+/// Get random `Pos2` inside rect with angle.
 pub fn random_pos2_in_rect(rect: Rect, angle: Angle) -> Pos2 {
     let mut rng = rand::rng(); // Random number generator
 
@@ -23,7 +24,10 @@ pub fn random_pos2_in_rect(rect: Rect, angle: Angle) -> Pos2 {
 }
 
 pub trait ExtendedPos2 {
+    /// Format Pos2 into `String` with decimals.
     fn fmt(&self, n_decimals: usize) -> String;
+
+    /// Checks if the current position is within a certain distance of another position.
     fn is_close_to(&self, other: Pos2, tolerance: Length) -> bool;
 }
 

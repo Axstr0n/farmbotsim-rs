@@ -4,7 +4,7 @@ use crate::{
     agent_module::agent_config::AgentConfig, cfg::{AGENT_CONFIGS_PATH, BATTERIES_PATH, DEFAULT_AGENT_CONFIG_PATH, MOVEMENT_CONFIGS_PATH}, tool_module::{has_config_saving::HasConfigSaving, has_help::HasHelp, tool::Tool}, utilities::utils::{folder_select_combo, json_config_combo, load_json_or_panic}
 };
 
-
+/// A tool for editing agent configuration files.
 pub struct AgentConfigEditorTool {
     save_file_name: String,
     pub current_agent_config_path: String,
@@ -71,6 +71,7 @@ impl Tool for AgentConfigEditorTool {
 }
 
 impl AgentConfigEditorTool {
+    /// Renders a dropdown to select a different agent configuration file.
     fn ui_agent_config_select(&mut self, ui: &mut Ui) {
         let mut new_value = self.current_agent_config_path.clone();
 
@@ -84,6 +85,8 @@ impl AgentConfigEditorTool {
             self.current_battery_soc = agent_config.battery_soc;
         }
     }
+    
+    /// Renders a dropdown to select a movement configuration file.
     fn ui_movement_select(&mut self, ui: &mut egui::Ui) {
         let mut new_path = self.current_movement_path.clone();
 
@@ -93,6 +96,8 @@ impl AgentConfigEditorTool {
             self.current_movement_path = new_path;
         }
     }
+    
+    /// Renders a folder selection to choose a battery configuration folder.
     fn ui_battery_select(&mut self, ui: &mut egui::Ui) {
         let mut new_path = self.current_battery_path.clone();
 

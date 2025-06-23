@@ -17,7 +17,7 @@ use crate::{
     }, tool_module::{has_help::HasHelp, tool::Tool}, utilities::{pos2::ExtendedPos2, utils::get_json_files_in_folder}
 };
 
-
+/// A tool for editing, viewing, changing field configuration
 pub struct FieldConfigEditorTool {
     pub field_config: FieldConfig,
     pub camera: Camera,
@@ -209,6 +209,7 @@ impl Tool for FieldConfigEditorTool {
 }
 
 impl FieldConfigEditorTool {
+    /// Handles dragging field configs
     fn handle_dragging(&mut self, ui: &mut Ui) {
         
         let mut pts = vec![];
@@ -251,11 +252,13 @@ impl FieldConfigEditorTool {
 
     }
 
+    /// Changes field config to new value
     fn change_field_config(&mut self, new_field_config_path: String) {
         let field_config: FieldConfig = load_json_or_panic(new_field_config_path);
         self.field_config = field_config;
     }
     
+    /// Renders dropdown to select field configuration file
     fn ui_field_config_select(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("Field config:").size(16.0));
 

@@ -10,7 +10,7 @@ use crate::{
     path_finding_module::path_finding::PathFinding,
 };
 
-
+/// A graph-based pathfinding structure using a visibility graph approach.
 #[derive(Clone, Debug)]
 pub struct VisibilityGraph {
     pub graph: UnGraph<Pos2, ()>,
@@ -63,18 +63,21 @@ impl PathFinding for VisibilityGraph {
 }
 
 impl VisibilityGraph {
+    /// Creates a new `VisibilityGraph` from given points and obstacles.
     pub fn new(points: &[Pos2], obstacles: Vec<Obstacle>) -> Self {
         Self {
             graph: Self::build_graph(points, &obstacles),
             obstacles,
         }
     }
-    
+
+    /// Recalculates the graph with new points and obstacles, rebuilding the visibility edges.
     pub fn recalculate(&mut self, points: &[Pos2], obstacles: &[Obstacle]) {
         self.obstacles = obstacles.to_vec();
         self.graph = Self::build_graph(points, obstacles);
     }
 
+    /// Builds the visibility graph edges between points, excluding edges intersecting obstacles.
     fn build_graph(points: &[Pos2], obstacles: &[Obstacle]) -> UnGraph<Pos2, ()> {
         let mut graph = UnGraph::<Pos2, ()>::new_undirected();
 
@@ -111,7 +114,7 @@ impl VisibilityGraph {
         graph
     }
     
-    /// Helper function to check if a line segment intersects with any segment of an obstacle
+    /// Check if a line segment intersects with any segment of an obstacle
     fn lines_intersect(line: (Pos2, Pos2), obstacle: &Obstacle) -> bool {
         let (a1, a2) = line;
         
@@ -127,7 +130,7 @@ impl VisibilityGraph {
         false
     }
     
-    /// Line segment intersection test using cross products
+    /// Determines if two line segments intersect using cross product test.
     fn line_segments_intersect(a1: Pos2, a2: Pos2, b1: Pos2, b2: Pos2) -> bool {
         let ccw = |a: Pos2, b: Pos2, c: Pos2| {
             (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
@@ -142,11 +145,13 @@ impl VisibilityGraph {
         ((d1 * d2) < 0.0) && ((d3 * d4) < 0.0)
     }
     
+    /// Finds a node in the graph that exactly matches the given position, if any.
     fn find_existing_node(&self, pos: Pos2) -> Option<NodeIndex> {
         self.graph.node_indices()
             .find(|&n| self.graph[n] == pos)
     }
 
+    /// Adds a new node with position `pos` and connects it to all visible existing nodes.
     fn add_node_with_connections(&mut self, pos: Pos2) -> NodeIndex {
         let new_node = self.graph.add_node(pos);
         
