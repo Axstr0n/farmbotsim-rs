@@ -33,8 +33,8 @@ pub struct TaskManager {
     pub completed_tasks: Vec<Task>,
     visibility_graph: VisibilityGraph,
 
-    pub charging_strat: ChargingStrategy,
-    pub choose_station_strat: ChooseStationStrategy,
+    pub charging_strategy: ChargingStrategy,
+    pub choose_station_strategy: ChooseStationStrategy,
 }
 
 impl TaskManager {
@@ -53,14 +53,14 @@ impl TaskManager {
             assigned_tasks: vec![],
             completed_tasks: vec![],
             visibility_graph,
-            charging_strat: task_manager_config.charging_strat,
-            choose_station_strat: task_manager_config.choose_station_strat,
+            charging_strategy: task_manager_config.charging_strategy,
+            choose_station_strategy: task_manager_config.choose_station_strategy,
         }
     }
 
     /// Converts the `TaskManager` back into a `TaskManagerConfig`.
     pub fn to_config(&self) -> TaskManagerConfig {
-        TaskManagerConfig { charging_strat: self.charging_strat.clone(), choose_station_strat: self.choose_station_strat.clone() }
+        TaskManagerConfig { charging_strategy: self.charging_strategy.clone(), choose_station_strategy: self.choose_station_strategy.clone() }
     }
 
     /// Resets the TaskManager’s internal state, clearing assigned and completed tasks and reinitializing the work list.
@@ -482,7 +482,7 @@ impl TaskManager {
     fn charging_strategy(&mut self, agent_ids_updated: &mut Vec<u32>, agents: &mut[Agent], stations: &mut [Station]) -> Vec<u32> {
         let critical_battery_level = 45.0;
         let low_battery_threshold = 60.0;
-        match self.charging_strat {
+        match self.charging_strategy {
             ChargingStrategy::CriticalOnly => {
                 for agent in agents {
                     if agent_ids_updated.contains(&agent.id) { continue; }
@@ -521,7 +521,7 @@ impl TaskManager {
 
     /// Selects a station index for the agent based on the configured strategy.
     fn choose_station_index(&mut self, agent: &Agent, stations: &[Station]) -> usize {
-        match self.choose_station_strat {
+        match self.choose_station_strategy {
             ChooseStationStrategy::First => {
                 0
             },

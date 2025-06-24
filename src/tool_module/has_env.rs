@@ -112,25 +112,25 @@ pub trait HasEnv {
         let config = self.get_env_config().clone();
         ui.label("choose_station_strategy");
         egui::ComboBox::from_id_salt("Choose Station Strategy")
-            .selected_text(config.task_manager_config.choose_station_strat.to_string())
+            .selected_text(config.task_manager_config.choose_station_strategy.to_string())
             .show_ui(ui, |ui| {
-                let previous_value = config.task_manager_config.choose_station_strat.clone();
+                let previous_value = config.task_manager_config.choose_station_strategy.clone();
                 for strat in ChooseStationStrategy::variants() {
-                    ui.selectable_value(&mut self.get_mut_env_config().task_manager_config.choose_station_strat, strat.clone(), strat.clone().to_string());
+                    ui.selectable_value(&mut self.get_mut_env_config().task_manager_config.choose_station_strategy, strat.clone(), strat.clone().to_string());
                 }
-                if self.get_env_config().task_manager_config.choose_station_strat != previous_value {
+                if self.get_env_config().task_manager_config.choose_station_strategy != previous_value {
                     self.rebuild_env();
                 }
             });
         ui.label("charging_strategy");
         egui::ComboBox::from_id_salt("Charging Strategy")
-            .selected_text(config.task_manager_config.charging_strat.to_string())
+            .selected_text(config.task_manager_config.charging_strategy.to_string())
             .show_ui(ui, |ui| {
-                let previous_value = config.task_manager_config.charging_strat.clone();
+                let previous_value = config.task_manager_config.charging_strategy.clone();
                 for strat in ChargingStrategy::variants() {
-                    ui.selectable_value(&mut self.get_mut_env_config().task_manager_config.charging_strat, strat.clone(), strat.clone().to_string());
+                    ui.selectable_value(&mut self.get_mut_env_config().task_manager_config.charging_strategy, strat.clone(), strat.clone().to_string());
                 }
-                if self.get_env_config().task_manager_config.charging_strat != previous_value {
+                if self.get_env_config().task_manager_config.charging_strategy != previous_value {
                     self.rebuild_env();
                 }
             });

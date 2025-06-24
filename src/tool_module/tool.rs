@@ -8,6 +8,6 @@ pub trait Tool {
     /// Render the main UI content of the tool.
     fn render_main(&mut self, ui: &mut Ui);
 
-    // Render side panel UI elements.
+    /// Render side panel UI elements.
     fn render_ui(&mut self, ui: &mut Ui);
 }

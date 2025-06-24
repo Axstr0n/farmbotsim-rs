@@ -11,6 +11,7 @@ pub enum AppMode {
     FieldConfigEditor,
     SceneConfigEditor,
     PerformanceMatrix,
+    GeneralHelp,
 }
 impl AppMode {
     /// Returns a list of all available application modes.
@@ -26,6 +27,7 @@ impl AppMode {
             AppMode::FieldConfigEditor,
             AppMode::SceneConfigEditor,
             AppMode::PerformanceMatrix,
+            AppMode::GeneralHelp,
         ]
     }
     /// Converts the application mode to its displayable name.
@@ -40,7 +42,8 @@ impl AppMode {
             AppMode::AgentConfigEditor => "AgentConfigEditor",
             AppMode::FieldConfigEditor => "FieldConfigEditor",
             AppMode::SceneConfigEditor => "SceneConfigEditor",
-            AppMode::PerformanceMatrix => "PerformanceMatrix"
+            AppMode::PerformanceMatrix => "PerformanceMatrix",
+            AppMode::GeneralHelp => "GeneralHelp",
         }
     }
 }

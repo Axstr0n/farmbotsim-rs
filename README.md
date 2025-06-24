@@ -2,7 +2,7 @@
 
 **!! IN DEVELOPMENT !!**
 
-**You can download the latest version of this application from the Releases page (Windows only).**
+**! You can download the LATEST VERSION of this application from the Releases page (Windows only) !**
 
 ---
 
@@ -73,6 +73,8 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `field_configs/` - Contains parameters for field config. (field)
 - `movement_configs/` - Contains movement configs. (movement)
 - `scene_configs/` - Contains parameters for scene config. (field + stations + spawn area)
+
+`general_help/` - Contains markdown and images for overview of project.
 
 `media/`- Contains screenshots of app.
 
