@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::{
     movement_module::pose::Pose, units::{duration::Duration, linear_velocity::LinearVelocity, power::Power}
 };
@@ -33,7 +35,7 @@ pub enum Task {
     /// A work moving task along a path at a specified velocity, with associated metadata.
     Moving {
         id: u32,
-        path: Vec<Pose>,
+        path: VecDeque<Pose>,
         velocity: LinearVelocity,
         intent: Intent,
         field_id: u32,
@@ -43,7 +45,7 @@ pub enum Task {
     },
     /// A travel task representing movement along a path.
     Travel {
-        path: Vec<Pose>,
+        path: VecDeque<Pose>,
         velocity: LinearVelocity,
         intent: Intent,
     },
@@ -62,7 +64,7 @@ impl Task {
     /// Creates a travel task along the given path with specified velocity and intent.
     pub fn travel(path: Vec<Pose>, velocity: LinearVelocity, intent: Intent) -> Self {
         Task::Travel {
-            path,
+            path: VecDeque::from(path),
             velocity,
             intent,
         }
@@ -100,9 +102,9 @@ impl Task {
         }
     }
     /// Returns the path of poses associated with the task if any.
-    pub fn get_path(&self) -> Option<Vec<Pose>> {
+    pub fn get_path(&self) -> Option<VecDeque<Pose>> {
         match self {
-            Task::Stationary {pose, .. } => { Some(vec![pose.clone()]) },
+            Task::Stationary {pose, .. } => { Some(VecDeque::from(vec![pose.clone()])) },
             Task::Moving {path, .. } => { Some(path.clone()) },
             Task::Travel {path, .. } => { Some(path.clone()) },
             Task::WaitDuration { .. } => { None },

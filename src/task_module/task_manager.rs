@@ -1,9 +1,9 @@
-use std::{collections::{HashMap, VecDeque}};
+use std::collections::{HashMap, HashSet, VecDeque};
 use egui::Pos2;
 
 use crate::{
     agent_module::{
-        agent::Agent,
+        agent::{Agent, AgentId},
         agent_state::AgentState,
     }, battery_module::is_battery::IsBattery, cfg::MAX_VELOCITY_BETWEEN_POINTS, environment::{
         farm_entity_module::{
@@ -12,8 +12,8 @@ use crate::{
             farm_stages::FarmStages
         },
         field_config::FieldConfig,
-        station_module::station::{Station, StationPosType}
-    }, logger::log_error_and_panic, movement_module::pose::{path_to_poses, Pose}, path_finding_module::{
+        station_module::station::{Station, StationId, StationPosType}
+    }, movement_module::pose::{path_to_poses, Pose}, path_finding_module::{
         path_finding::PathFinding,
         visibility_graph::VisibilityGraph,
     }, task_module::{strategies::{ChargingStrategy, ChooseStationStrategy}, task_manager_config::TaskManagerConfig}, units::duration::Duration};
@@ -108,6 +108,7 @@ impl TaskManager {
 
     /// Updates the waiting tasks by decrementing their remaining durations and scheduling new tasks when wait ends.
     pub fn update_waiting_list(&mut self, duration_: Duration) {
+        if self.waiting.is_empty() { return }
         let mut finished_ids = Vec::new();
         for (&id, duration) in self.waiting.iter_mut() {
             *duration = *duration - duration_;
@@ -140,20 +141,19 @@ impl TaskManager {
 
     /// (main) Assigns tasks to agents and manages their states, including handling discharged, charging, and idle agents.
     pub fn assign_tasks(&mut self, agents: &mut Vec<Agent>, stations: &mut [Station]) {
-        let mut agent_ids_updated: Vec<u32> = vec![];
-        let mut station_ids_updated: Vec<u32> = vec![];
+        let mut agent_ids_updated = HashSet::new();
+        let mut station_ids_updated = HashSet::new();
         for agent in &mut *agents {
             self.update_completed_tasks(agent);
             // Discharge agents
             if agent.state == AgentState::Discharged {
-                agent_ids_updated.push(agent.id);
+                agent_ids_updated.insert(agent.id);
                 // TO DO
                 if agent.current_task.is_none() { continue; }
-                if let Some(task) = &agent.current_task {
-                    if *task.get_intent() == Intent::Work {
+                if let Some(task) = agent.current_task.take() {
+                    if task.get_intent() == &Intent::Work {
                         // Return work task
-                        self.work_list.push_front(task.clone());
-                        agent.current_task = None;
+                        self.work_list.push_front(task);
                     }
                     for ws_task in &agent.work_schedule.tasks {
                         if *ws_task.get_intent() == Intent::Work {
@@ -183,11 +183,12 @@ impl TaskManager {
             }
             // Charging agents that are full
             else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 100.0 {
-                agent_ids_updated.push(agent.id);
+                agent_ids_updated.insert(agent.id);
                 for station in &mut *stations {
                     if station.slots.contains(&Some(agent.id)) {
                         station.release_agent(agent.id);
-                        station_ids_updated.push(station.id);
+                        station_ids_updated.insert(station.id);
+                        break;
                     }
                 }
                 if !self.assign_work_tasks_to_agent(agent) {
@@ -196,7 +197,7 @@ impl TaskManager {
             }
         }
 
-        agent_ids_updated.extend(self.update_stations_on_agent_release(station_ids_updated, stations, agents));
+        self.update_stations_on_agent_release(station_ids_updated, &mut agent_ids_updated, stations, agents);
 
         for agent in &mut *agents {
             if agent_ids_updated.contains(&agent.id) { continue; }
@@ -205,11 +206,11 @@ impl TaskManager {
                 let intent = task.get_intent();
                 intent == &Intent::Charge || intent == &Intent::Queue
             }).unwrap_or(false) || agent.work_schedule.has_charging() {
-                agent_ids_updated.push(agent.id);
+                agent_ids_updated.insert(agent.id);
             }
         }
 
-        agent_ids_updated = self.charging_strategy(&mut agent_ids_updated, agents, stations);
+        self.charging_strategy(&mut agent_ids_updated, agents, stations);
 
         for agent in &mut *agents {
             if agent_ids_updated.contains(&agent.id) { continue; }
@@ -221,14 +222,13 @@ impl TaskManager {
         }
     }
 
-    /// Updates stations by moving agents from queues to slots, updating their tasks and paths accordingly, and returns updated agent IDs.
-    pub fn update_stations_on_agent_release(&mut self, station_ids_updated: Vec<u32>, stations: &mut [Station], agents: &mut [Agent]) -> Vec<u32> {
-        let mut agent_ids_updated = vec![];
-
+    /// Updates stations by moving agents from queues to slots, updating their tasks and paths accordingly and adds to updated agent IDs.
+    pub fn update_stations_on_agent_release(&mut self, station_ids_updated: HashSet<StationId>, agent_ids_updated: &mut HashSet<AgentId>, stations: &mut [Station], agents: &mut [Agent]) {
         for station_id in station_ids_updated {
             if let Some(station) = stations.iter_mut().find(|s| s.id == station_id) {
+                if station.queue.is_empty() {continue;}
 
-                let queue_snapshot: Vec<u32> = station.queue.iter().cloned().collect();
+                let queue_snapshot: Vec<AgentId> = station.queue.iter().cloned().collect();
                 
                 let mut updated_agents_count = 0; // moved in queue count
                 for (i, agent_id) in queue_snapshot.iter().enumerate() {
@@ -245,22 +245,22 @@ impl TaskManager {
                         }
                         if let Some(path) = self.visibility_graph.find_path(agent.pose.position, pose.position) {
                             let mut path = path_to_poses(path);
-                            let path_len = path.len();
-                            path[path_len-1].orientation = pose.orientation;
+                            if let Some(last) = path.last_mut() {
+                                last.orientation = pose.orientation;
+                            }
                             let travel_task = Task::travel(path, agent.movement.max_velocity(), intent.clone());
                             let wait_task = Task::wait_infinite(intent);
                             agent.work_schedule.clear();
                             agent.work_schedule.push_back(travel_task);
                             agent.work_schedule.push_back(wait_task);
                             agent.current_task = agent.work_schedule.pop_front();
-                            agent_ids_updated.push(agent.id);
+                            agent_ids_updated.insert(agent.id);
                         }
 
                     }
                 }
             }
         }
-        agent_ids_updated
     }
 
     /// Assigns station-related tasks to the given agent, returning any current work tasks back to the work list.
@@ -331,8 +331,9 @@ impl TaskManager {
         let path = self.visibility_graph.find_path(agent.pose.position, pose.position);
         if let Some(path) = path {
             let mut path = path_to_poses(path);
-            let path_len = path.len();
-            path[path_len-1].orientation = pose.orientation;
+            if let Some(last) = path.last_mut() {
+                last.orientation = pose.orientation;
+            }
             let intent = match pos_type {
                 StationPosType::ChargingSlot => Intent::Charge,
                 StationPosType::QueueSlot => Intent::Queue,
@@ -479,7 +480,7 @@ impl TaskManager {
 
     
     /// Applies the charging strategy to assign charging-related tasks to agents based on battery levels and station availability.
-    fn charging_strategy(&mut self, agent_ids_updated: &mut Vec<u32>, agents: &mut[Agent], stations: &mut [Station]) -> Vec<u32> {
+    fn charging_strategy(&mut self, agent_ids_updated: &mut HashSet<AgentId>, agents: &mut[Agent], stations: &mut [Station]) {
         let critical_battery_level = 45.0;
         let low_battery_threshold = 60.0;
         match self.charging_strategy {
@@ -489,7 +490,7 @@ impl TaskManager {
                     // If below critical battery go to charging
                     if agent.battery.get_soc() < critical_battery_level {
                         self.assign_station_tasks_to_agent(agent, stations);
-                        agent_ids_updated.push(agent.id);
+                        agent_ids_updated.insert(agent.id);
                     }
                 }
             },
@@ -504,80 +505,94 @@ impl TaskManager {
                     if agent.battery.get_soc() < critical_battery_level {
                         // If below critical battery go to charging
                         self.assign_station_tasks_to_agent(agent, stations);
-                        agent_ids_updated.push(agent.id);
+                        agent_ids_updated.insert(agent.id);
                         n_of_all_charging_agents += 1;
                     }
                     else if agent.battery.get_soc() < low_battery_threshold && n_of_all_charging_agents < max_agents_charging {
                         // If not maximum number of charging agents and battery below threshold go charging
                         self.assign_station_tasks_to_agent(agent, stations);
-                        agent_ids_updated.push(agent.id);
+                        agent_ids_updated.insert(agent.id);
                         n_of_all_charging_agents += 1;
                     }
                 }
             }
         }
-        agent_ids_updated.to_vec()
     }
 
     /// Selects a station index for the agent based on the configured strategy.
     fn choose_station_index(&mut self, agent: &Agent, stations: &[Station]) -> usize {
+        fn manhattan_distance(a: Pos2, b: Pos2) -> f32 {
+            (a.x - b.x).abs() + (a.y - b.y).abs()
+        }
         match self.choose_station_strategy {
-            ChooseStationStrategy::First => {
-                0
-            },
-            ChooseStationStrategy::Closest => {
-                let mut distances = vec![];
-                for station in stations {
-                    let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.pose.position);
-                    if let Some(path) = maybe_path {
-                        let distance = path.windows(2)
-                            .map(|w| w[0].distance(w[1]))
-                            .sum();
-                        distances.push(distance);
-                    } else {
-                        distances.push(f32::INFINITY)
-                    }
-                }
-                let closest_maybe = distances.iter()
+            ChooseStationStrategy::ClosestManhattan => {
+                stations
+                    .iter()
                     .enumerate()
-                    .min_by(|a, b| {
-                        a.1.partial_cmp(b.1).unwrap_or_else(|| {
-                            let msg = format!(
-                                "Failed to compare distances at indices {} and {}. Values: {} and {}",
-                                a.0, b.0, a.1, b.1
-                            );
-                            log_error_and_panic(&msg)
-                        })
+                    .min_by_key(|(_, station)| {
+                        (manhattan_distance(agent.pose.position, station.pose.position) * 1000.0) as usize
                     })
-                    .map(|(index, _)| index);
-                closest_maybe.unwrap_or(0)
-            },
-            ChooseStationStrategy::ClosestMinQueue => {
-                let mut distances = vec![];
-                for station in stations {
-                    let maybe_path = self.visibility_graph.find_path(agent.pose.position, station.pose.position);
-                    if let Some(path) = maybe_path {
-                        let distance: f32 = path.windows(2)
-                            .map(|w| w[0].distance(w[1]))
-                            .sum();
-                        distances.push(distance + 40.0*(station.n_occupied_slots() as usize+station.queue.len()) as f32);
-                    } else {
-                        distances.push(f32::INFINITY)
-                    }
-                }
-                let closest_maybe = distances.iter()
+                    .map(|(idx, _)| idx)
+                    .unwrap_or(0)
+            }
+
+            ChooseStationStrategy::ClosestPath => {
+                // Collect stations with a valid path distance
+                let mut stations_with_path: Vec<(usize, f32)> = stations
+                    .iter()
                     .enumerate()
-                    .min_by(|a, b| {
-                        a.1.partial_cmp(b.1).unwrap_or_else(|| {
-                            let msg = format!(
-                                "Failed to compare distances at indices {} and {}. Values: {} and {}",
-                                a.0, b.0, a.1, b.1
-                            );
-                            log_error_and_panic(&msg)
-                        })
+                    .filter_map(|(idx, station)| {
+                        self.visibility_graph
+                            .find_path(agent.pose.position, station.pose.position)
+                            .map(|path| {
+                                let dist: f32 = path.windows(2)
+                                    .map(|w| w[0].distance(w[1]))
+                                    .sum();
+                                (idx, dist)
+                            })
                     })
-                    .map(|(index, _)| index);
-                closest_maybe.unwrap_or(0)
+                    .collect();
+
+                // Sort by distance ascending
+                stations_with_path.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+                // Return the index of the closest station with a path, or fallback to 0
+                stations_with_path.first().map(|(idx, _)| *idx).unwrap_or(0)
+            }
+
+            ChooseStationStrategy::ClosestMinQueueManhattan => {
+                stations
+                    .iter()
+                    .enumerate()
+                    .min_by_key(|(_, station)| {
+                        let base_dist = manhattan_distance(agent.pose.position, station.pose.position);
+                        let penalty = 40.0 * (station.n_occupied_slots() as usize + station.queue.len()) as f32;
+                        ((base_dist + penalty) * 1000.0) as usize
+                    })
+                    .map(|(idx, _)| idx)
+                    .unwrap_or(0)
+            }
+
+            ChooseStationStrategy::ClosestMinQueuePath => {
+                let mut stations_with_path: Vec<(usize, f32)> = stations
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(idx, station)| {
+                        self.visibility_graph
+                            .find_path(agent.pose.position, station.pose.position)
+                            .map(|path| {
+                                let dist: f32 = path.windows(2)
+                                    .map(|w| w[0].distance(w[1]))
+                                    .sum();
+                                let penalty = 40.0 * (station.n_occupied_slots() as usize + station.queue.len()) as f32;
+                                (idx, dist + penalty)
+                            })
+                    })
+                    .collect();
+
+                stations_with_path.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+                stations_with_path.first().map(|(idx, _)| *idx).unwrap_or(0)
             }
         }
     }

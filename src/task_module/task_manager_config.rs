@@ -10,7 +10,7 @@ impl Default for TaskManagerConfig {
     fn default() -> Self {
         Self {
             charging_strategy: ChargingStrategy::CriticalOnly,
-            choose_station_strategy: ChooseStationStrategy::Closest,
+            choose_station_strategy: ChooseStationStrategy::ClosestManhattan,
         }
     }
 }

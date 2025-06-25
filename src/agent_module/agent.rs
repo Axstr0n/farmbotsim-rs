@@ -10,11 +10,24 @@ use crate::{
     }, utilities::pos2::ExtendedPos2
 };
 
+/// Represents agent ID
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AgentId(u32);
+impl AgentId {
+    pub fn new(id: u32) -> Self {
+        AgentId(id)
+    }
+}
+impl std::fmt::Display for AgentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 /// Represents a mobile agent in the simulation with movement, battery, and task execution capabilities.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Agent {
-    pub id: u32,
+    pub id: AgentId,
     pub pose: Pose,
     pub movement: Movement,
     pub velocity_lin: LinearVelocity,
@@ -34,7 +47,7 @@ impl Agent {
     /// Constructs an [`Agent`] from an [`AgentConfig`], setting its initial state, pose, and battery.
     pub fn from_config(config: AgentConfig, id: u32, position: Pos2, direction: Vec2, color: Color32) -> Self {
         Self {
-            id,
+            id: AgentId(id),
             pose: Pose::new(position, Angle::radians(direction.angle())),
             movement: Movement::from_json_file(config.movement),
             velocity_lin: LinearVelocity::ZERO,
@@ -90,22 +103,10 @@ impl Agent {
     /// Computes movement inputs required to reach the next target in the current task.
     fn get_inputs(&self) -> MovementInputs {
         let next_pose = match &self.current_task {
-            Some(task) => {
-                if let Some(pose) = task.get_first_pose() {
-                    pose.clone()
-                }
-                else {
-                    self.pose.clone()
-                }
-                
-            },
-            _ => {
-                self.pose.clone()
-            }
+            Some(task) => task.get_first_pose().unwrap_or(&self.pose),
+            None => &self.pose,
         };
-        self.movement.clone().calculate_inputs_for_target(
-            self.pose.clone(), next_pose
-        )
+        self.movement.calculate_inputs_for_target(&self.pose, next_pose)
     }
     
     /// Updates the current task and its path based on agent's progress and pose.
@@ -124,15 +125,17 @@ impl Agent {
                 }
                 Task::WaitDuration { duration , ..} => {
                     if *duration > Duration::ZERO {
-                        *duration = *duration - Duration::ZERO;
+                        *duration = *duration - simulation_step;
                     } else {
                         self.current_task = self.work_schedule.pop_front();
                     }
                 }
                 Task::WaitInfinite { .. } => { }
                 Task::Moving { path, .. } | Task::Travel { path, .. } => {
-                    if !path.is_empty() && self.pose.is_close_to(&path[0], TOLERANCE_DISTANCE, TOLERANCE_ANGLE) {
-                        path.remove(0);
+                    if let Some(front_pose) = path.front() {
+                        if self.pose.is_close_to(front_pose, TOLERANCE_DISTANCE, TOLERANCE_ANGLE) {
+                            path.pop_front();
+                        }
                     }
                     if path.is_empty() {
                         if let Some(id) = task.get_id() {

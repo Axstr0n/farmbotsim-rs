@@ -108,7 +108,7 @@ impl IsMovement for RombaMovement {
         }
     }
     /// Computes motor inputs needed to move toward the target pose.
-    fn calculate_inputs_for_target(&self, current_pose: Pose, target_pose: Pose) -> MovementInputs {
+    fn calculate_inputs_for_target(&self, current_pose: &Pose, target_pose: &Pose) -> MovementInputs {
         let position_error = current_pose.position.distance(target_pose.position);
         let desired_orientation = if position_error > TOLERANCE_DISTANCE.to_base_unit() {
             // Face the next position when far away

@@ -1,24 +1,32 @@
 /// Strategies for selecting a charging station.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, enum_iterator::Sequence)]
 pub enum ChooseStationStrategy {
-    /// Choose first charging station
-    First,
-    /// Choose closest charging station
-    Closest,
-    /// Choose closest charging station with min queue
-    ClosestMinQueue,
+    /// Choose closest charging station (Manhattan)
+    ClosestManhattan,
+    /// Choose closest charging station (Path)
+    ClosestPath,
+    /// Choose closest charging station with min queue (Manhattan)
+    ClosestMinQueueManhattan,
+    /// Choose closest charging station with min queue (Path)
+    ClosestMinQueuePath,
 }
 impl ChooseStationStrategy {
     pub fn variants() -> Vec<ChooseStationStrategy> {
-        vec![ChooseStationStrategy::First, ChooseStationStrategy::Closest, ChooseStationStrategy::ClosestMinQueue]
+        vec![
+            ChooseStationStrategy::ClosestManhattan,
+            ChooseStationStrategy::ClosestPath,
+            ChooseStationStrategy::ClosestMinQueueManhattan,
+            ChooseStationStrategy::ClosestMinQueuePath,
+        ]
     }
 }
 impl std::fmt::Display for ChooseStationStrategy {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let str = match self {
-            Self::First => "First".to_string(),
-            Self::Closest => "Closest".to_string(),
-            Self::ClosestMinQueue => "ClosestMinQueue".to_string(),
+            Self::ClosestManhattan => "ClosestManhattan".to_string(),
+            Self::ClosestPath => "ClosestPath".to_string(),
+            Self::ClosestMinQueueManhattan => "ClosestMinQueueManhattan".to_string(),
+            Self::ClosestMinQueuePath => "ClosestMinQueuePath".to_string(),
         };
         write!(f, "{str}")
     }

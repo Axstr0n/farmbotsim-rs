@@ -24,7 +24,7 @@ pub enum Movement {
 }
 impl IsMovement for Movement {
     /// Delegates input calculation to the underlying movement model.
-    fn calculate_inputs_for_target(&self, current_pose: Pose, target_pose: Pose) -> MovementInputs {
+    fn calculate_inputs_for_target(&self, current_pose: &Pose, target_pose: &Pose) -> MovementInputs {
         match self {
             Movement::RombaMovement(romba) => romba.calculate_inputs_for_target(current_pose, target_pose),
         }

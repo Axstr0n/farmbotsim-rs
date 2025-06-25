@@ -1,7 +1,7 @@
 use egui::Color32;
 use std::collections::VecDeque;
 
-use crate::{movement_module::pose::Pose, units::{angle::Angle, length::Length}};
+use crate::{agent_module::agent::AgentId, movement_module::pose::Pose, units::{angle::Angle, length::Length}};
 use super::station_config::StationConfig;
 
 /// Represents the type of position an agent can occupy at a station.
@@ -11,11 +11,25 @@ pub enum StationPosType {
     QueueSlot,
 }
 
+/// Represents station ID
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct StationId(u32);
+impl StationId {
+    pub fn new(id: u32) -> Self {
+        StationId(id)
+    }
+}
+impl std::fmt::Display for StationId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// Represents a station where agents can queue or occupy charging slots.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Station {
     /// Unique identifier of the station.
-    pub id: u32,
+    pub id: StationId,
     /// Global pose (position and orientation) of the station.
     pub pose: Pose,
     /// Direction in which the queue extends from the station.
@@ -30,9 +44,9 @@ pub struct Station {
     /// Relative poses of each charging slot, in local coordinates.
     pub slots_pose: Vec<Pose>,
     /// Current occupancy of each charging slot. `None` means empty.
-    pub slots: Vec<Option<u32>>,
+    pub slots: Vec<Option<AgentId>>,
     /// Queue of agent IDs waiting for a slot.
-    pub queue: VecDeque<u32>,
+    pub queue: VecDeque<AgentId>,
 }
 
 impl Default for Station {
@@ -40,7 +54,7 @@ impl Default for Station {
     fn default() -> Self {
         let config = StationConfig::default();
         Self {
-            id: 0,
+            id: StationId::new(0),
             pose: config.pose,
             queue_direction: config.queue_direction,
             waiting_offset: config.waiting_offset,
@@ -58,7 +72,7 @@ impl Station {
     /// Constructs a [`Station`] from a [`StationConfig`], identifier, and color.
     pub fn from_config(id: u32, color: Color32, config: StationConfig) -> Self {
         Self {
-            id,
+            id: StationId::new(id),
             pose: config.pose,
             queue_direction: config.queue_direction,
             waiting_offset: config.waiting_offset,
@@ -79,7 +93,7 @@ impl Station {
     /// Creates a new `Station` with explicit parameters.
     pub fn new(id: u32, pose: Pose, queue_direction: Angle, waiting_offset: Length, color: Color32, n_slots: u32, slots_pose: Vec<Pose>) -> Self {
         Self {
-            id,
+            id: StationId::new(id),
             pose,
             queue_direction,
             waiting_offset,
@@ -108,7 +122,7 @@ impl Station {
     ///
     /// If a slot is available, it is assigned and its pose is returned.
     /// Otherwise, the agent is added to the queue and its pose is returned.
-    pub fn request_charge(&mut self, agent_id: u32) -> (Pose, StationPosType) {
+    pub fn request_charge(&mut self, agent_id: AgentId) -> (Pose, StationPosType) {
         if let Some(index) = self.get_empty_slot() {
             self.slots[index] = Some(agent_id);
             if let Some(pose) = self.get_pose_for_slot(index) {
@@ -123,7 +137,7 @@ impl Station {
     /// Releases the agent from either the queue or its charging slot.
     ///
     /// Returns `true` if the agent was found and removed.
-    pub fn release_agent(&mut self, agent_id: u32) -> bool {
+    pub fn release_agent(&mut self, agent_id: AgentId) -> bool {
         let mut successfully_removed = false;
         successfully_removed |= self.remove_agent_from_slots(agent_id);
         successfully_removed |= self.remove_agent_from_queue(agent_id);
@@ -132,7 +146,7 @@ impl Station {
     /// Moves an agent from the queue to a free charging slot.
     ///
     /// Returns the pose of the slot if successful.
-    pub fn move_agent_from_queue_to_slot(&mut self, agent_id: u32) -> Option<Pose> {
+    pub fn move_agent_from_queue_to_slot(&mut self, agent_id: AgentId) -> Option<Pose> {
         if let Some(index) = self.get_empty_slot() {
             if self.remove_agent_from_queue(agent_id) {
                 self.slots[index] = Some(agent_id);
@@ -156,7 +170,7 @@ impl Station {
     /// Removes the agent from the charging slots, if present.
     ///
     /// Returns `true` if the agent was removed.
-    fn remove_agent_from_slots(&mut self, agent_id: u32) -> bool {
+    fn remove_agent_from_slots(&mut self, agent_id: AgentId) -> bool {
         if self.slots.iter().any(|slot| *slot == Some(agent_id)) {
             self.slots.iter_mut().for_each(|slot| {
                 if *slot == Some(agent_id) {
@@ -170,7 +184,7 @@ impl Station {
     /// Removes the agent from the queue, if present.
     ///
     /// Returns `true` if the agent was removed.
-    fn remove_agent_from_queue(&mut self, agent_id: u32) -> bool {
+    fn remove_agent_from_queue(&mut self, agent_id: AgentId) -> bool {
         if self.queue.contains(&agent_id) {
             self.queue.retain(|&id| id != agent_id);
             return true

@@ -1,13 +1,15 @@
+use std::collections::HashSet;
+
 use crate::{
-    environment::{env_module::{
+    agent_module::agent::AgentId, environment::env_module::{
         env::Env,
         env_config::EnvConfig,
-    }}, rendering::{
+    }, rendering::{
         camera::Camera,
         render::{render_agents, render_coordinate_system, render_grid, render_obstacles, render_spawn_area, render_stations, render_task_manager_on_field, render_visibility_graph, ui_render_agents, ui_render_datetime, ui_render_stations, ui_render_task_manager},
-    }, task_module::{task::Intent}, tool_module::{
+    }, task_module::task::Intent, tool_module::{
         has_camera::HasCamera, has_env::HasEnv, has_env_controls::HasEnvControls, has_help::HasHelp, tool::Tool
-    },
+    }
 };
 
 /// A tool to set environment and test task assignment.
@@ -86,25 +88,26 @@ impl Tool for TaskTool {
         ui.separator();
         
         ui.label(egui::RichText::new("Manual task assignment:").size(16.0));
+        let mut agent_ids_updated = HashSet::new();
         for i in 0..=self.env.agents.len()-1 {
             ui.horizontal(|ui| {
                 if ui.button(format!("Agent {} ->  work", i)).clicked() {
                     let mut removed_from_station = false;
-                    let mut station_ids_updated = vec![];
+                    let mut station_ids_updated = HashSet::new();
                     for agent in &mut self.env.agents {
-                        if agent.id != i as u32 { continue; }
+                        if agent.id != AgentId::new(i as u32) { continue; }
                         for station in &mut self.env.stations {
                             let removed = station.release_agent(agent.id);
                             removed_from_station |= removed;
-                            if removed {station_ids_updated.push(station.id);}
+                            if removed {station_ids_updated.insert(station.id);}
                         }
                         self.env.task_manager.assign_work_tasks_to_agent(agent);
                     }
-                    if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut self.env.stations, &mut self.env.agents); }
+                    if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut agent_ids_updated, &mut self.env.stations, &mut self.env.agents); }
                 }
                 if ui.button(format!("Agent {} ->  station", i)).clicked() {
                     for agent in &mut self.env.agents {
-                        if agent.id != i as u32 { continue; }
+                        if agent.id != AgentId::new(i as u32) { continue; }
                         if let Some(task) = &agent.current_task {
                             if *task.get_intent() != Intent::Queue && *task.get_intent() != Intent::Charge {
                                 self.env.task_manager.assign_station_tasks_to_agent(agent, &mut self.env.stations);
@@ -115,13 +118,18 @@ impl Tool for TaskTool {
                     }
                 }
                 if ui.button(format!("Agent {} ->  spawn", i)).clicked() {
+                    let mut station_ids_updated = HashSet::new();
                     let mut removed_from_station = false;
                     for agent in &mut self.env.agents {
-                        if agent.id != i as u32 { continue; }
-                        removed_from_station |= self.env.stations[0].release_agent(i as u32);
+                        if agent.id != AgentId::new(i as u32) { continue; }
+                        for station in &mut self.env.stations {
+                            let removed = station.release_agent(agent.id);
+                            removed_from_station |= removed;
+                            if removed {station_ids_updated.insert(station.id);}
+                        }
                         self.env.task_manager.assign_idle_tasks_to_agent(agent);
                     }
-                    if removed_from_station { self.env.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
+                    if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut agent_ids_updated, &mut self.env.stations, &mut self.env.agents); }
                 }
             });
 
@@ -129,16 +137,16 @@ impl Tool for TaskTool {
         ui.horizontal(|ui| {
             if ui.button("All -> work").clicked() {
                 let mut removed_from_station = false;
-                let mut station_ids_updated = vec![];
+                let mut station_ids_updated = HashSet::new();
                 for agent in &mut self.env.agents {
                     for station in &mut self.env.stations {
                         let removed = station.release_agent(agent.id);
                         removed_from_station |= removed;
-                        if removed {station_ids_updated.push(station.id);}
+                        if removed {station_ids_updated.insert(station.id);}
                     }
                     self.env.task_manager.assign_work_tasks_to_agent(agent);
                 }
-                if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut self.env.stations, &mut self.env.agents); }
+                if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut agent_ids_updated, &mut self.env.stations, &mut self.env.agents); }
             }
             if ui.button("All -> station").clicked() {
                 for agent in &mut self.env.agents {
@@ -152,12 +160,17 @@ impl Tool for TaskTool {
                 }
             }
             if ui.button("All ->  spawn").clicked() {
+                let mut station_ids_updated = HashSet::new();
                 let mut removed_from_station = false;
                 for agent in &mut self.env.agents {
-                    removed_from_station |= self.env.stations[0].release_agent(agent.id);
+                    for station in &mut self.env.stations {
+                        let removed = station.release_agent(agent.id);
+                        removed_from_station |= removed;
+                        if removed {station_ids_updated.insert(station.id);}
+                    }
                     self.env.task_manager.assign_idle_tasks_to_agent(agent);
                 }
-                if removed_from_station { self.env.task_manager.update_stations_on_agent_release(vec![0], &mut self.env.stations, &mut self.env.agents); }
+                if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut agent_ids_updated, &mut self.env.stations, &mut self.env.agents); }
             }
         });
 

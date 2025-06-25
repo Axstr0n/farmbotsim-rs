@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use egui::epaint::CircleShape;
 use egui::{Align2, Color32, Grid, Pos2, RichText, Shape, Stroke, Ui, Vec2};
 use egui_plot::{Line, Plot, PlotPoint, PlotPoints, Text};
@@ -89,9 +91,10 @@ pub fn render_obstacles(ui: &mut Ui, camera: &Camera, obstacles: &Vec<Obstacle>)
 /// Draws agents with orientation indicators and their current task paths if any.
 pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
     let painter = ui.painter();
+    let radius = camera.scene_to_screen_val(0.15);
+    let length = camera.scene_to_screen_val(0.5);
     for agent in agents {
         let center = camera.scene_to_screen_pos(agent.pose.position);
-        let radius = camera.scene_to_screen_val(0.15);
         painter.add(CircleShape {
             center,
             radius,
@@ -99,7 +102,7 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
             stroke: Stroke::default(),
         });
         let start = center;
-        let end = center + (agent.pose.orientation.to_vec2()*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
+        let end = center + (agent.pose.orientation.to_vec2()*Vec2::new(1.0,-1.0)) * length;
         let stroke = Stroke {
             width: camera.scene_to_screen_val(0.02),
             color: agent.color,
@@ -140,13 +143,14 @@ pub fn render_agents(ui: &mut Ui, camera: &Camera, agents: &Vec<Agent>) {
 pub fn render_visibility_graph(ui: &mut Ui, camera: &Camera, visibility_graph: &VisibilityGraph) {
     // Draw edges
     let line_width = camera.scene_to_screen_val(0.05);
+    let stroke = Stroke::new(line_width, Color32::from_rgba_unmultiplied(100, 100, 255, 50));
     for edge in visibility_graph.graph.edge_references() {
         let (a, b) = (petgraph::visit::EdgeRef::source(&edge), petgraph::visit::EdgeRef::target(&edge));
         let start = camera.scene_to_screen_pos(visibility_graph.graph[a]);
         let end = camera.scene_to_screen_pos(visibility_graph.graph[b]);
         ui.painter().line_segment(
             [start, end],
-            (line_width, Color32::from_rgba_unmultiplied(100, 100, 255, 50)),
+            stroke,
         );
     }
 
@@ -234,24 +238,27 @@ pub fn render_station(ui: &mut Ui, camera: &Camera, station: &Station, with_para
         });
     }
     // slots
+    let length = camera.scene_to_screen_val(0.5);
+    let line_width = camera.scene_to_screen_val(0.02);
+    let radius = camera.scene_to_screen_val(0.1);
+    let stroke = Stroke {
+        width: line_width,
+        color: Color32::YELLOW,
+    };
     for i in 0..station.slots_pose.len() {
         let pose = station.get_pose_for_slot(i);
         if let Some(pose) = pose {
             let center = camera.scene_to_screen_pos(pose.position);
             if with_params {
                 // slot orientation
-                let end = center + (pose.orientation.to_vec2()*Vec2::new(1.0,-1.0)) * camera.scene_to_screen_val(0.5);
-                let stroke = Stroke {
-                    width: camera.scene_to_screen_val(0.02),
-                    color: Color32::YELLOW,
-                };
+                let end = center + (pose.orientation.to_vec2()*Vec2::new(1.0,-1.0)) * length;
                 painter.line(vec![center, end], stroke);
             }
             // slot position
             let color = if station.slots[i].is_some() {Color32::RED} else {Color32::LIGHT_BLUE};
             painter.add(CircleShape {
                 center,
-                radius: camera.scene_to_screen_val(0.1),
+                radius,
                 fill: color,
                 stroke: Stroke::default(),
             });
@@ -522,8 +529,13 @@ pub fn ui_render_stations(ui: &mut Ui, stations: &Vec<Station>) {
 
 /// Displays the task manager's work, assigned, and completed tasks in collapsible grids.
 pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
-    fn make_grid_from(ui: &mut Ui, label: String, vec: Vec<Task>) {
-        ui.collapsing(format!("{} ({})", label, vec.len()), |ui| {
+    fn make_grid_from<I>(ui: &mut Ui, label: String, iterator: I) 
+    where
+        I: IntoIterator,
+        I::Item: Borrow<Task>,
+    {
+        let tasks: Vec<_> = iterator.into_iter().collect();
+        ui.collapsing(format!("{} ({})", label, tasks.len()), |ui| {
             Grid::new(label.to_string())
                 .striped(true)
                 .show(ui, |ui| {
@@ -539,8 +551,16 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                     ui.label("Info");
                     ui.end_row();
 
-                    struct TaskInfo {
-                        id: u32, task_type: String, path: Vec<String>, vel: String, dur: String, fid: u32, lid: u32, power: Power, info: String
+                    struct TaskInfo<'a> {
+                        id: u32,
+                        task_type: &'a str,
+                        path: &'a [String],
+                        vel: &'a str,
+                        dur: &'a str,
+                        fid: u32,
+                        lid: u32,
+                        power: Power,
+                        info: &'a str,
                     }
 
                     fn display_task_info(ui: &mut Ui, task_info: TaskInfo) {
@@ -556,7 +576,8 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                         ui.end_row();
                     }
 
-                    for task in vec {
+                    for task in tasks {
+                        let task = task.borrow();
                         match task {
                             Task::Stationary { id, field_id, line_id, pose, duration, power , info,..} => {
                                 let task_type = "Stationary";
@@ -566,7 +587,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                                 let fid = field_id;
                                 let lid = line_id;
                                 
-                                display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power, info } );
+                                display_task_info(ui, TaskInfo { id: *id, task_type, path: &path, vel: &vel, dur: &dur, fid: *fid, lid: *lid, power: *power, info } );
                             }
                             Task::Moving { id, field_id, farm_entity_id, path, velocity, power ,info,..} => {
                                 let task_type = "Moving";
@@ -578,7 +599,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                                 let fid = field_id;
                                 let lid = farm_entity_id;
                                 
-                                display_task_info(ui, TaskInfo { id, task_type: task_type.to_string(), path, vel, dur, fid, lid, power, info } );
+                                display_task_info(ui, TaskInfo { id: *id, task_type, path: &path, vel: &vel, dur: &dur, fid: *fid, lid: *lid, power: *power, info } );
                             }
                             _ => {}
                         }
@@ -588,9 +609,9 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
     }
     
     ui.label("Task manager");
-    make_grid_from(ui, "Work List".to_string(), <std::collections::VecDeque<Task> as Clone>::clone(&task_manager.work_list).into());
-    make_grid_from(ui, "Assigned List".to_string(), task_manager.assigned_tasks.clone());
-    make_grid_from(ui, "Completed List".to_string(), task_manager.completed_tasks.clone());  
+    make_grid_from(ui, "Work List".to_string(), &task_manager.work_list);
+    make_grid_from(ui, "Assigned List".to_string(), &task_manager.assigned_tasks);
+    make_grid_from(ui, "Completed List".to_string(), &task_manager.completed_tasks);  
 }
 
 /// Shows the current date and time from the `DateTimeManager`.

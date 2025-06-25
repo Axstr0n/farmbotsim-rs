@@ -124,7 +124,7 @@ Agent represents robot/AMR that is moving, doing tasks and charging.
 
 ```rust
 pub struct Agent {
-    pub id: u32, // unique id
+    pub id: AgentId, // unique id
     pub pose: Pose,
     pub movement: Movement,
     pub velocity_lin: LinearVelocity,
@@ -309,7 +309,7 @@ pub enum Task {
     /// A work moving task along a path at a specified velocity, with associated metadata.
     Moving {
         id: u32,
-        path: Vec<Pose>,
+        path: VecDeque<Pose>,
         velocity: LinearVelocity,
         intent: Intent,
         field_id: u32,
@@ -319,7 +319,7 @@ pub enum Task {
     },
     /// A travel task representing movement along a path.
     Travel {
-        path: Vec<Pose>,
+        path: VecDeque<Pose>,
         velocity: LinearVelocity,
         intent: Intent,
     },
@@ -355,12 +355,14 @@ pub struct TaskManagerConfig {
 Strategy for station selection.
 ```rust
 pub enum ChooseStationStrategy {
-    /// Choose first charging station
-    First,
-    /// Choose closest charging station
-    Closest,
-    /// Choose closest charging station with min queue
-    ClosestMinQueue,
+    /// Choose closest charging station (Manhattan)
+    ClosestManhattan,
+    /// Choose closest charging station (Path)
+    ClosestPath,
+    /// Choose closest charging station with min queue (Manhattan)
+    ClosestMinQueueManhattan,
+    /// Choose closest charging station with min queue (Path)
+    ClosestMinQueuePath,
 }
 ```
 Strategy for when to go charging.
