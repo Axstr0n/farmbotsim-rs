@@ -9,8 +9,8 @@ pub struct TaskManagerConfig {
 impl Default for TaskManagerConfig {
     fn default() -> Self {
         Self {
-            charging_strategy: ChargingStrategy::CriticalOnly,
-            choose_station_strategy: ChooseStationStrategy::ClosestManhattan,
+            charging_strategy: ChargingStrategy::CriticalOnly(45.0),
+            choose_station_strategy: ChooseStationStrategy::Manhattan(0.0),
         }
     }
 }

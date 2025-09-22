@@ -3,7 +3,7 @@ use std::{time::{Duration, Instant}};
 
 use crate::{
     app_module::app_mode::AppMode, tool_module::{
-        agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, field_config_editor_tool::FieldConfigEditorTool, general_help_tool::GeneralHelpTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, performance_matrix_tool::PerformanceMatrixTool, scene_config_editor_tool::SceneConfigEditorTool, simulation_tool::SimulationTool, task_tool::TaskTool, tool::Tool
+        agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, field_config_editor_tool::FieldConfigEditorTool, general_help_tool::GeneralHelpTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, performance_matrix_tool::PerformanceMatrixTool, scene_config_editor_tool::SceneConfigEditorTool, simulation_tool::SimulationTool, task_manager_config_editor_tool::TaskManagerConfigEditorTool, task_tool::TaskTool, tool::Tool
     }
 };
 
@@ -24,6 +24,7 @@ pub struct App {
     field_config_editor_tool: FieldConfigEditorTool,
     scene_config_editor_tool: SceneConfigEditorTool,
     performance_matrix_tool: PerformanceMatrixTool,
+    task_manager_config_editor_tool: TaskManagerConfigEditorTool,
     general_help_tool: GeneralHelpTool,
 
     /// Frames per second.
@@ -67,6 +68,7 @@ impl Default for App {
             field_config_editor_tool: FieldConfigEditorTool::default(),
             scene_config_editor_tool: SceneConfigEditorTool::default(),
             performance_matrix_tool: PerformanceMatrixTool::default(),
+            task_manager_config_editor_tool: TaskManagerConfigEditorTool::default(),
             general_help_tool: GeneralHelpTool::default(),
 
             fps: 0.0,
@@ -143,6 +145,7 @@ impl App {
             AppMode::FieldConfigEditor => {},
             AppMode::SceneConfigEditor => {},
             AppMode::PerformanceMatrix => self.performance_matrix_tool.update(),
+            AppMode::TaskManagerConfigEditor => {},
             AppMode::GeneralHelp => {}
         }
         
@@ -167,6 +170,7 @@ impl App {
                 ui.selectable_value(&mut self.mode, AppMode::FarmEntityPlanEditor, "FarmEntityPlanEditor");
                 ui.selectable_value(&mut self.mode, AppMode::FieldConfigEditor, "FieldConfigEditor");
                 ui.selectable_value(&mut self.mode, AppMode::SceneConfigEditor, "SceneConfigEditor");
+                ui.selectable_value(&mut self.mode, AppMode::TaskManagerConfigEditor, "TaskManagerConfigEditor");
                 ui.separator();
                 ui.selectable_value(&mut self.mode, AppMode::Simulation, "Simulation");
                 ui.selectable_value(&mut self.mode, AppMode::Path, "Path");
@@ -224,6 +228,7 @@ impl App {
                         AppMode::FieldConfigEditor => self.field_config_editor_tool.render_ui(ui),
                         AppMode::SceneConfigEditor => self.scene_config_editor_tool.render_ui(ui),
                         AppMode::PerformanceMatrix => self.performance_matrix_tool.render_ui(ui),
+                        AppMode::TaskManagerConfigEditor => self.task_manager_config_editor_tool.render_ui(ui),
                         AppMode::GeneralHelp => self.general_help_tool.render_ui(ui),
                     }
                 });
@@ -248,7 +253,7 @@ impl App {
                             }
                         });
                     },
-                AppMode::Battery | AppMode::FarmEntityPlanEditor | AppMode::MovementConfigEditor | AppMode::AgentConfigEditor | AppMode::PerformanceMatrix | AppMode::GeneralHelp => {
+                AppMode::Battery | AppMode::FarmEntityPlanEditor | AppMode::MovementConfigEditor | AppMode::AgentConfigEditor | AppMode::PerformanceMatrix | AppMode::TaskManagerConfigEditor | AppMode::GeneralHelp => {
                     // Tools without camera
                     match self.mode {
                         AppMode::Battery => self.battery_tool.render_main(ui),
@@ -256,6 +261,7 @@ impl App {
                         AppMode::MovementConfigEditor => self.movement_config_editor_tool.render_main(ui),
                         AppMode::AgentConfigEditor => self.agent_config_editor_tool.render_main(ui),
                         AppMode::PerformanceMatrix => self.performance_matrix_tool.render_main(ui),
+                        AppMode::TaskManagerConfigEditor => self.task_manager_config_editor_tool.render_main(ui),
                         AppMode::GeneralHelp => self.general_help_tool.render_main(ui),
                     _ => {}
                     }

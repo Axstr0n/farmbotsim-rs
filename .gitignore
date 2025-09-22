@@ -24,5 +24,8 @@ configs/field_configs/*
 configs/scene_configs/*
 !configs/scene_configs/default.json
 
+configs/task_manager_configs/*
+!configs/task_manager_configs/default.json
+
 performance_matrix/*
 !performance_matrix/default.json

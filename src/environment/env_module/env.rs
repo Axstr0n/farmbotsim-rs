@@ -6,7 +6,7 @@ use crate::{
         datetime::{DateTimeConfig, DateTimeManager}, env_module::env_config::EnvConfig, field_config::FieldConfig, obstacle::Obstacle, scene_config::SceneConfig, spawn_area_module::spawn_area::SpawnArea, station_module::station::Station
     },
     path_finding_module::visibility_graph::VisibilityGraph,
-    task_module::task_manager::TaskManager,
+    task_module::{task_manager::TaskManager, task_manager_config::TaskManagerConfig},
     units::duration::Duration,
     utilities::{
         pos2::random_pos2_in_rect, utils::{generate_colors, load_json_or_panic}, vec2::random_vec2
@@ -78,7 +78,8 @@ impl Env {
 
         let date_time_manager = DateTimeManager::from_config(config.datetime_config.clone());
 
-        let task_manager = TaskManager::from_config(config.task_manager_config, field_config.clone());
+        let task_manager_config: TaskManagerConfig = load_json_or_panic(config.task_manager_config_path);
+        let task_manager = TaskManager::from_config(task_manager_config, field_config.clone());
         Self {
             step_count: 0,
             duration: Duration::ZERO,

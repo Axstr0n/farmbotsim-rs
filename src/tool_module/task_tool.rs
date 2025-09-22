@@ -76,7 +76,7 @@ impl Tool for TaskTool {
         });
         //taskmanager
         ui.horizontal(|ui| {
-            ui.label("task_manager_config:");
+            ui.label("task_manager_config_path:");
             self.ui_task_manager_config_select(ui);
         });
         ui.separator();

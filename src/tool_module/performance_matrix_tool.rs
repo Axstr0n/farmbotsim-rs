@@ -4,7 +4,7 @@ use chrono::{NaiveDate, NaiveTime, Timelike};
 use egui::DragValue;
 use serde::{Deserialize, Serialize};
 
-use crate::{cfg::{AGENT_CONFIGS_PATH, DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, PERFORMANCE_MATRIX_PATH, SCENE_CONFIGS_PATH}, environment::{datetime::{DateTimeConfig, DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig}, field_config::FieldConfig, scene_config::SceneConfig}, logger::log_error_and_panic, task_module::strategies::{ChargingStrategy, ChooseStationStrategy}, tool_module::{has_help::HasHelp, tool::Tool}, units::duration::{average_duration, format_duration, Duration}, utilities::utils::{json_config_combo, load_json_or_panic}};
+use crate::{cfg::{AGENT_CONFIGS_PATH, DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, PERFORMANCE_MATRIX_PATH, SCENE_CONFIGS_PATH, TASK_MANAGER_CONFIGS_PATH}, environment::{datetime::{DateTimeConfig, DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig}, field_config::FieldConfig, scene_config::SceneConfig}, logger::log_error_and_panic, tool_module::{has_help::HasHelp, tool::Tool}, units::duration::{average_duration, format_duration, Duration}, utilities::utils::{json_config_combo, load_json_or_panic}};
 
 /// Defines conditions under which the simulation terminates.
 #[derive(Debug, Clone, PartialEq)]
@@ -202,27 +202,17 @@ impl Tool for PerformanceMatrixTool {
                 });
                 //taskmanager
                 ui.horizontal(|ui| {
-                    ui.label("task_manager_config:");
-                    ui.label("choose_station_strat");
-                    egui::ComboBox::from_id_salt("Choose Station Strategy")
-                        .selected_text(config.task_manager_config.choose_station_strategy.to_string())
-                        .show_ui(ui, |ui| {
-                            let choose_station_options = ChooseStationStrategy::variants();
-                            for strat in choose_station_options {
-                                ui.selectable_value(&mut config.task_manager_config.choose_station_strategy, strat.clone(), strat.clone().to_string());
-                            }
-                        });
-                    ui.label("charging_strat");
-                    egui::ComboBox::from_id_salt("Charging Strategy")
-                        .selected_text(config.task_manager_config.charging_strategy.to_string())
-                        .show_ui(ui, |ui| {
-                            let charge_strat_options = ChargingStrategy::variants();
-                            for strat in charge_strat_options {
-                                ui.selectable_value(&mut config.task_manager_config.charging_strategy, strat.clone(), strat.clone().to_string());
-                            }
-                        });
-    
-                    });
+                    ui.label("task_manager_config_path:");
+
+                    let mut new_config_path = config.task_manager_config_path.clone();
+
+                    if json_config_combo(ui, "", &mut new_config_path, TASK_MANAGER_CONFIGS_PATH)
+                        && new_config_path != config.task_manager_config_path
+                    {
+                        config.task_manager_config_path = new_config_path.clone();
+                    }
+                });
+                
                 if ui.button("Remove").clicked() {
                     to_remove = Some(i);
                 }

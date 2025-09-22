@@ -28,3 +28,6 @@ pub const SCENE_CONFIGS_PATH: &str = "configs/scene_configs/";
 pub const DEFAULT_SCENE_CONFIG_PATH: &str = "configs/scene_configs/default.json";
 
 pub const PERFORMANCE_MATRIX_PATH: &str = "performance_matrix/";
+
+pub const TASK_MANAGER_CONFIGS_PATH: &str = "configs/task_manager_configs/";
+pub const DEFAULT_TASK_MANAGER_CONFIG_PATH: &str = "configs/task_manager_configs/default.json";

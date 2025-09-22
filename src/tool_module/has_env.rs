@@ -1,9 +1,9 @@
 use chrono::{NaiveDate, NaiveTime, Timelike};
 
 use crate::{
-    cfg::{AGENT_CONFIGS_PATH, SCENE_CONFIGS_PATH}, environment::{
+    cfg::{AGENT_CONFIGS_PATH, SCENE_CONFIGS_PATH, TASK_MANAGER_CONFIGS_PATH}, environment::{
         datetime::{DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig},
-    }, logger::log_error_and_panic, task_module::strategies::{ChargingStrategy, ChooseStationStrategy}, utilities::utils::json_config_combo
+    }, logger::log_error_and_panic, utilities::utils::json_config_combo
 };
 
 /// Trait for managing and interacting with an environment (`Env`) and its configuration (`EnvConfig`).
@@ -107,33 +107,16 @@ pub trait HasEnv {
         }
     }
     
-    /// Render UI dropdowns to select task manager strategies:
+    /// Render UI dropdowns to select task manager config.
     fn ui_task_manager_config_select(&mut self, ui: &mut egui::Ui) {
-        let config = self.get_env_config().clone();
-        ui.label("choose_station_strategy");
-        egui::ComboBox::from_id_salt("Choose Station Strategy")
-            .selected_text(config.task_manager_config.choose_station_strategy.to_string())
-            .show_ui(ui, |ui| {
-                let previous_value = config.task_manager_config.choose_station_strategy.clone();
-                for strat in ChooseStationStrategy::variants() {
-                    ui.selectable_value(&mut self.get_mut_env_config().task_manager_config.choose_station_strategy, strat.clone(), strat.clone().to_string());
-                }
-                if self.get_env_config().task_manager_config.choose_station_strategy != previous_value {
-                    self.rebuild_env();
-                }
-            });
-        ui.label("charging_strategy");
-        egui::ComboBox::from_id_salt("Charging Strategy")
-            .selected_text(config.task_manager_config.charging_strategy.to_string())
-            .show_ui(ui, |ui| {
-                let previous_value = config.task_manager_config.charging_strategy.clone();
-                for strat in ChargingStrategy::variants() {
-                    ui.selectable_value(&mut self.get_mut_env_config().task_manager_config.charging_strategy, strat.clone(), strat.clone().to_string());
-                }
-                if self.get_env_config().task_manager_config.charging_strategy != previous_value {
-                    self.rebuild_env();
-                }
-            });
+        let mut new_config_path = self.get_env_config().task_manager_config_path.clone();
+
+        if json_config_combo(ui, "TaskManager Config", &mut new_config_path, TASK_MANAGER_CONFIGS_PATH)
+            && new_config_path != self.get_env_config().task_manager_config_path
+        {
+            self.get_mut_env_config().task_manager_config_path = new_config_path.clone();
+            self.rebuild_env();
+        }
     }
 
 }

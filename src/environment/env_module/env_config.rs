@@ -2,7 +2,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    cfg::{DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH}, environment::datetime::DateTimeConfig, task_module::task_manager_config::TaskManagerConfig, utilities::utils::load_json_or_panic
+    cfg::{DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, DEFAULT_TASK_MANAGER_CONFIG_PATH}, environment::datetime::DateTimeConfig, utilities::utils::load_json_or_panic
 };
 
 
@@ -18,9 +18,8 @@ pub struct EnvConfig {
     pub datetime_config: DateTimeConfig,
     /// Path to the scene configuration file.
     pub scene_config_path: String,
-    /// Configuration for the task manager.
-    #[serde(rename = "task_manager")]
-    pub task_manager_config: TaskManagerConfig,
+    /// Path to task manager configuration file.
+    pub task_manager_config_path: String,
 }
 
 impl Default for EnvConfig {
@@ -31,20 +30,20 @@ impl Default for EnvConfig {
             agent_config_path: DEFAULT_AGENT_CONFIG_PATH.to_string(),
             datetime_config: DateTimeConfig::from_string("01.01.2025 00:00:00".to_string()),
             scene_config_path: DEFAULT_SCENE_CONFIG_PATH.to_string(),
-            task_manager_config: TaskManagerConfig::default(),
+            task_manager_config_path: DEFAULT_TASK_MANAGER_CONFIG_PATH.to_string(),
         }
     }
 }
 
 impl EnvConfig {
     /// Creates a new `EnvConfig` with specified parameters.
-    pub fn new(n_agents: u32, agent_config_path: String, datetime_config: DateTimeConfig, scene_config_path: String, task_manager_config: TaskManagerConfig) -> Self {
+    pub fn new(n_agents: u32, agent_config_path: String, datetime_config: DateTimeConfig, scene_config_path: String, task_manager_config_path: String) -> Self {
         Self {
             n_agents,
             agent_config_path,
             datetime_config,
             scene_config_path,
-            task_manager_config,
+            task_manager_config_path,
         }
     }
 }

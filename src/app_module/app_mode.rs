@@ -11,6 +11,7 @@ pub enum AppMode {
     FieldConfigEditor,
     SceneConfigEditor,
     PerformanceMatrix,
+    TaskManagerConfigEditor,
     GeneralHelp,
 }
 impl AppMode {
@@ -27,6 +28,7 @@ impl AppMode {
             AppMode::FieldConfigEditor,
             AppMode::SceneConfigEditor,
             AppMode::PerformanceMatrix,
+            AppMode::TaskManagerConfigEditor,
             AppMode::GeneralHelp,
         ]
     }
@@ -43,6 +45,7 @@ impl AppMode {
             AppMode::FieldConfigEditor => "FieldConfigEditor",
             AppMode::SceneConfigEditor => "SceneConfigEditor",
             AppMode::PerformanceMatrix => "PerformanceMatrix",
+            AppMode::TaskManagerConfigEditor => "TaskManagerConfigEditor",
             AppMode::GeneralHelp => "GeneralHelp",
         }
     }

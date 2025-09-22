@@ -481,20 +481,18 @@ impl TaskManager {
     
     /// Applies the charging strategy to assign charging-related tasks to agents based on battery levels and station availability.
     fn charging_strategy(&mut self, agent_ids_updated: &mut HashSet<AgentId>, agents: &mut[Agent], stations: &mut [Station]) {
-        let critical_battery_level = 45.0;
-        let low_battery_threshold = 60.0;
         match self.charging_strategy {
-            ChargingStrategy::CriticalOnly => {
+            ChargingStrategy::CriticalOnly(critical_value) => {
                 for agent in agents {
                     if agent_ids_updated.contains(&agent.id) { continue; }
                     // If below critical battery go to charging
-                    if agent.battery.get_soc() < critical_battery_level {
+                    if agent.battery.get_soc() < critical_value {
                         self.assign_station_tasks_to_agent(agent, stations);
                         agent_ids_updated.insert(agent.id);
                     }
                 }
             },
-            ChargingStrategy::ThresholdWithLimit => {
+            ChargingStrategy::ThresholdWithLimit(threshold_value, critical_value) => {
                 let mut n_of_all_charging_agents = 0;
                 for station in stations.iter() {
                     n_of_all_charging_agents += station.n_occupied_slots()as usize+station.queue.len();
@@ -502,13 +500,13 @@ impl TaskManager {
                 let max_agents_charging = stations.len();
                 for agent in agents {
                     if agent_ids_updated.contains(&agent.id) { continue; }
-                    if agent.battery.get_soc() < critical_battery_level {
+                    if agent.battery.get_soc() < critical_value {
                         // If below critical battery go to charging
                         self.assign_station_tasks_to_agent(agent, stations);
                         agent_ids_updated.insert(agent.id);
                         n_of_all_charging_agents += 1;
                     }
-                    else if agent.battery.get_soc() < low_battery_threshold && n_of_all_charging_agents < max_agents_charging {
+                    else if agent.battery.get_soc() < threshold_value && n_of_all_charging_agents < max_agents_charging {
                         // If not maximum number of charging agents and battery below threshold go charging
                         self.assign_station_tasks_to_agent(agent, stations);
                         agent_ids_updated.insert(agent.id);
@@ -524,75 +522,40 @@ impl TaskManager {
         fn manhattan_distance(a: Pos2, b: Pos2) -> f32 {
             (a.x - b.x).abs() + (a.y - b.y).abs()
         }
+
         match self.choose_station_strategy {
-            ChooseStationStrategy::ClosestManhattan => {
+            ChooseStationStrategy::Manhattan(factor) => {
                 stations
                     .iter()
                     .enumerate()
                     .min_by_key(|(_, station)| {
-                        (manhattan_distance(agent.pose.position, station.pose.position) * 1000.0) as usize
+                        let dist = manhattan_distance(agent.pose.position, station.pose.position);
+                        let queue_penalty = station.n_occupied_slots() as f32 + station.queue.len() as f32;
+                        // Interpolate distance vs queue
+                        ((dist * (1.0 - factor) + queue_penalty * factor) * 1000.0) as usize
                     })
                     .map(|(idx, _)| idx)
                     .unwrap_or(0)
             }
 
-            ChooseStationStrategy::ClosestPath => {
-                // Collect stations with a valid path distance
-                let mut stations_with_path: Vec<(usize, f32)> = stations
+            ChooseStationStrategy::Path(factor) => {
+                let mut stations_with_score: Vec<(usize, f32)> = stations
                     .iter()
                     .enumerate()
                     .filter_map(|(idx, station)| {
                         self.visibility_graph
                             .find_path(agent.pose.position, station.pose.position)
                             .map(|path| {
-                                let dist: f32 = path.windows(2)
-                                    .map(|w| w[0].distance(w[1]))
-                                    .sum();
-                                (idx, dist)
+                                let dist: f32 = path.windows(2).map(|w| w[0].distance(w[1])).sum();
+                                let queue_penalty = station.n_occupied_slots() as f32 + station.queue.len() as f32;
+                                let score = dist * (1.0 - factor) + queue_penalty * factor;
+                                (idx, score)
                             })
                     })
                     .collect();
 
-                // Sort by distance ascending
-                stations_with_path.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-
-                // Return the index of the closest station with a path, or fallback to 0
-                stations_with_path.first().map(|(idx, _)| *idx).unwrap_or(0)
-            }
-
-            ChooseStationStrategy::ClosestMinQueueManhattan => {
-                stations
-                    .iter()
-                    .enumerate()
-                    .min_by_key(|(_, station)| {
-                        let base_dist = manhattan_distance(agent.pose.position, station.pose.position);
-                        let penalty = 40.0 * (station.n_occupied_slots() as usize + station.queue.len()) as f32;
-                        ((base_dist + penalty) * 1000.0) as usize
-                    })
-                    .map(|(idx, _)| idx)
-                    .unwrap_or(0)
-            }
-
-            ChooseStationStrategy::ClosestMinQueuePath => {
-                let mut stations_with_path: Vec<(usize, f32)> = stations
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(idx, station)| {
-                        self.visibility_graph
-                            .find_path(agent.pose.position, station.pose.position)
-                            .map(|path| {
-                                let dist: f32 = path.windows(2)
-                                    .map(|w| w[0].distance(w[1]))
-                                    .sum();
-                                let penalty = 40.0 * (station.n_occupied_slots() as usize + station.queue.len()) as f32;
-                                (idx, dist + penalty)
-                            })
-                    })
-                    .collect();
-
-                stations_with_path.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-
-                stations_with_path.first().map(|(idx, _)| *idx).unwrap_or(0)
+                stations_with_score.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+                stations_with_score.first().map(|(idx, _)| *idx).unwrap_or(0)
             }
         }
     }

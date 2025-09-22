@@ -1,8 +1,8 @@
 {
-  "start_datetime": "2025-06-11T20:31:04.239735200+02:00",
+  "start_datetime": "2025-09-22T14:09:31.659275+02:00",
   "evaluation_duration": {
-    "secs": 3,
-    "nanos": 875961400
+    "secs": 1,
+    "nanos": 828200700
   },
   "n_episodes": 10,
   "scene_config_path": "configs/scene_configs/default.json",
@@ -16,12 +16,9 @@
           "time": "00:00:00"
         },
         "scene_config_path": "configs/scene_configs/default.json",
-        "task_manager": {
-          "charging_strat": "CriticalOnly",
-          "choose_station_strat": "Closest"
-        }
+        "task_manager": "configs/task_manager_configs/default.json"
       },
-      "n_completed_tasks(min,avg,max)": "(269, 270, 272)",
+      "n_completed_tasks(min,avg,max)": "(185, 186, 187)",
       "env_duration_(min,avg,max)": "(24 h, 24 h, 24 h)"
     }
   ]

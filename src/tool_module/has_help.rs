@@ -1,4 +1,4 @@
-use crate::tool_module::{agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, field_config_editor_tool::FieldConfigEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, performance_matrix_tool::PerformanceMatrixTool, scene_config_editor_tool::SceneConfigEditorTool, simulation_tool::SimulationTool, task_tool::TaskTool};
+use crate::tool_module::{agent_config_editor_tool::AgentConfigEditorTool, battery_tool::BatteryTool, farm_entity_plan_editor_tool::FarmEntityPlanEditorTool, field_config_editor_tool::FieldConfigEditorTool, movement_config_editor_tool::MovementConfigEditorTool, path_tool::PathTool, performance_matrix_tool::PerformanceMatrixTool, scene_config_editor_tool::SceneConfigEditorTool, simulation_tool::SimulationTool, task_manager_config_editor_tool::TaskManagerConfigEditorTool, task_tool::TaskTool};
 
 /// Core trait for types that support toggling a help UI modal.
 pub trait HasHelpCore {
@@ -66,4 +66,5 @@ impl_help_core!(MovementConfigEditorTool);
 impl_help_core!(AgentConfigEditorTool);
 impl_help_core!(FieldConfigEditorTool);
 impl_help_core!(SceneConfigEditorTool);
+impl_help_core!(TaskManagerConfigEditorTool);
 impl_help_core!(PerformanceMatrixTool);

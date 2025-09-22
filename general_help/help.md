@@ -355,24 +355,30 @@ pub struct TaskManagerConfig {
 Strategy for station selection.
 ```rust
 pub enum ChooseStationStrategy {
-    /// Choose closest charging station (Manhattan)
-    ClosestManhattan,
-    /// Choose closest charging station (Path)
-    ClosestPath,
-    /// Choose closest charging station with min queue (Manhattan)
-    ClosestMinQueueManhattan,
-    /// Choose closest charging station with min queue (Path)
-    ClosestMinQueuePath,
+    /// Manhattan distance-based selection
+    /// 
+    /// factor: 0.0 → prioritize distance, 1.0 → prioritize small queues
+    Manhattan(f32),
+    /// Path distance-based selection
+    /// 
+    /// factor: 0.0 → prioritize distance, 1.0 → prioritize small queues
+    Path(f32),
 }
 ```
 Strategy for when to go charging.
 ```rust
 pub enum ChargingStrategy {
     /// Go charging only if battery is bellow critical
-    CriticalOnly,
+    /// 
+    /// Critical value: f32 (0.0 - 100.0)
+    CriticalOnly(f32),
     /// Go charging if battery is bellow threshold and station is available
     /// Go charging if battery is bellow critical
-    ThresholdWithLimit,
+    /// 
+    /// Threshold value: f32 (0.0 - 100.0)
+    /// 
+    /// Critical value: f32 (0.0 - 100.0)
+    ThresholdWithLimit(f32, f32),
 }
 ```
 

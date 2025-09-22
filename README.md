@@ -16,6 +16,7 @@
 <img src="media/tool_farm_entity_plan_editor.png" alt="farm_entity_plan_editor_tool">
 <img src="media/tool_field_config_editor.png" alt="field_config_editor_tool">
 <img src="media/tool_scene_config_editor.png" alt="scene_config_editor_tool">
+<img src="media/tool_task_manager_config_editor.png" alt="task_manager_config_editor">
 <img src="media/tool_simulation.png" alt="simulation_tool">
 <img src="media/tool_path.png" alt="path_tool">
 <img src="media/tool_task.png" alt="path_task">
@@ -73,6 +74,7 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `field_configs/` - Contains parameters for field config. (field)
 - `movement_configs/` - Contains movement configs. (movement)
 - `scene_configs/` - Contains parameters for scene config. (field + stations + spawn area)
+- `task_manager_configs/` - Contains configs for task manager creation
 
 `general_help/` - Contains markdown and images for overview of project.
 

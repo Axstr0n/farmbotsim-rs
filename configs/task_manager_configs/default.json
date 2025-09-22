@@ -1,0 +1,10 @@
+{
+  "charging_strategy": {
+    "type": "ThresholdWithLimit",
+    "values": [70.0, 20.0]
+  },
+  "choose_station_strategy": {
+    "type": "Path",
+    "value": 0.0
+  }
+}
