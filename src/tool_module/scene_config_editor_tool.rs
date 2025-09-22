@@ -127,7 +127,7 @@ impl Tool for SceneConfigEditorTool {
                         },
                     );
                     job.append(
-                        format!(" {}", i).as_str(),
+                        format!(" {i}").as_str(),
                         0.0,
                         egui::TextFormat::default(),
                     );
@@ -162,7 +162,7 @@ impl Tool for SceneConfigEditorTool {
                 ).changed() {station.update_slots_pose();}
                 ui.label("slots_pose:");
                 for (i, pose) in station.slots_pose.iter_mut().enumerate() {
-                    egui::CollapsingHeader::new(format!("slot_pose_{}", i))
+                    egui::CollapsingHeader::new(format!("slot_pose_{i}"))
                         .default_open(false)
                         .show(ui, |ui| {
                                 ui.label(format!("Position {}", pose.position.fmt(2)));
@@ -209,7 +209,7 @@ impl SceneConfigEditorTool {
         for (i, station_config) in &mut self.scene_config.station_configs.iter_mut().enumerate() {
             let screen_pos = self.camera.scene_to_screen_pos(station_config.pose.position);
             let rect = egui::Rect::from_center_size(screen_pos, egui::Vec2::splat(drag_point_size));
-            let response = ui.interact(rect, ui.make_persistent_id(format!("station_drag_{}", i)), egui::Sense::click_and_drag());
+            let response = ui.interact(rect, ui.make_persistent_id(format!("station_drag_{i}")), egui::Sense::click_and_drag());
             
             if response.dragged() {
                 let drag_delta = response.drag_delta();

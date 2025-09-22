@@ -50,13 +50,13 @@ pub fn get_json_files_in_folder(path: &str) -> Vec<String> {
     let mut json_files = Vec::new();
 
     let entries = fs::read_dir(path).unwrap_or_else(|e| {
-        let msg = format!("Failed to read directory {}: {}", path, e);
+        let msg = format!("Failed to read directory {path}: {e}");
         log_error_and_panic(&msg);
     });
 
     for entry in entries {
         let entry = entry.unwrap_or_else(|e| {
-            let msg = format!("Failed to read entry in {}: {}", path, e);
+            let msg = format!("Failed to read entry in {path}: {e}");
             log_error_and_panic(&msg);
         });
 
@@ -76,13 +76,13 @@ pub fn get_folders_in_folder(path: &str) -> Vec<String> {
     let mut folders = Vec::new();
 
     let entries = fs::read_dir(path).unwrap_or_else(|e| {
-        let msg = format!("Failed to read directory {}: {}", path, e);
+        let msg = format!("Failed to read directory {path}: {e}");
         log_error_and_panic(&msg);
     });
 
     for entry in entries {
         let entry = entry.unwrap_or_else(|e| {
-            let msg = format!("Error reading entry in {}: {}", path, e);
+            let msg = format!("Error reading entry in {path}: {e}");
             log_error_and_panic(&msg);
         });
 
@@ -108,14 +108,14 @@ where
     // Read the file contents, or panic with logging if it fails
     let data = fs::read_to_string(path_ref).unwrap_or_else(|e| {
         let type_name = any::type_name::<T>();
-        let msg = format!("Failed to read file {:?} for {}: {}", path_ref, type_name, e);
+        let msg = format!("Failed to read file {path_ref:?} for {type_name}: {e}");
         log_error_and_panic(&msg);
     });
 
     // Parse JSON, or panic with logging if it fails
     serde_json::from_str(&data).unwrap_or_else(|e| {
         let type_name = any::type_name::<T>();
-        let msg = format!("Failed to parse JSON from {:?} into {}: {}", path_ref, type_name, e);
+        let msg = format!("Failed to parse JSON from {path_ref:?} into {type_name}: {e}");
         log_error_and_panic(&msg);
     })
 }
@@ -127,7 +127,7 @@ pub fn save_as_json<T: Serialize>(data: &T, file_path: &str) -> Result<(), Box<d
     let mut file = File::create(file_path)?;
     file.write_all(json.as_bytes())?;
 
-    println!("Successfully saved to {}", file_path);
+    println!("Successfully saved to {file_path}");
     Ok(())
 }
 
@@ -141,13 +141,13 @@ pub fn json_config_combo(
     let mut changed = false;
 
     egui::ComboBox::from_id_salt(id_salt)
-        .selected_text(format!("{:?}", current_value))
+        .selected_text(format!("{current_value:?}"))
         .show_ui(ui, |ui| {
             let json_files = get_json_files_in_folder(folder_path);
             let previous_value = current_value.clone();
 
             for json_file in json_files {
-                let new_value = format!("{}{}", folder_path, json_file);
+                let new_value = format!("{folder_path}{json_file}");
                 ui.selectable_value(current_value, new_value.clone(), json_file);
             }
 
@@ -175,7 +175,7 @@ pub fn folder_select_combo(
             let previous_value = current_value.clone();
 
             for option in options {
-                let full_path = format!("{}{}", base_path, option);
+                let full_path = format!("{base_path}{option}");
                 ui.selectable_value(current_value, full_path.clone(), full_path);
             }
 
@@ -198,7 +198,7 @@ pub fn value_with_unit_selector_ui<T: ToString + PartialEq + Copy + enum_iterato
     max_value: Option<f32>,
 ) {
     ui.horizontal(|ui| {
-        ui.label(format!("        \"{}\":", label));
+        ui.label(format!("        \"{label}\":"));
         ui.add(egui::DragValue::new(value).speed(0.1));
         if let Some(min) = min_value {
             if *value < min { *value = min; }

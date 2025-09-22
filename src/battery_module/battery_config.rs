@@ -14,7 +14,7 @@ impl BatteryConfig {
     /// Loads a BatteryConfig from a config.json file inside the given folder.
     /// Panics if the file is missing or invalid.
     pub fn from_json_file(folder_name: String) -> Self {
-        let path_str = format!("{}/config.json", folder_name);
+        let path_str = format!("{folder_name}/config.json");
         load_json_or_panic(path_str)
     }
 }

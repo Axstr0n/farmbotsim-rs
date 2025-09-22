@@ -23,7 +23,7 @@ impl FromStr for AngleUnit {
         match s.to_ascii_lowercase().as_str() {
             "deg" | "degree" | "degrees" => Ok(AngleUnit::Degrees),
             "rad" | "radian" | "radians" => Ok(AngleUnit::Radians),
-            _ => Err(format!("Unknown AngleUnit: {}", s)),
+            _ => Err(format!("Unknown AngleUnit: {s}")),
         }
     }
 }

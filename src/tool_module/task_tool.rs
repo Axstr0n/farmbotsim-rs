@@ -91,7 +91,7 @@ impl Tool for TaskTool {
         let mut agent_ids_updated = HashSet::new();
         for i in 0..=self.env.agents.len()-1 {
             ui.horizontal(|ui| {
-                if ui.button(format!("Agent {} ->  work", i)).clicked() {
+                if ui.button(format!("Agent {i} ->  work")).clicked() {
                     let mut removed_from_station = false;
                     let mut station_ids_updated = HashSet::new();
                     for agent in &mut self.env.agents {
@@ -105,7 +105,7 @@ impl Tool for TaskTool {
                     }
                     if removed_from_station { self.env.task_manager.update_stations_on_agent_release(station_ids_updated, &mut agent_ids_updated, &mut self.env.stations, &mut self.env.agents); }
                 }
-                if ui.button(format!("Agent {} ->  station", i)).clicked() {
+                if ui.button(format!("Agent {i} ->  station")).clicked() {
                     for agent in &mut self.env.agents {
                         if agent.id != AgentId::new(i as u32) { continue; }
                         if let Some(task) = &agent.current_task {
@@ -117,7 +117,7 @@ impl Tool for TaskTool {
                         }
                     }
                 }
-                if ui.button(format!("Agent {} ->  spawn", i)).clicked() {
+                if ui.button(format!("Agent {i} ->  spawn")).clicked() {
                     let mut station_ids_updated = HashSet::new();
                     let mut removed_from_station = false;
                     for agent in &mut self.env.agents {

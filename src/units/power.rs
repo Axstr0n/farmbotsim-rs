@@ -21,7 +21,7 @@ impl FromStr for PowerUnit {
         match s.to_ascii_lowercase().as_str() {
             "w" | "watt" | "watts" => Ok(PowerUnit::Watts),
             "kw" | "kilowatt" | "kilowatts" => Ok(PowerUnit::Kilowatts),
-            _ => Err(format!("Unknown PowerUnit: {}", s)),
+            _ => Err(format!("Unknown PowerUnit: {s}")),
         }
     }
 }

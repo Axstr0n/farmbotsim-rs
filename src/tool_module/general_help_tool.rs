@@ -82,7 +82,7 @@ impl GeneralHelpTool {
         });
 
         for (i, child) in section.children.iter().enumerate() {
-            let child_path = format!("{}.{}", path, i);
+            let child_path = format!("{path}.{i}");
             Self::render_toc(ui, child, &child_path, indent_level + 1);
         }
     }
@@ -111,7 +111,7 @@ impl GeneralHelpTool {
             let section_path = if parent_path.is_empty() {
                 i.to_string()
             } else {
-                format!("{}.{}", parent_path, i)
+                format!("{parent_path}.{i}")
             };
             
             // Only initialize if not already present (preserves user's collapse state)
@@ -249,7 +249,7 @@ impl GeneralHelpTool {
 
                     // Render child sections
                     for (i, child) in section.children.iter().enumerate() {
-                        let child_path = format!("{}.{}", path, i);
+                        let child_path = format!("{path}.{i}");
                         self.render_section(ui, child, &child_path, indent_level + 1);
                         ui.add_space(10.0);
                     }

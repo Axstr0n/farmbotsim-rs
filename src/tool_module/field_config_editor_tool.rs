@@ -101,7 +101,7 @@ impl Tool for FieldConfigEditorTool {
                                 },
                             );
                             job.append(
-                                format!(" Line {}", i).as_str(),
+                                format!(" Line {i}").as_str(),
                                 0.0,
                                 egui::TextFormat::default(),
                             );
@@ -152,7 +152,7 @@ impl Tool for FieldConfigEditorTool {
                                 },
                             );
                             job.append(
-                                format!(" Point {}", i).as_str(),
+                                format!(" Point {i}").as_str(),
                                 0.0,
                                 egui::TextFormat::default(),
                             );
@@ -238,7 +238,7 @@ impl FieldConfigEditorTool {
             let rect = egui::Rect::from_center_size(screen_pos, egui::Vec2::splat(drag_point_size));
             let response = ui.interact(
                 rect,
-                ui.make_persistent_id(format!("field_drag_{}", i)),
+                ui.make_persistent_id(format!("field_drag_{i}")),
                 egui::Sense::click_and_drag(),
             );
         

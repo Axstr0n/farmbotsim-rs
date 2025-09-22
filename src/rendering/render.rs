@@ -493,7 +493,7 @@ pub fn ui_render_agents_path(ui: &mut Ui, agents: &Vec<Agent>) {
             } else {
                 path_str = "None".to_string();
             }
-            ui.label(format!("Path: {}", path_str));
+            ui.label(format!("Path: {path_str}"));
             ui.end_row();
         }
     });
@@ -583,7 +583,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                                 let task_type = "Stationary";
                                 let path = vec![pose.position.fmt(2)];
                                 let vel = "-".to_string();
-                                let dur = format!("{}", duration);
+                                let dur = format!("{duration}");
                                 let fid = field_id;
                                 let lid = line_id;
                                 
@@ -594,7 +594,7 @@ pub fn ui_render_task_manager(ui: &mut Ui, task_manager: &TaskManager) {
                                 let path: Vec<String> = path.iter()
                                     .map(|pose| pose.position.fmt(2))
                                     .collect();
-                                let vel = format!("{}", velocity);
+                                let vel = format!("{velocity}");
                                 let dur = "-".to_string();
                                 let fid = field_id;
                                 let lid = farm_entity_id;

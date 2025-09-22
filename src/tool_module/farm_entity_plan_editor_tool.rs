@@ -97,29 +97,29 @@ impl Tool for FarmEntityPlanEditorTool {
             ui.horizontal(|ui| {
                 match action {
                     FarmEntityAction::Point{ action_name, duration, power } => {
-                        ui.label(format!("        [{}]", i));
+                        ui.label(format!("        [{i}]"));
                         ui.label("{ \"Point\": {");
                         ui.label("\"action_name\":");
                         ui.add(egui::TextEdit::singleline(action_name).desired_width(100.0));
-                        value_with_unit_selector_ui(ui, &format!("duration{}",i),"duration", &mut duration.value, &mut duration.unit, Some(0.0), None);
-                        value_with_unit_selector_ui(ui, &format!("power{}",i),"power", &mut power.value, &mut power.unit, Some(0.0), None);
+                        value_with_unit_selector_ui(ui, &format!("duration{i}"),"duration", &mut duration.value, &mut duration.unit, Some(0.0), None);
+                        value_with_unit_selector_ui(ui, &format!("power{i}"),"power", &mut power.value, &mut power.unit, Some(0.0), None);
                         ui.label("} }");
                     },
                     FarmEntityAction::Line { action_name, velocity, power } => {
-                        ui.label(format!("        [{}]", i));
+                        ui.label(format!("        [{i}]"));
                         ui.label("{ \"Line\": {");
                         ui.label("\"action_name\":");
                         ui.add(egui::TextEdit::singleline(action_name).desired_width(100.0));
-                        value_with_unit_selector_ui(ui, &format!("velocity{}",i),"velocity", &mut velocity.value, &mut velocity.unit, Some(0.0), None);
-                        value_with_unit_selector_ui(ui, &format!("power{}",i),"power", &mut power.value, &mut power.unit, Some(0.0), None);
+                        value_with_unit_selector_ui(ui, &format!("velocity{i}"),"velocity", &mut velocity.value, &mut velocity.unit, Some(0.0), None);
+                        value_with_unit_selector_ui(ui, &format!("power{i}"),"power", &mut power.value, &mut power.unit, Some(0.0), None);
                         ui.label("} }");
                     },
                     FarmEntityAction::Wait { action_name, duration } => {
-                        ui.label(format!("        [{}]", i));
+                        ui.label(format!("        [{i}]"));
                         ui.label("{ \"Wait\": {");
                         ui.label("\"action_name\":");
                         ui.add(egui::TextEdit::singleline(action_name).desired_width(100.0));
-                        value_with_unit_selector_ui(ui, &format!("duration{}",i),"duration", &mut duration.value, &mut duration.unit, Some(0.0), None);
+                        value_with_unit_selector_ui(ui, &format!("duration{i}"),"duration", &mut duration.value, &mut duration.unit, Some(0.0), None);
                         ui.label("} }");
                     },
                 }

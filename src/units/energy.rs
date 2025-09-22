@@ -27,7 +27,7 @@ impl FromStr for EnergyUnit {
             "kj" | "kilojoule" | "kilojoules" => Ok(EnergyUnit::Kilojoules),
             "wh" | "watthour" | "watthours" => Ok(EnergyUnit::WattHours),
             "kwh" | "kilowatthour" | "kilowatthours" => Ok(EnergyUnit::KilowattHours),
-            _ => Err(format!("Unknown EnergyUnit: {}", s)),
+            _ => Err(format!("Unknown EnergyUnit: {s}")),
         }
     }
 }
@@ -94,7 +94,7 @@ impl FromStr for Energy {
             match unit.trim().to_ascii_lowercase().as_str() {
                 "wh" => Ok(Energy { value, unit: EnergyUnit::WattHours }),
                 "kwh" => Ok(Energy { value, unit: EnergyUnit::KilowattHours }),
-                _ => Err(format!("Unknown energy unit: {}", unit)),
+                _ => Err(format!("Unknown energy unit: {unit}")),
             }
         } else {
             Err("Invalid format for Energy".to_string())

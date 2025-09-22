@@ -21,7 +21,7 @@ impl DateTimeManager {
         let combined = format!("{} {}", config.date, config.time);
         
         let dt = NaiveDateTime::parse_from_str(&combined, DATETIME_FORMAT).unwrap_or_else(|e| {
-            let msg = format!("Failed to parse datetime '{}' with format '{}': {}", combined, DATETIME_FORMAT, e);
+            let msg = format!("Failed to parse datetime '{combined}' with format '{DATETIME_FORMAT}': {e}");
             log_error_and_panic(&msg)
         });
 
@@ -47,7 +47,7 @@ impl DateTimeManager {
     pub fn reset(&mut self) {
         let combined = format!("{} {}", self.config.date, self.config.time);
         self.current_time = NaiveDateTime::parse_from_str(&combined, DATETIME_FORMAT).unwrap_or_else(|e| {
-            let msg = format!("Failed to parse datetime '{}' with format '{}': {}", combined, DATETIME_FORMAT, e);
+            let msg = format!("Failed to parse datetime '{combined}' with format '{DATETIME_FORMAT}': {e}");
             log_error_and_panic(&msg)
         });
     }
@@ -66,7 +66,7 @@ impl DateTimeConfig {
     /// Panics if parsing fails.
     pub fn from_string(datetime_str: String) -> Self {
         let dt = NaiveDateTime::parse_from_str(&datetime_str, DATETIME_FORMAT).unwrap_or_else(|e| {
-            let msg = format!("Failed to parse datetime '{}' with format '{}': {}", datetime_str, DATETIME_FORMAT, e);
+            let msg = format!("Failed to parse datetime '{datetime_str}' with format '{DATETIME_FORMAT}': {e}");
             log_error_and_panic(&msg)
         });
         let date = dt.format(DATE_FORMAT).to_string();

@@ -27,7 +27,7 @@ impl FromStr for DurationUnit {
             "min" | "minute" | "minutes" => Ok(DurationUnit::Minutes),
             "h" | "hr" | "hour" | "hours" => Ok(DurationUnit::Hours),
             "d" | "day" | "days" => Ok(DurationUnit::Days),
-            _ => Err(format!("Unknown DurationUnit: {}", s)),
+            _ => Err(format!("Unknown DurationUnit: {s}")),
         }
     }
 }
@@ -91,7 +91,7 @@ pub fn format_duration(dur: &Duration) -> String {
     } else if secs >= 60.0 {
         format!("{} min", secs / 60.0)
     } else {
-        format!("{} s", secs)
+        format!("{secs} s")
     }
 }
 

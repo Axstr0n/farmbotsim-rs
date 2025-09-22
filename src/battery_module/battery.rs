@@ -47,7 +47,7 @@ impl IsBattery for Battery {
                 self.update();
             }
             Err(e) => {
-                eprintln!("⚠️ Failed to charge: {}", e);
+                eprintln!("⚠️ Failed to charge: {e}");
             }
         }
     }
@@ -88,7 +88,7 @@ impl Battery {
     fn get_month_data_points<P: AsRef<Path>>(file_path: P) -> Vec<(u32, f32)> {
         let path_ref = file_path.as_ref();
         let file = File::open(path_ref).unwrap_or_else(|e| {
-            let msg = format!("Failed to open file {:?}: {}", path_ref, e);
+            let msg = format!("Failed to open file {path_ref:?}: {e}");
             log_error_and_panic(&msg)
         });
         let reader = BufReader::new(file);

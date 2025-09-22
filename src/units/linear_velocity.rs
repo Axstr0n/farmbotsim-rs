@@ -21,7 +21,7 @@ impl FromStr for LinearVelocityUnit {
         match s.to_ascii_lowercase().as_str() {
             "m/s" | "ms" | "mps" | "meters_per_second" => Ok(LinearVelocityUnit::MetersPerSecond),
             "km/h" | "kmh" | "kph" | "kilometers_per_hour" => Ok(LinearVelocityUnit::KilometersPerHour),
-            _ => Err(format!("Unknown LinearVelocityUnit: {}", s)),
+            _ => Err(format!("Unknown LinearVelocityUnit: {s}")),
         }
     }
 }

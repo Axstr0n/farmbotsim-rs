@@ -148,7 +148,7 @@ impl Tool for BatteryTool {
                                 data.push((time, energy));
                             }
                             Err(e) => {
-                                eprintln!("⚠️ Failed to get morph x/y for i = {}: {}", i, e);
+                                eprintln!("⚠️ Failed to get morph x/y for i = {i}: {e}");
                             }
                         }
                         i += 5.0;

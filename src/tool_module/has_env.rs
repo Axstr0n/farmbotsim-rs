@@ -101,7 +101,7 @@ pub trait HasEnv {
         });
 
         if changed {
-            let combined = format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+            let combined = format!("{hours:02}:{minutes:02}:{seconds:02}");
             self.get_mut_env_config().datetime_config.time = combined;
             self.rebuild_env();
         }

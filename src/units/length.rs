@@ -24,7 +24,7 @@ impl FromStr for LengthUnit {
             "mm" | "millimeter" | "millimeters" => Ok(LengthUnit::Millimeters),
             "cm" | "centimeter" | "centimeters" => Ok(LengthUnit::Centimeters),
             "m" | "meter" | "meters" => Ok(LengthUnit::Meters),
-            _ => Err(format!("Unknown LengthUnit: {}", s)),
+            _ => Err(format!("Unknown LengthUnit: {s}")),
         }
     }
 }

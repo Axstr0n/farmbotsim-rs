@@ -21,7 +21,7 @@ impl FromStr for VoltageUnit {
         match s.to_ascii_lowercase().as_str() {
             "v" | "volt" | "volts" => Ok(VoltageUnit::Volts),
             "mv" | "millivolt" | "millivolts" => Ok(VoltageUnit::Millivolts),
-            _ => Err(format!("Unknown VoltageUnit: {}", s)),
+            _ => Err(format!("Unknown VoltageUnit: {s}")),
         }
     }
 }
@@ -68,7 +68,7 @@ impl FromStr for Voltage {
             let value: f32 = num.trim().parse().map_err(|_| "Invalid number")?;
             match unit.trim().to_ascii_lowercase().as_str() {
                 "v" => Ok(Voltage::volts(value)),
-                _ => Err(format!("Unknown voltage unit: {}", unit)),
+                _ => Err(format!("Unknown voltage unit: {unit}")),
             }
         } else {
             Err("Invalid format for Voltage".to_string())

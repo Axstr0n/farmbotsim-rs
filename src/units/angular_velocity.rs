@@ -21,7 +21,7 @@ impl FromStr for AngularVelocityUnit {
         match s.to_ascii_lowercase().as_str() {
             "rad/s" | "rads" | "radians_per_second" => Ok(AngularVelocityUnit::RadiansPerSecond),
             "deg/s" | "degs" | "degrees_per_second" => Ok(AngularVelocityUnit::DegreesPerSecond),
-            _ => Err(format!("Unknown AngularVelocityUnit: {}", s)),
+            _ => Err(format!("Unknown AngularVelocityUnit: {s}")),
         }
     }
 }

@@ -166,7 +166,7 @@ impl Tool for PerformanceMatrixTool {
                 ui.label("s");
             });
             if changed {
-                let combined = format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+                let combined = format!("{hours:02}:{minutes:02}:{seconds:02}");
                 self.datetime_config.time = combined;
                 for env_config in self.env_configs.iter_mut() {
                     env_config.datetime_config = self.datetime_config.clone();
@@ -192,7 +192,7 @@ impl Tool for PerformanceMatrixTool {
         });
         let mut to_remove: Option<usize> = None;
         for (i, config) in self.env_configs.iter_mut().enumerate() {
-            egui::CollapsingHeader::new(format!("Config {}", i))
+            egui::CollapsingHeader::new(format!("Config {i}"))
             .default_open(true)
             .show(ui, |ui| {
                 // n_agents
@@ -473,16 +473,16 @@ impl PerformanceMatrixTool {
                     }).collect(),
                 };
                 let json = serde_json::to_string_pretty(&summary).unwrap_or_else(|e| {
-                    let msg = format!("Failed to serialize summary {:?}: {}", summary, e);
+                    let msg = format!("Failed to serialize summary {summary:?}: {e}");
                     log_error_and_panic(&msg);
                 });
                 let path = format!("{}{}.json", PERFORMANCE_MATRIX_PATH, self.save_file_name);
                 let mut file = std::fs::File::create(path.clone()).unwrap_or_else(|e| {
-                    let msg = format!("Failed to open file {:?}: {}", path, e);
+                    let msg = format!("Failed to open file {path:?}: {e}");
                     log_error_and_panic(&msg);
                 });
                 file.write_all(json.as_bytes()).unwrap_or_else(|e| {
-                    let msg = format!("Failed to write {:?}: {}", json, e);
+                    let msg = format!("Failed to write {json:?}: {e}");
                     log_error_and_panic(&msg);
                 });
                 
@@ -541,14 +541,14 @@ pub fn show_json_value(ui: &mut egui::Ui, value: &serde_json::Value, label: &str
                 .default_open(false)
                 .show(ui, |ui| {
                     for (i, item) in arr.iter().enumerate() {
-                        show_json_value(ui, item, &format!("[{}]", i));
+                        show_json_value(ui, item, &format!("[{i}]"));
                     }
                 });
         }
         _ => {
             ui.horizontal(|ui| {
-                ui.label(format!("{}:", label));
-                ui.label(format!("{}", value));
+                ui.label(format!("{label}:"));
+                ui.label(format!("{value}"));
             });
         }
     }

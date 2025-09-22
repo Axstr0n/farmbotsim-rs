@@ -25,7 +25,7 @@ impl Logger {
             .open(&self.file_path)?;
 
         let timestamp = Local::now().format("%d.%m.%Y %H:%M:%S");
-        writeln!(file, "[{:?}] {} - {}", level, timestamp, message)?;
+        writeln!(file, "[{level:?}] {timestamp} - {message}")?;
 
         Ok(())
     }
@@ -47,7 +47,7 @@ pub static LOGGER: Lazy<Mutex<Logger>> = Lazy::new(|| {
 /// Logs an error message and panics with the same message.
 pub fn log_error_and_panic(msg: &str) -> ! {
     let logger = LOGGER.lock().unwrap_or_else(|e| {
-        panic!("Failed to acquired LOGGER mutex: {}", e);
+        panic!("Failed to acquired LOGGER mutex: {e}");
     });
     let _ = logger.log(LogLevel::Error, msg);
     panic!("{}", msg);

@@ -171,7 +171,7 @@ impl Station {
     ///
     /// Returns `true` if the agent was removed.
     fn remove_agent_from_slots(&mut self, agent_id: AgentId) -> bool {
-        if self.slots.iter().any(|slot| *slot == Some(agent_id)) {
+        if self.slots.contains(&Some(agent_id)) {
             self.slots.iter_mut().for_each(|slot| {
                 if *slot == Some(agent_id) {
                     *slot = None;

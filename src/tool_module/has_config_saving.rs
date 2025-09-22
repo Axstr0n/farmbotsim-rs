@@ -36,7 +36,7 @@ pub trait HasConfigSaving{
 
             if ui.button("Save config").clicked() && !save_file_name.is_empty() {
                 let base_path = Self::base_path();
-                let save_file_path = format!("{}{}.json", base_path, save_file_name);
+                let save_file_path = format!("{base_path}{save_file_name}.json");
                 
                 let save_result = {
                     let config = self.config();
@@ -49,7 +49,7 @@ pub trait HasConfigSaving{
                         self.update_current_path(save_file_path);
                         self.update_after_save();
                     }
-                    Err(e) => eprintln!("Error saving config: {}", e),
+                    Err(e) => eprintln!("Error saving config: {e}"),
                 }
             }
         });
