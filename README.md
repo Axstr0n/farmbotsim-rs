@@ -102,6 +102,7 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `cfg.rs` - Contains constants.
 - `logger.rs` - Logger for application.
 - `main.rs` - Contains entry point into application.
+- `statistics.rs` - Contains stats needed in simulation.
 
 `.gitignore` - Ignores files/folders.
 

@@ -18,7 +18,7 @@ pub enum Intent {
 }
 
 /// Represents different types of tasks an agent can perform, including stationary/moving work, travel, and waiting.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Task {
     /// A work stationary task at a specific pose, with duration and associated metadata.
     Stationary {

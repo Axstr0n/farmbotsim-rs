@@ -1,10 +1,8 @@
 use std::io::Write;
-
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use egui::DragValue;
-use serde::{Deserialize, Serialize};
 
-use crate::{cfg::{AGENT_CONFIGS_PATH, DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, PERFORMANCE_MATRIX_PATH, SCENE_CONFIGS_PATH, TASK_MANAGER_CONFIGS_PATH}, environment::{datetime::{DateTimeConfig, DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig}, field_config::FieldConfig, scene_config::SceneConfig}, logger::log_error_and_panic, tool_module::{has_help::HasHelp, tool::Tool}, units::duration::{average_duration, format_duration, Duration}, utilities::utils::{json_config_combo, load_json_or_panic}};
+use crate::{cfg::{AGENT_CONFIGS_PATH, DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH, PERFORMANCE_MATRIX_PATH, SCENE_CONFIGS_PATH, TASK_MANAGER_CONFIGS_PATH}, environment::{datetime::{DateTimeConfig, DATE_FORMAT, TIME_FORMAT}, env_module::{env::Env, env_config::EnvConfig}, field_config::FieldConfig, scene_config::SceneConfig}, logger::log_error_and_panic, statistics::{EnvEpisodeStats, EnvResult, PerformanceMatrixResult}, tool_module::{has_help::HasHelp, tool::Tool}, units::duration::Duration, utilities::utils::{json_config_combo, load_json_or_panic}};
 
 /// Defines conditions under which the simulation terminates.
 #[derive(Debug, Clone, PartialEq)]
@@ -18,26 +16,6 @@ pub enum TerminationCondition {
     EnvDuration(Duration),
 }
 
-/// Summary of a simulation performance evaluation.
-#[derive(Debug, Serialize, Deserialize)]
-struct SimulationSummary {
-    start_datetime: chrono::DateTime<chrono::Local>,
-    evaluation_duration: std::time::Duration,
-    n_episodes: usize,
-    scene_config_path: String,
-    results: Vec<EpisodeResult>,
-}
-
-/// Results for a single simulation episode.
-#[derive(Debug, Serialize, Deserialize)]
-struct EpisodeResult {
-    env_config: EnvConfig,
-    #[serde(rename = "n_completed_tasks(min,avg,max)")]
-    n_completed_tasks: String,
-    #[serde(rename = "env_duration_(min,avg,max)")]
-    env_duration: String,
-}
-
 /// A tool for running and analyzing multiple environment configurations.
 pub struct PerformanceMatrixTool {
     current_pm_path: Option<String>,
@@ -48,8 +26,7 @@ pub struct PerformanceMatrixTool {
     pub agent_config_path: String,
     pub datetime_config: DateTimeConfig,
     pub env_configs: Vec<EnvConfig>,
-    pub env_durations: Vec<Vec<Duration>>,
-    pub env_n_completed_tasks: Vec<Vec<u32>>,
+    pub env_episode_stats: Vec<Vec<EnvEpisodeStats>>,
     pub termination_condition: TerminationCondition,
     pub env: Option<Env>,
     env_index: usize,
@@ -74,8 +51,7 @@ impl Default for PerformanceMatrixTool {
             agent_config_path: DEFAULT_AGENT_CONFIG_PATH.to_string(),
             datetime_config: DateTimeConfig::from_string("01.01.2025 00:00:00".to_string()),
             env_configs: vec![],
-            env_durations: vec![],
-            env_n_completed_tasks: vec![],
+            env_episode_stats: vec![],
             termination_condition,
             env: None,
             env_index: 0,
@@ -107,7 +83,7 @@ impl Tool for PerformanceMatrixTool {
         self.render_help_button(ui);
         ui.separator();
 
-        self.ui_summary_select(ui);
+        self.ui_result_select(ui);
         ui.separator();
 
         // n_episodes
@@ -181,13 +157,15 @@ impl Tool for PerformanceMatrixTool {
                     scene_config_path: self.scene_config_path.clone(),
                     ..Default::default()
                 });
-                self.env_durations.push(vec![]);
-                self.env_n_completed_tasks.push(vec![]);
+                // self.env_durations.push(vec![]);
+                // self.env_n_completed_tasks.push(vec![]);
+                self.env_episode_stats.push(vec![]);
             }
             if ui.button("Remove all").clicked() {
                 self.env_configs.clear();
-                self.env_durations.clear();
-                self.env_n_completed_tasks.clear();
+                // self.env_durations.clear();
+                // self.env_n_completed_tasks.clear();
+                self.env_episode_stats.clear();
             }
         });
         let mut to_remove: Option<usize> = None;
@@ -220,8 +198,9 @@ impl Tool for PerformanceMatrixTool {
         }
         if let Some(index) = to_remove {
             self.env_configs.remove(index);
-            self.env_durations.remove(index);
-            self.env_n_completed_tasks.remove(index);
+            // self.env_durations.remove(index);
+            // self.env_n_completed_tasks.remove(index);
+            self.env_episode_stats.remove(index);
         }
 
         ui.separator();
@@ -292,10 +271,13 @@ impl Tool for PerformanceMatrixTool {
         }
         if ui.button("Reset").clicked() {
             self.running = false;
-            for data in self.env_durations.iter_mut() {
-                data.clear();
-            }
-            for data in self.env_n_completed_tasks.iter_mut() {
+            // for data in self.env_durations.iter_mut() {
+            //     data.clear();
+            // }
+            // for data in self.env_n_completed_tasks.iter_mut() {
+            //     data.clear();
+            // }
+            for data in self.env_episode_stats.iter_mut() {
                 data.clear();
             }
             self.env_index = 0;
@@ -325,46 +307,36 @@ impl Tool for PerformanceMatrixTool {
             env.task_manager.assign_tasks(&mut env.agents, &mut env.stations);
             env.step();
 
-            let (finished, n_completed_tasks, env_duration) = match self.termination_condition {
+            // Check termination condition
+            let finished = match self.termination_condition {
                 TerminationCondition::AllTasksCompleted => {
                     let scene_config: SceneConfig = load_json_or_panic(self.scene_config_path.clone());
                     let field_config: FieldConfig = load_json_or_panic(scene_config.field_config_path);
                     if let Some(n_actions) = field_config.number_of_actions() {
-                        if env.task_manager.completed_tasks.len() as u32 == n_actions {
-                            (true, env.task_manager.completed_tasks.len(), env.duration)
-                        } else {
-                            (false, 0, Duration::ZERO)
-                        }
+                        env.task_manager.completed_tasks.len() as u32 >= n_actions
                     } else {
-                        (false, 0, Duration::ZERO)
+                        false
                     }
                 },
-                TerminationCondition::EnvDuration(duration) => {
-                    if env.duration >= duration {
-                        (true, env.task_manager.completed_tasks.len(), env.duration)
-                    } else {
-                        (false, 0, Duration::ZERO)
-                    }
-                },
+                TerminationCondition::EnvDuration(duration) => env.duration >= duration,
                 TerminationCondition::NumberCompletedTasks(n_tasks) => {
-                    if env.task_manager.completed_tasks.len() as u32 == n_tasks {
-                        (true, env.task_manager.completed_tasks.len(), env.duration)
-                    } else {
-                        (false, 0, Duration::ZERO)
-                    }
-                }
+                    env.task_manager.completed_tasks.len() as u32 >= n_tasks
+                },
             };
+
+            // If episode finished, compute stats and increment results
             if finished {
-                self.increment_update_data(n_completed_tasks as u32, env_duration);
+                let episode_stats = env.get_env_episode_stats();
+                self.increment_env_episode(episode_stats);
             }
         }
     }
 }
 
 impl PerformanceMatrixTool {
-    /// Renders dropdown to select summary file.
-    fn ui_summary_select(&mut self, ui: &mut egui::Ui) {
-        ui.label(egui::RichText::new("Summary:").size(16.0));
+    /// Renders dropdown to select result file.
+    fn ui_result_select(&mut self, ui: &mut egui::Ui) {
+        ui.label(egui::RichText::new("Result:").size(16.0));
 
         let mut selected_path = self.current_pm_path.clone().unwrap_or("Select file...".to_string());
 
@@ -416,72 +388,71 @@ impl PerformanceMatrixTool {
         field_config.has_cycle_farm_entity_plan()
     }
 
-    /// Increment episode/env config, stores data and writes to file.
-    fn increment_update_data(&mut self, n_completed_tasks: u32, duration: Duration) {
-        // write data
-        self.env_durations[self.env_index].push(duration);
-        self.env_n_completed_tasks[self.env_index].push(n_completed_tasks);
-        // change env
+    /// Increment episode/env counters and store episode-level data
+    fn increment_env_episode(&mut self, episode_stats: EnvEpisodeStats) {
+        // Store episode data
+        self.env_episode_stats[self.env_index].push(episode_stats);
+
+        // Advance episode counter
         self.env_episode += 1;
-        if self.env_episode < self.n_episodes { // same env next episode
+
+        if self.env_episode < self.n_episodes {
+            // Same environment, next episode
             self.env = Some(Env::from_config(self.env_configs[self.env_index].clone()));
         } else {
+            // Completed all episodes for current environment
             self.env_episode = 0;
             self.env_index += 1;
-            if self.env_index < self.env_configs.len() { // new env first episode
+
+            if self.env_index < self.env_configs.len() {
+                // New environment, first episode
                 self.env = Some(Env::from_config(self.env_configs[self.env_index].clone()));
             } else {
-                // no more env configs
-                let evaluation_duration = self.start_time
-                    .map(|start| start.elapsed())
-                    .unwrap_or_default();
-                let start_datetime: chrono::DateTime<chrono::Local> = self.start_datetime.unwrap_or_else(chrono::Local::now);
-                let summary = SimulationSummary {
-                    start_datetime,
-                    evaluation_duration,
-                    n_episodes: self.n_episodes as usize,
-                    scene_config_path: self.scene_config_path.clone(),
-                    results: self.env_configs.iter().enumerate().map(|(i, config)| {
-                        let durations = &self.env_durations[i];
-                        let tasks = &self.env_n_completed_tasks[i];
-
-                        let n_completed_tasks = format!("({:?}, {:?}, {:?})",
-                            tasks.iter().min().unwrap_or(&0),
-                            tasks.iter().sum::<u32>() / tasks.len() as u32,
-                            tasks.iter().max().unwrap_or(&0),
-                        );
-                        let env_duration = format!("({}, {}, {})",
-                            format_duration(durations.iter().min().unwrap_or(&Duration::ZERO)),
-                            format_duration(&average_duration(durations)),
-                            format_duration(durations.iter().max().unwrap_or(&Duration::ZERO))
-                        );
-                        EpisodeResult {
-                            env_config: config.clone(),
-                            n_completed_tasks,
-                            env_duration,
-                        }
-                    }).collect(),
-                };
-                let json = serde_json::to_string_pretty(&summary).unwrap_or_else(|e| {
-                    let msg = format!("Failed to serialize summary {summary:?}: {e}");
-                    log_error_and_panic(&msg);
-                });
-                let path = format!("{}{}.json", PERFORMANCE_MATRIX_PATH, self.save_file_name);
-                let mut file = std::fs::File::create(path.clone()).unwrap_or_else(|e| {
-                    let msg = format!("Failed to open file {path:?}: {e}");
-                    log_error_and_panic(&msg);
-                });
-                file.write_all(json.as_bytes()).unwrap_or_else(|e| {
-                    let msg = format!("Failed to write {json:?}: {e}");
-                    log_error_and_panic(&msg);
-                });
-                
-                self.current_content = Some(json);
-                self.current_pm_path = Some(path);
-
-                self.running = false;
+                // All environments completed → finalize
+                self.finalize_result();
             }
         }
+    }
+
+    /// Aggregate all environment results and write PerformanceMatrixResult to JSON
+    fn finalize_result(&mut self) {
+        let evaluation_duration = self.start_time.map(|s| s.elapsed()).unwrap_or_default();
+        let start_datetime: chrono::DateTime<chrono::Local> =
+            self.start_datetime.unwrap_or_else(chrono::Local::now);
+
+        let env_results: Vec<EnvResult> = self.env_configs.iter().enumerate().map(|(i, config)| {
+            let episodes = &self.env_episode_stats[i];
+            EnvResult::from_episodes(config.clone(), episodes.to_vec())
+        }).collect();
+
+        let result = PerformanceMatrixResult {
+            start_datetime,
+            evaluation_duration,
+            n_episodes: self.n_episodes as usize,
+            scene_config_path: self.scene_config_path.clone(),
+            env_results,
+        };
+
+        // Serialize to JSON
+        let json = serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
+            let msg = format!("Failed to serialize result: {e}");
+            log_error_and_panic(&msg);
+        });
+
+        let path = format!("{}{}.json", PERFORMANCE_MATRIX_PATH, self.save_file_name);
+        let mut file = std::fs::File::create(&path).unwrap_or_else(|e| {
+            let msg = format!("Failed to create file {path:?}: {e}");
+            log_error_and_panic(&msg);
+        });
+
+        file.write_all(json.as_bytes()).unwrap_or_else(|e| {
+            let msg = format!("Failed to write result JSON: {e}");
+            log_error_and_panic(&msg);
+        });
+
+        self.current_content = Some(json);
+        self.current_pm_path = Some(path);
+        self.running = false;
     }
 }
 
@@ -494,8 +465,8 @@ impl HasHelp for PerformanceMatrixTool {
         ui.label("This is a Performance Matrix Tool where you set and run selected env configs and get evaluations.");
         ui.separator();
 
-        ui.label("Summary:");
-        ui.label("In dropdown you can select summary.");
+        ui.label("Result:");
+        ui.label("In dropdown you can select result.");
         ui.separator();
 
         ui.label("Env settings:");

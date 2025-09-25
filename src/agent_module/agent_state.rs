@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Represents states an agent can be in during simulation.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AgentState {
     Wait,
     Travel,

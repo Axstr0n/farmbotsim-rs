@@ -26,6 +26,7 @@ pub mod utilities;
 pub mod units;
 pub mod cfg;
 pub mod logger;
+pub mod statistics;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {

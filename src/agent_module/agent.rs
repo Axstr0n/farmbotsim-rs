@@ -1,17 +1,16 @@
 use egui::{Color32, Pos2, Vec2};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     agent_module::{
         agent_config::AgentConfig, agent_state::AgentState, work_schedule::WorkSchedule
-    },
-    battery_module::{battery::Battery, battery_config::BatteryConfig}, 
-    cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE}, environment::datetime::DateTimeManager, movement_module::{is_movement::IsMovement, movement::{Movement, MovementInputs}, pose::Pose}, task_module::task::Task, units::{
+    }, battery_module::{battery::Battery, battery_config::BatteryConfig}, cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE}, environment::datetime::DateTimeManager, movement_module::{is_movement::IsMovement, movement::{Movement, MovementInputs}, pose::Pose}, statistics::AgentTimestep, task_module::task::Task, units::{
         angle::Angle, angular_velocity::AngularVelocity, duration::Duration, linear_velocity::LinearVelocity
     }, utilities::pos2::ExtendedPos2
 };
 
 /// Represents agent ID
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AgentId(u32);
 impl AgentId {
     pub fn new(id: u32) -> Self {
@@ -41,6 +40,8 @@ pub struct Agent {
 
     pub state: AgentState,
     pub battery: Battery,
+
+    pub timesteps: Vec<AgentTimestep>,
 }
 
 impl Agent {
@@ -61,17 +62,35 @@ impl Agent {
 
             state: AgentState::Wait,
             battery: Battery::from_config(BatteryConfig::from_json_file(config.battery), config.battery_soc),
+        
+            timesteps: vec![],
         }
     }
 
     /// Updates the agent's state, task, movement, and battery based on simulation time.
     pub fn update(&mut self, simulation_step: Duration, date_time_manager: &DateTimeManager) {
-        if self.state == AgentState::Discharged { return }
+        if self.state == AgentState::Discharged {
+            self.update_timesteps(simulation_step);
+            return
+        }
         self.update_state(simulation_step,date_time_manager);
 
         self.update_task_and_path(simulation_step);
         let inputs = self.get_inputs();
         self._move(simulation_step, inputs);
+
+        self.update_timesteps(simulation_step);
+    }
+
+    /// Updates timestep vec with current state
+    fn update_timesteps(&mut self, duration: Duration) {
+        self.timesteps.push(AgentTimestep {
+            duration,
+            state: self.state.clone(),
+            pose: self.pose.clone(),
+            battery_energy: self.battery.energy,
+            task: self.current_task.clone(),
+        });
     }
 
     /// Handles finite state machine logic and transitions.

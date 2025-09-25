@@ -3,7 +3,7 @@ use egui::{Pos2, Vec2};
 use crate::{units::{angle::Angle, length::Length}, utilities::pos2::ExtendedPos2};
 
 /// Represents a 2D pose consisting of a position and an orientation.
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Pose {
     /// The 2D position (x, y) of the pose.
     pub position: Pos2,

@@ -1,14 +1,10 @@
+use std::collections::HashMap;
 use egui::Vec2;
 
 use crate::{
-    agent_module::agent::Agent,
-    environment::{
+    agent_module::agent::{Agent, AgentId}, environment::{
         datetime::{DateTimeConfig, DateTimeManager}, env_module::env_config::EnvConfig, field_config::FieldConfig, obstacle::Obstacle, scene_config::SceneConfig, spawn_area_module::spawn_area::SpawnArea, station_module::station::Station
-    },
-    path_finding_module::visibility_graph::VisibilityGraph,
-    task_module::{task_manager::TaskManager, task_manager_config::TaskManagerConfig},
-    units::duration::Duration,
-    utilities::{
+    }, path_finding_module::visibility_graph::VisibilityGraph, statistics::{AgentEpisodeStats, EnvEpisodeStats}, task_module::{task_manager::TaskManager, task_manager_config::TaskManagerConfig}, units::duration::Duration, utilities::{
         pos2::random_pos2_in_rect, utils::{generate_colors, load_json_or_panic}, vec2::random_vec2
     }
 };
@@ -129,6 +125,27 @@ impl Env {
         self.task_manager.update_waiting_list(simulation_step);
         for agent in &mut self.agents {
             agent.update(simulation_step, &self.date_time_manager);
+        }
+    }
+
+    /// Compute EnvEpisodeStats from the current environment state
+    pub fn get_env_episode_stats(&self) -> EnvEpisodeStats {
+        let mut agents: HashMap<AgentId, AgentEpisodeStats> = HashMap::new();
+
+        for agent in &self.agents {
+            // Compute per-agent episode stats from timesteps
+            let stats = AgentEpisodeStats::from_timesteps(&agent.timesteps);
+            agents.insert(agent.id, stats);
+        }
+
+        // Get environment stats
+        let n_completed_tasks = self.task_manager.completed_tasks.len() as u32;
+        let env_duration = self.duration;
+
+        EnvEpisodeStats {
+            n_completed_tasks,
+            env_duration,
+            agents,
         }
     }
 }
