@@ -50,11 +50,16 @@ Follow these steps to get farmbotsim running locally:
     ```
 
 ## Usage
-After installation you can run main file like:
+After installation you can run main app like:
 ```
-cargo run
+cargo run --bin farmbotsim-rs
 ```
 This will run whole application. (Note: running first time takes longer to build)
+You can also run experiment and then analyze to get plots. To change parameters you must edit code in `src/bin/experiment.rs`.
+```
+cargo run --bin experiment
+cargo run --bin analyze
+```
 
 ## Building project
 To build the project in release mode use:
@@ -66,6 +71,8 @@ cargo build --release
 
 The **farmbotsim-rs** project is organized into several directories that help separate functionality. Here's a high-level breakdown:
 
+
+`analyse/` - Contains output of experiment, latex table generation and plots of stats
 
 `configs/`
 - `agent_configs/` - Contains agent configs. (movement + battery)
@@ -86,6 +93,9 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `agent_module/` - Contains the agent struct and its associated logic, state machine.
 - `app_module/` - Main app functionality.
 - `battery_module/` - Containing battery logic.
+- `bin/`
+  - `analyze.rs` - Generates plots from output.json.
+  - `experiment.rs` - Generates output.json from specified combinations.
 - `environment/` - Contains all environment structs (Crop, Field, Station, Env, Config, ...).
   - `env_module/` - Contains logic for env.
   - `farm_entity_module/` - Contains logic for farm entity.

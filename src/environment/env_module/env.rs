@@ -114,6 +114,7 @@ impl Env {
         self.date_time_manager.reset();
         self.task_manager.reset();
         self.step_count = 0;
+        self.duration = Duration::ZERO;
     }
 
     /// Advances the environment by one step.

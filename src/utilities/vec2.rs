@@ -1,12 +1,12 @@
 use egui::Vec2;
-use rand::Rng;
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::f32::consts::PI;
 
-use crate::units::angle::{Angle, AngleUnit};
+use crate::{cfg::RNG_SEED, units::angle::{Angle, AngleUnit}};
 
 /// Get random Vec2 with lenght 1.
 pub fn random_vec2() -> Vec2 {
-    let mut rng = rand::rng(); // Random number generator
+    let mut rng = StdRng::seed_from_u64(RNG_SEED);
 
     // Generate a random angle in radians between 0 and 2π
     let angle = rng.random_range(0.0..2.0 * PI);

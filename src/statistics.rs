@@ -1,13 +1,16 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::{
     agent_module::{agent::AgentId, agent_state::AgentState},
     environment::env_module::env_config::EnvConfig,
     logger::log_error_and_panic,
     movement_module::pose::Pose,
-    task_module::task::Task,
-    units::{duration::Duration, energy::Energy, length::Length}
+    task_module::{
+        strategies::{ChargingStrategy, ChooseStationStrategy},
+        task::Task,
+    },
+    units::{duration::Duration, energy::Energy, length::Length},
 };
 
 // ---------- Single timestep ----------
@@ -32,6 +35,7 @@ pub struct AgentEpisodeStats {
     pub idle_time: Duration,
     pub charging_time: Duration,
     pub queue_time: Duration,
+    pub discharged_time: Duration,
 
     pub energy_charged: Energy,
     pub energy_discharged: Energy,
@@ -47,6 +51,7 @@ impl AgentEpisodeStats {
         let mut idle_time = Duration::ZERO;
         let mut charging_time = Duration::ZERO;
         let mut queue_time = Duration::ZERO;
+        let mut discharged_time = Duration::ZERO;
 
         let mut energy_charged = Energy::ZERO;
         let mut energy_discharged = Energy::ZERO;
@@ -73,7 +78,7 @@ impl AgentEpisodeStats {
                         idle_time = idle_time + step.duration;
                     }
                 }
-                Discharged => {} // do nothing
+                Discharged => discharged_time = discharged_time + step.duration,
             }
 
             // Compute energy delta
@@ -89,7 +94,8 @@ impl AgentEpisodeStats {
 
             // Compute distance travelled
             if let Some(prev) = prev_pose {
-                distance_travelled = distance_travelled + Length::meters(prev.position.distance(step.pose.position));
+                distance_travelled =
+                    distance_travelled + Length::meters(prev.position.distance(step.pose.position));
             }
             prev_pose = Some(step.pose.clone());
         }
@@ -100,6 +106,7 @@ impl AgentEpisodeStats {
             idle_time,
             charging_time,
             queue_time,
+            discharged_time,
             energy_charged,
             energy_discharged,
             distance_travelled,
@@ -170,7 +177,6 @@ where
     StatSummary { min, avg, max }
 }
 
-
 /// Aggregated agent stats across multiple episodes
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AgentResultSummary {
@@ -224,7 +230,8 @@ impl EnvResult {
 
         for episode in &episodes {
             for (agent_id, agent_stats) in &episode.agents {
-                agents_map.entry(*agent_id)
+                agents_map
+                    .entry(*agent_id)
                     .or_default()
                     .push(agent_stats.clone());
             }
@@ -247,6 +254,7 @@ impl EnvResult {
         let mut total_idle_time = Duration::ZERO;
         let mut total_charging_time = Duration::ZERO;
         let mut total_queue_time = Duration::ZERO;
+        let mut total_discharged_time = Duration::ZERO;
         let mut total_energy_charged = Energy::ZERO;
         let mut total_energy_discharged = Energy::ZERO;
         let mut total_distance_travelled = Length::ZERO;
@@ -257,6 +265,7 @@ impl EnvResult {
             total_idle_time = total_idle_time + stats.idle_time;
             total_charging_time = total_charging_time + stats.charging_time;
             total_queue_time = total_queue_time + stats.queue_time;
+            total_discharged_time = total_discharged_time + stats.discharged_time;
             total_energy_charged = total_energy_charged + stats.energy_charged;
             total_energy_discharged = total_energy_discharged + stats.energy_discharged;
             total_distance_travelled = total_distance_travelled + stats.distance_travelled;
@@ -268,6 +277,7 @@ impl EnvResult {
             idle_time: total_idle_time,
             charging_time: total_charging_time,
             queue_time: total_queue_time,
+            discharged_time: total_discharged_time,
             energy_charged: total_energy_charged,
             energy_discharged: total_energy_discharged,
             distance_travelled: total_distance_travelled,
@@ -281,23 +291,167 @@ impl EnvResult {
             agents,
             combined_agents,
         }
-
-        // Self {
-        //     n_episodes,
-        //     env_config,
-        //     n_completed_tasks,
-        //     env_duration,
-        //     agents,
-        // }
     }
 }
 
 /// Result of a performance matrix evaluation.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PerformanceMatrixResult  {
+pub struct PerformanceMatrixResult {
     pub start_datetime: chrono::DateTime<chrono::Local>,
     pub evaluation_duration: std::time::Duration,
     pub n_episodes: usize,
     pub scene_config_path: String,
     pub env_results: Vec<EnvResult>,
+}
+
+//----- For non app analysis -------------
+// Binaries: experiment, analyze
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExperimentOutput {
+    pub parameters: ExperimentParameters,
+    pub combinations: Vec<Combination>,
+    pub results: Vec<AnalyzeEnvResult>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExperimentParameters {
+    pub scene_config_path: String,
+    pub agent_config_path: String,
+    pub n_episodes: usize,
+    pub number_agents: Vec<u32>,
+    pub charging_strategies: Vec<ChargingStrategy>,
+    pub station_strategies: Vec<ChooseStationStrategy>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Combination {
+    pub label: String,
+    pub charging_strategy: ChargingStrategy,
+    pub station_strategy: ChooseStationStrategy,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AnalyzeEnvResult {
+    pub n_episodes: u32,
+    pub n_agents: u32,
+    pub combination: Combination,
+    pub n_completed_tasks: StatSummary<f32>,
+    pub env_duration: StatSummary<Duration>,
+    pub agents: HashMap<AgentId, AgentResultSummary>,
+    pub agent_averaged_stats: AgentEpisodeStats, // all agents combine stats for avg episode per agent
+    pub agent_totaled_stats: AgentEpisodeStats,  // all agents combine stats for avg episode
+}
+impl AnalyzeEnvResult {
+    /// Aggregates statistics across multiple env episodes.
+    pub fn from_episodes(
+        n_agents: u32,
+        combination: Combination,
+        episodes: Vec<EnvEpisodeStats>,
+    ) -> Self {
+        let n_episodes = episodes.len() as u32;
+
+        // Compute min/avg/max for top-level env stats
+        let vec_n_completed_tasks: Vec<f32> = episodes
+            .iter()
+            .map(|e| e.n_completed_tasks as f32)
+            .collect();
+        println!("T: {vec_n_completed_tasks:?}");
+
+        let n_completed_tasks = summarize(episodes.iter().map(|e| e.n_completed_tasks as f32));
+        let env_duration = summarize(episodes.iter().map(|e| e.env_duration));
+        println!("S: {n_completed_tasks:?}");
+        println!();
+        // Aggregate agent stats
+        let mut agents_map: HashMap<AgentId, Vec<AgentEpisodeStats>> = HashMap::new();
+
+        for episode in &episodes {
+            for (agent_id, agent_stats) in &episode.agents {
+                agents_map
+                    .entry(*agent_id)
+                    .or_default()
+                    .push(agent_stats.clone());
+            }
+        }
+
+        let agents: HashMap<AgentId, AgentResultSummary> = agents_map
+            .clone()
+            .into_iter()
+            .map(|(id, stats)| (id, AgentResultSummary::from_episodes(&stats)))
+            .collect();
+
+        // Combine all agent stats across all episodes
+        let mut all_agent_stats: Vec<AgentEpisodeStats> = Vec::new();
+        for stats in agents_map.clone().values() {
+            all_agent_stats.extend_from_slice(stats);
+        }
+        // Compute summed totals
+        let mut total_work_time = Duration::ZERO;
+        let mut total_travel_time = Duration::ZERO;
+        let mut total_idle_time = Duration::ZERO;
+        let mut total_charging_time = Duration::ZERO;
+        let mut total_queue_time = Duration::ZERO;
+        let mut total_discharged_time = Duration::ZERO;
+        let mut total_energy_charged = Energy::ZERO;
+        let mut total_energy_discharged = Energy::ZERO;
+        let mut total_distance_travelled = Length::ZERO;
+
+        for stats in &all_agent_stats {
+            total_work_time = total_work_time + stats.work_time;
+            total_travel_time = total_travel_time + stats.travel_time;
+            total_idle_time = total_idle_time + stats.idle_time;
+            total_charging_time = total_charging_time + stats.charging_time;
+            total_queue_time = total_queue_time + stats.queue_time;
+            total_discharged_time = total_discharged_time + stats.discharged_time;
+            total_energy_charged = total_energy_charged + stats.energy_charged;
+            total_energy_discharged = total_energy_discharged + stats.energy_discharged;
+            total_distance_travelled = total_distance_travelled + stats.distance_travelled;
+        }
+
+        // Avg per episode
+        let avg_work_time = total_work_time / n_episodes as f32;
+        let avg_travel_time = total_travel_time / n_episodes as f32;
+        let avg_idle_time = total_idle_time / n_episodes as f32;
+        let avg_charging_time = total_charging_time / n_episodes as f32;
+        let avg_queue_time = total_queue_time / n_episodes as f32;
+        let avg_discharged_time = total_discharged_time / n_episodes as f32;
+        let avg_energy_charged = total_energy_charged / n_episodes as f32;
+        let avg_energy_discharged = total_energy_discharged / n_episodes as f32;
+        let avg_distance_travelled = total_distance_travelled / n_episodes as f32;
+
+        let agent_totaled_stats = AgentEpisodeStats {
+            work_time: avg_work_time,
+            travel_time: avg_travel_time,
+            idle_time: avg_idle_time,
+            charging_time: avg_charging_time,
+            queue_time: avg_queue_time,
+            discharged_time: avg_discharged_time,
+            energy_charged: avg_energy_charged,
+            energy_discharged: avg_energy_discharged,
+            distance_travelled: avg_distance_travelled,
+        };
+
+        let agent_averaged_stats = AgentEpisodeStats {
+            work_time: avg_work_time / n_agents as f32,
+            travel_time: avg_travel_time / n_agents as f32,
+            idle_time: avg_idle_time / n_agents as f32,
+            charging_time: avg_charging_time / n_agents as f32,
+            queue_time: avg_queue_time / n_agents as f32,
+            discharged_time: avg_discharged_time / n_agents as f32,
+            energy_charged: avg_energy_charged / n_agents as f32,
+            energy_discharged: avg_energy_discharged / n_agents as f32,
+            distance_travelled: avg_distance_travelled / n_agents as f32,
+        };
+
+        Self {
+            n_episodes,
+            n_agents,
+            combination,
+            n_completed_tasks,
+            env_duration,
+            agents,
+            agent_averaged_stats,
+            agent_totaled_stats,
+        }
+    }
 }

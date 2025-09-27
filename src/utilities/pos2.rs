@@ -1,11 +1,11 @@
 use egui::{Pos2, Rect};
-use rand::Rng;
+use rand::{rngs::StdRng, Rng, SeedableRng};
 
-use crate::units::{angle::Angle, length::Length};
+use crate::{cfg::RNG_SEED, units::{angle::Angle, length::Length}};
 
 /// Get random `Pos2` inside rect with angle.
 pub fn random_pos2_in_rect(rect: Rect, angle: Angle) -> Pos2 {
-    let mut rng = rand::rng(); // Random number generator
+    let mut rng = StdRng::seed_from_u64(RNG_SEED);
 
     // Generate random x and y coordinates within the bounds of the rectangle
     let x = rng.random_range(rect.min.x..rect.max.x);

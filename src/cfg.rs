@@ -1,5 +1,7 @@
 use crate::units::{angle::Angle, length::Length, linear_velocity::LinearVelocity, power::Power};
 
+pub const RNG_SEED: u64 = 741;
+
 pub const TOLERANCE_DISTANCE: Length = Length::meters(0.005);
 pub const TOLERANCE_ANGLE: Angle = Angle::degrees(0.05);
 

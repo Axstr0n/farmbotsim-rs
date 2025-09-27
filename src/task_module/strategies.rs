@@ -20,6 +20,11 @@ impl ChooseStationStrategy {
         ]
     }
 }
+impl Default for ChooseStationStrategy {
+    fn default() -> Self {
+        Self::Manhattan(0.0)
+    }
+}
 impl std::fmt::Display for ChooseStationStrategy {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let str = match self {
@@ -45,6 +50,11 @@ pub enum ChargingStrategy {
     /// 
     /// Critical value: f32 (0.0 - 100.0)
     ThresholdWithLimit(f32, f32),
+}
+impl Default for ChargingStrategy {
+    fn default() -> Self {
+        Self::CriticalOnly(60.0)
+    }
 }
 impl ChargingStrategy {
     pub fn variants() -> Vec<ChargingStrategy> {

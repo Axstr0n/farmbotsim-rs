@@ -6,11 +6,3 @@ pub struct TaskManagerConfig {
     pub charging_strategy: ChargingStrategy,
     pub choose_station_strategy: ChooseStationStrategy,
 }
-impl Default for TaskManagerConfig {
-    fn default() -> Self {
-        Self {
-            charging_strategy: ChargingStrategy::CriticalOnly(45.0),
-            choose_station_strategy: ChooseStationStrategy::Manhattan(0.0),
-        }
-    }
-}

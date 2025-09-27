@@ -1,6 +1,4 @@
 /target
-bin/
-src/lib.rs
 log.txt
 
 configs/farm_entity_plans/*
@@ -21,8 +19,6 @@ configs/field_configs/*
 !configs/field_configs/default_only_line.json
 !configs/field_configs/default_only_point.json
 
-configs/scene_configs/*
-!configs/scene_configs/default.json
 
 configs/task_manager_configs/*
 !configs/task_manager_configs/default.json

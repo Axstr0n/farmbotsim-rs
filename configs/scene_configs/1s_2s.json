@@ -1,0 +1,56 @@
+{
+  "field_config_path": "configs/field_configs/1_1small.json",
+  "station_configs": [
+    {
+      "pose": {
+        "position": {
+          "x": 7.8857145,
+          "y": 0.9857142
+        },
+        "orientation": "0.000 deg"
+      },
+      "queue_direction": "90.000 deg",
+      "waiting_offset": "1.000 m",
+      "n_slots": 1,
+      "slots_pose": [
+        {
+          "position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "orientation": "90.000 deg"
+        }
+      ]
+    },
+    {
+      "pose": {
+        "position": {
+          "x": 0.79999995,
+          "y": 0.95714283
+        },
+        "orientation": "0.000 deg"
+      },
+      "queue_direction": "90.000 deg",
+      "waiting_offset": "1.000 m",
+      "n_slots": 1,
+      "slots_pose": [
+        {
+          "position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "orientation": "90.000 deg"
+        }
+      ]
+    }
+  ],
+  "spawn_area_config": {
+    "left_top_pos": {
+      "x": 2.5531428,
+      "y": 0.08385754
+    },
+    "angle": "0.000 deg",
+    "width": "3.000 m",
+    "height": "1.000 m"
+  }
+}
