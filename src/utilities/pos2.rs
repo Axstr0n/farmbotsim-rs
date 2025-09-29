@@ -1,7 +1,10 @@
 use egui::{Pos2, Rect};
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 
-use crate::{cfg::RNG_SEED, units::{angle::Angle, length::Length}};
+use crate::{
+    cfg::RNG_SEED,
+    units::{angle::Angle, length::Length},
+};
 
 /// Get random `Pos2` inside rect with angle.
 pub fn random_pos2_in_rect(rect: Rect, angle: Angle) -> Pos2 {

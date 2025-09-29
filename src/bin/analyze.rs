@@ -104,7 +104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "energy_charged",
             combinations,
             results,
-            "Energija polnjenja [J]",
+            "Energija napolnjena [J]",
             |r| r.agent_averaged_stats.energy_charged.to_base_unit(),
             |r| r.agent_totaled_stats.energy_charged.to_base_unit(),
         )?;
@@ -144,8 +144,8 @@ fn write_combinations_latex(
 
     // Begin table environment
     writeln!(file, "\\begin{{table}}[H]")?;
-    writeln!(file, "\\caption{{{}}}", caption)?;
-    writeln!(file, "\\label{{{}}}", label)?;
+    writeln!(file, "\\caption{{{caption}}}")?;
+    writeln!(file, "\\label{{{label}}}")?;
     writeln!(file, "\\centering")?;
 
     writeln!(file, "\\begin{{tabular}}{{|c|c|c|}}")?;
@@ -261,14 +261,26 @@ where
     let root = BitMapBackend::new(png_path, (600, 400)).into_drawing_area();
     root.fill(&WHITE)?;
 
-    let y_min = plot_data.iter().map(|p| p.value).fold(f32::MAX, f32::min);
-    let y_max = plot_data.iter().map(|p| p.value).fold(f32::MIN, f32::max);
+    let y_min = plot_data
+        .iter()
+        .map(|p| p.value)
+        .fold(f32::MAX, f32::min)
+        .max(0.0);
+    let y_max = plot_data
+        .iter()
+        .map(|p| p.value)
+        .fold(f32::MIN, f32::max)
+        .max(10.0);
+
+    let format_val = |v: f32| format!("{v:.0}");
+    let max_label_len = format_val(y_max.abs().max(y_min.abs())).len();
+    let y_label_area_size = (max_label_len as u32) * 8 + 30;
 
     let mut chart = ChartBuilder::on(&root)
         .margin(10)
         .margin_left(30)
         .x_label_area_size(40)
-        .y_label_area_size(60)
+        .y_label_area_size(y_label_area_size)
         .build_cartesian_2d(-1..x_len, (y_min * 0.9)..(y_max * 1.1))?;
 
     chart
@@ -283,7 +295,9 @@ where
                 "".to_string()
             }
         })
+        .x_label_style(TextStyle::from(("sans-serif", 12)).transform(FontTransform::Rotate90))
         .x_desc("Kombinacija strategij")
+        .axis_desc_style(("sans-serif", 15))
         .y_desc(y_label)
         .draw()?;
 
@@ -305,24 +319,29 @@ where
         points.sort_by_key(|(x, _)| *x);
 
         if !points.is_empty() {
-            chart
-                .draw_series(LineSeries::new(points.iter().map(|&(x, y)| (x, y)), &color))?
-                .label(format!("{n_agents} agents"))
-                .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &color));
+            // no line connecting points
+            // chart
+            //     .draw_series(LineSeries::new(points.iter().map(|&(x, y)| (x, y)), &color))?
+            //     .label(format!("{n_agents} agents"))
+            //     .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &color));
 
             let point_color = Palette99::pick(i);
-            chart.draw_series(
-                points
-                    .iter()
-                    .map(|&(x, y)| Circle::new((x, y), 3, point_color.filled())),
-            )?;
+            chart
+                .draw_series(
+                    points
+                        .iter()
+                        .map(|&(x, y)| Circle::new((x, y), 3, point_color.filled())),
+                )?
+                .label(format!("{n_agents} agents"))
+                .legend(move |(x, y)| Circle::new((x + 10, y), 3, color.filled()));
         }
     }
 
     chart
         .configure_series_labels()
-        .background_style(WHITE.mix(0.8))
+        .background_style(WHITE.mix(0.5))
         .border_style(BLACK)
+        .position(SeriesLabelPosition::LowerRight)
         .draw()?;
 
     Ok(())
@@ -363,7 +382,7 @@ fn plot_best_combinations_time(
     best_combinations: HashMap<u32, Combination>,
     results: &[AnalyzeEnvResult],
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let root = BitMapBackend::new(png_path, (800, 500)).into_drawing_area();
+    let root = BitMapBackend::new(png_path, (600, 400)).into_drawing_area();
     root.fill(&WHITE)?;
 
     // Sort agent counts
@@ -398,14 +417,14 @@ fn plot_best_combinations_time(
         .x_label_area_size(50)
         .y_label_area_size(70)
         .build_cartesian_2d(
-            -0.5f32..(agent_counts.len() as f32 - 0.5),
+            -0.5f32..(agent_counts.len() as f32 - 0.5 + 1.0),
             0f32..(max_total_time * 1.1),
         )?;
 
     chart
         .configure_mesh()
         .disable_mesh()
-        .x_labels(agent_counts.len())
+        .x_labels(agent_counts.len() + 1)
         .x_label_formatter(&|idx: &f32| {
             let i = idx.round() as usize;
             agent_counts
@@ -413,8 +432,9 @@ fn plot_best_combinations_time(
                 .map(|v| v.to_string())
                 .unwrap_or_default()
         })
-        .y_desc("Time [s]")
-        .x_desc("Number of Agents")
+        .y_desc("Poraba časa [s]")
+        .x_desc("Število agentov")
+        .axis_desc_style(("sans-serif", 15))
         .draw()?;
 
     let bar_width = 0.5;
@@ -540,8 +560,9 @@ fn plot_best_combinations_percentage(
                 .map(|v| v.to_string())
                 .unwrap_or_default()
         })
-        .y_desc("Porabljen čas [%]")
+        .y_desc("Poraba časa [%]")
         .x_desc("Število agentov")
+        .axis_desc_style(("sans-serif", 15))
         .draw()?;
 
     let bar_width = 0.5;
