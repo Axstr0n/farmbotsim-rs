@@ -10,8 +10,9 @@ fn main() {
     // Parameters
     let scene_config_path = format!("{SCENE_CONFIGS_PATH}1s_2s.json").to_string();
     let agent_config_path = DEFAULT_AGENT_CONFIG_PATH.to_string();
-    let n_episodes = 10;
-    let number_agents = vec![1, 2, 3, 4, 5, 6];
+    let n_episodes = 1;
+    let termination_duration = Duration::days(1.0);
+    let number_agents = vec![1, 2, 3, 4];
     let charging_strategies = vec![
         ChargingStrategy::CriticalOnly(30.0),
         ChargingStrategy::CriticalOnly(40.0),
@@ -23,16 +24,13 @@ fn main() {
         ChargingStrategy::ThresholdWithLimit(60.0, 50.0),
         ChargingStrategy::ThresholdWithLimit(70.0, 60.0),
     ];
-    let mut station_strategies = vec![];
-    let queue_weights = vec![
-        0.0, // 0.25,
-        0.5, // 0.75,
-        1.0,
+    let station_strategies = vec![
+        ChooseStationStrategy::Manhattan(0.0),
+        ChooseStationStrategy::Manhattan(0.5),
+        ChooseStationStrategy::Manhattan(1.0),
+        ChooseStationStrategy::Path(0.0),
+        ChooseStationStrategy::Path(0.5),
     ];
-    for queue_weight in &queue_weights {
-        station_strategies.push(ChooseStationStrategy::Manhattan(*queue_weight));
-        station_strategies.push(ChooseStationStrategy::Path(*queue_weight));
-    }
 
     // Get combinations
     let mut combinations = vec![];
@@ -52,6 +50,7 @@ fn main() {
         scene_config_path.clone(),
         agent_config_path.clone(),
         n_episodes,
+        termination_duration,
         &number_agents,
         &combinations,
     );
@@ -85,10 +84,10 @@ fn run_combinations(
     scene_config_path: String,
     agent_config_path: String,
     n_episodes: u32,
+    termination_duration: Duration,
     number_agents: &[u32],
     combinations: &Vec<Combination>,
 ) -> Vec<AnalyzeEnvResult> {
-    let termination_duration = Duration::days(1.0);
     let mut results = vec![];
 
     for n_agents in number_agents {

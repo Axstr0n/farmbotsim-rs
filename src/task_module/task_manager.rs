@@ -530,8 +530,8 @@ impl TaskManager {
         if let Some(path) = path {
             let path = path_to_poses(path);
             let travel_task = Task::travel(path, agent.movement.max_velocity(), Intent::Idle);
-            //let wait_task = Task::wait_infinite(Intent::Idle);
-            tasks.extend([travel_task]);
+            let wait_task = Task::wait_infinite(Intent::Idle);
+            tasks.extend([travel_task, wait_task]);
         }
 
         tasks
