@@ -916,7 +916,7 @@ where
     let mut chart = ChartBuilder::on(&left)
         .margin(10)
         .caption(
-            format!("{} - Toplotni zemljevid ({n_agents} agent)", &slovene_text),
+            format!("{} - Matrika ({n_agents} agent)", &slovene_text),
             ("serif", 25).into_font(),
         )
         .x_label_area_size(50)
