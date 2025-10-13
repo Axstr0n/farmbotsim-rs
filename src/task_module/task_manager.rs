@@ -87,11 +87,17 @@ impl TaskManager {
     fn get_initial_work_list(farm_entities: &HashMap<u32, FarmEntity>) -> (u32, VecDeque<Task>) {
         let mut work_list = VecDeque::new();
         let mut task_id_counter = 0;
-        for entity in farm_entities.values() {
-            let task = entity.stages()[0].to_task(task_id_counter);
-            if let Some(task) = task {
-                work_list.push_back(task);
-                task_id_counter += 1;
+        // Collect and sort the keys
+        let mut sorted_keys: Vec<_> = farm_entities.keys().collect();
+        sorted_keys.sort();
+
+        for key in sorted_keys {
+            if let Some(entity) = farm_entities.get(key) {
+                let task = entity.stages()[0].to_task(task_id_counter);
+                if let Some(task) = task {
+                    work_list.push_back(task);
+                    task_id_counter += 1;
+                }
             }
         }
 
@@ -202,7 +208,7 @@ impl TaskManager {
                 // agent.task = None
             }
             // Charging agents that are full
-            else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 100.0 {
+            else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 90.0 {
                 agent_ids_updated.insert(agent.id);
                 for station in &mut *stations {
                     if station.slots.contains(&Some(agent.id)) {
@@ -250,12 +256,28 @@ impl TaskManager {
                 continue;
             }
 
+            // // Agents that need to work
+            // if agent.current_task.is_none()
+            //     && agent.work_schedule.is_empty()
+            //     && !self.assign_work_tasks_to_agent(agent)
+            // {
+            //     self.assign_idle_tasks_to_agent(agent);
+            // }
             // Agents that need to work
-            if agent.current_task.is_none()
-                && agent.work_schedule.is_empty()
-                && !self.assign_work_tasks_to_agent(agent)
-            {
-                self.assign_idle_tasks_to_agent(agent);
+            if agent.current_task.is_none() && agent.work_schedule.is_empty() {
+                if !self.assign_work_tasks_to_agent(agent) {
+                    self.assign_idle_tasks_to_agent(agent);
+                }
+            } else if let Some(task) = &agent.current_task {
+                if agent.work_schedule.is_empty()
+                    && task.is_wait()
+                    && task.get_intent() == &Intent::Idle
+                {
+                    agent.current_task = None;
+                    if !self.assign_work_tasks_to_agent(agent) {
+                        self.assign_idle_tasks_to_agent(agent);
+                    }
+                }
             }
         }
     }

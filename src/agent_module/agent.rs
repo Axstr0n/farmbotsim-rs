@@ -3,14 +3,27 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     agent_module::{
-        agent_config::AgentConfig, agent_state::AgentState, work_schedule::WorkSchedule
-    }, battery_module::{battery::Battery, battery_config::BatteryConfig}, cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE}, environment::datetime::DateTimeManager, movement_module::{is_movement::IsMovement, movement::{Movement, MovementInputs}, pose::Pose}, statistics::AgentTimestep, task_module::task::Task, units::{
-        angle::Angle, angular_velocity::AngularVelocity, duration::Duration, linear_velocity::LinearVelocity
-    }, utilities::pos2::ExtendedPos2
+        agent_config::AgentConfig, agent_state::AgentState, work_schedule::WorkSchedule,
+    },
+    battery_module::{battery::Battery, battery_config::BatteryConfig},
+    cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE},
+    environment::datetime::DateTimeManager,
+    movement_module::{
+        is_movement::IsMovement,
+        movement::{Movement, MovementInputs},
+        pose::Pose,
+    },
+    statistics::AgentTimestep,
+    task_module::task::Task,
+    units::{
+        angle::Angle, angular_velocity::AngularVelocity, duration::Duration,
+        linear_velocity::LinearVelocity,
+    },
+    utilities::pos2::ExtendedPos2,
 };
 
 /// Represents agent ID
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct AgentId(u32);
 impl AgentId {
     pub fn new(id: u32) -> Self {
@@ -46,7 +59,13 @@ pub struct Agent {
 
 impl Agent {
     /// Constructs an [`Agent`] from an [`AgentConfig`], setting its initial state, pose, and battery.
-    pub fn from_config(config: AgentConfig, id: u32, position: Pos2, direction: Vec2, color: Color32) -> Self {
+    pub fn from_config(
+        config: AgentConfig,
+        id: u32,
+        position: Pos2,
+        direction: Vec2,
+        color: Color32,
+    ) -> Self {
         Self {
             id: AgentId(id),
             pose: Pose::new(position, Angle::radians(direction.angle())),
@@ -61,8 +80,11 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: Battery::from_config(BatteryConfig::from_json_file(config.battery), config.battery_soc),
-        
+            battery: Battery::from_config(
+                BatteryConfig::from_json_file(config.battery),
+                config.battery_soc,
+            ),
+
             timesteps: vec![],
         }
     }
@@ -71,9 +93,9 @@ impl Agent {
     pub fn update(&mut self, simulation_step: Duration, date_time_manager: &DateTimeManager) {
         if self.state == AgentState::Discharged {
             self.update_timesteps(simulation_step);
-            return
+            return;
         }
-        self.update_state(simulation_step,date_time_manager);
+        self.update_state(simulation_step, date_time_manager);
 
         self.update_task_and_path(simulation_step);
         let inputs = self.get_inputs();
@@ -107,33 +129,46 @@ impl Agent {
             self.state = current_state;
         }
     }
-    
+
     /// Moves the agent by calculating new pose and velocities based on inputs.
     fn _move(&mut self, simulation_step: Duration, inputs: MovementInputs) {
-        let current_task_velocity = self.current_task.as_ref().map(|task| task.get_velocity()).unwrap_or(LinearVelocity::ZERO);
-        let (new_pose, new_velocity_l, new_velocity_a) = self.movement.calculate_new_pose_from_inputs(
-            simulation_step, inputs, self.pose.clone(), current_task_velocity
-        );
+        let current_task_velocity = self
+            .current_task
+            .as_ref()
+            .map(|task| task.get_velocity())
+            .unwrap_or(LinearVelocity::ZERO);
+        let (new_pose, new_velocity_l, new_velocity_a) =
+            self.movement.calculate_new_pose_from_inputs(
+                simulation_step,
+                inputs,
+                self.pose.clone(),
+                current_task_velocity,
+            );
         self.pose = new_pose;
         self.velocity_lin = new_velocity_l;
         self.velocity_ang = new_velocity_a;
     }
-    
+
     /// Computes movement inputs required to reach the next target in the current task.
     fn get_inputs(&self) -> MovementInputs {
         let next_pose = match &self.current_task {
             Some(task) => task.get_first_pose().unwrap_or(&self.pose),
             None => &self.pose,
         };
-        self.movement.calculate_inputs_for_target(&self.pose, next_pose)
+        self.movement
+            .calculate_inputs_for_target(&self.pose, next_pose)
     }
-    
+
     /// Updates the current task and its path based on agent's progress and pose.
     fn update_task_and_path(&mut self, simulation_step: Duration) {
         if let Some(task) = &mut self.current_task {
             match task {
                 Task::Stationary { pose, duration, .. } => {
-                    if self.pose.position.is_close_to(pose.position, TOLERANCE_DISTANCE) {
+                    if self
+                        .pose
+                        .position
+                        .is_close_to(pose.position, TOLERANCE_DISTANCE)
+                    {
                         if *duration > Duration::ZERO {
                             *duration = *duration - simulation_step;
                         } else if let Some(id) = task.get_id() {
@@ -142,17 +177,20 @@ impl Agent {
                         }
                     }
                 }
-                Task::WaitDuration { duration , ..} => {
+                Task::WaitDuration { duration, .. } => {
                     if *duration > Duration::ZERO {
                         *duration = *duration - simulation_step;
                     } else {
                         self.current_task = self.work_schedule.pop_front();
                     }
                 }
-                Task::WaitInfinite { .. } => { }
+                Task::WaitInfinite { .. } => {}
                 Task::Moving { path, .. } | Task::Travel { path, .. } => {
                     if let Some(front_pose) = path.front() {
-                        if self.pose.is_close_to(front_pose, TOLERANCE_DISTANCE, TOLERANCE_ANGLE) {
+                        if self
+                            .pose
+                            .is_close_to(front_pose, TOLERANCE_DISTANCE, TOLERANCE_ANGLE)
+                        {
                             path.pop_front();
                         }
                     }
@@ -168,7 +206,4 @@ impl Agent {
             self.current_task = self.work_schedule.pop_front();
         }
     }
-
 }
-
-

@@ -12,8 +12,10 @@ fn main() {
     let agent_config_path = DEFAULT_AGENT_CONFIG_PATH.to_string();
     let n_episodes = 1;
     let termination_duration = Duration::days(1.0);
-    let number_agents = vec![1, 2, 3, 4];
+    let number_agents = vec![1, 2, 3, 4, 5, 6];
     let charging_strategies = vec![
+        ChargingStrategy::CriticalOnly(10.0),
+        ChargingStrategy::CriticalOnly(20.0),
         ChargingStrategy::CriticalOnly(30.0),
         ChargingStrategy::CriticalOnly(40.0),
         ChargingStrategy::CriticalOnly(50.0),
@@ -23,6 +25,7 @@ fn main() {
         ChargingStrategy::ThresholdWithLimit(50.0, 40.0),
         ChargingStrategy::ThresholdWithLimit(60.0, 50.0),
         ChargingStrategy::ThresholdWithLimit(70.0, 60.0),
+        ChargingStrategy::ThresholdWithLimit(70.0, 20.0),
     ];
     let station_strategies = vec![
         ChooseStationStrategy::Manhattan(0.0),

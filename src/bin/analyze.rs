@@ -27,6 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let best_combinations = select_best_combination(results);
+    write_best_combinations_table_latex("analyze/tables/best_combinations", &best_combinations)?;
     println!("{best_combinations:?}");
 
     // Plots: n_agents-line, x-combinations
@@ -379,7 +380,7 @@ fn write_combinations_table_latex(
             // Table with matrix layout
             writeln!(
                 file,
-                "\\begin{{tabular}}{{|c|{}|}}",
+                "\\begin{{tabular}}{{|c|{}}}",
                 "c|".repeat(station_strats.len())
             )?;
             writeln!(file, "\\hline")?;
@@ -412,6 +413,51 @@ fn write_combinations_table_latex(
     Ok(())
 }
 
+/// Write file that represents latex table that
+/// shows best combination for each agent count
+fn write_best_combinations_table_latex(
+    base_file_path: &str,
+    best_combinations: &HashMap<u32, Combination>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let file_path = &format!("{base_file_path}.txt").to_lowercase();
+    let mut file = File::create(file_path)?;
+    let caption = "Optimalne kombinacije strategij";
+    let label = "tab:optimalne_kombinacije_strategij";
+
+    writeln!(file, "\\begin{{table}}[H]")?;
+    writeln!(file, "\\caption{{{caption}}}")?;
+    writeln!(file, "\\label{{{label}}}")?;
+    writeln!(file, "\\centering")?;
+    writeln!(file, "\\begin{{tabular}}{{|c|c|c|c|}}")?;
+    writeln!(file, "\\hline")?;
+    writeln!(
+        file,
+        "Število agentov & Oznaka & Strategija polnjenja & Strategija izbire postaje \\\\"
+    )?;
+    writeln!(file, "\\hline")?;
+    // Suppose `best_combinations: HashMap<u32, Combination>`
+    let mut keys: Vec<_> = best_combinations.keys().cloned().collect();
+    keys.sort(); // ascending order
+
+    for n_agents in keys {
+        if let Some(c) = best_combinations.get(&n_agents) {
+            let label = &c.label;
+            let charging_str = format!("{}", c.charging_strategy);
+            let station_str = format!("{}", c.station_strategy);
+
+            writeln!(
+                file,
+                "{n_agents} & {label} & {charging_str} & {station_str} \\\\"
+            )?;
+            writeln!(file, "\\hline")?;
+        }
+    }
+
+    writeln!(file, "\\end{{tabular}}")?;
+    writeln!(file, "\\end{{table}}")?;
+    Ok(())
+}
+
 /// Get best combination for each agent count
 fn select_best_combination(results: &[AnalyzeEnvResult]) -> HashMap<u32, Combination> {
     let mut best_per_agents: HashMap<u32, Combination> = HashMap::new();
@@ -435,17 +481,49 @@ fn select_best_combination(results: &[AnalyzeEnvResult]) -> HashMap<u32, Combina
     best_per_agents
 }
 
-/// Evaluation function for `AnalyzeEnvResult`
+/// Calculates the overall score for a given simulation result.
 fn score(r: &AnalyzeEnvResult) -> f32 {
+    // Weights: positive = maximize, negative = minimize
+    const W_TASKS_COMPLETED: f32 = 5.0; // prioritize actual productivity
+    const W_WORK_TIME: f32 = 2.0; // reward time spent working
+    const W_TRAVEL_TIME: f32 = -0.8; // penalize unnecessary travel
+    const W_QUEUE_TIME: f32 = -1.5; // penalize station queues
+    const W_CHARGING_TIME: f32 = -1.0; // penalize spending too much time charging
+
+    let work_time = r.agent_averaged_stats.work_time.to_base_unit();
+    let travel_time = r.agent_averaged_stats.travel_time.to_base_unit();
+    let queue_time = r.agent_averaged_stats.queue_time.to_base_unit();
+    let charging_time = r.agent_averaged_stats.charging_time.to_base_unit();
+    let discharged_time = r.agent_totaled_stats.discharged_time.to_base_unit();
+    let tasks_completed = r.n_completed_tasks.avg;
+
+    // Heavy penalty if any agent discharged
+    if discharged_time > 0.0 {
+        return DISCHARGED_SCORE;
+    }
+
+    // Weighted sum of contributions
+    let mut total = 0.0;
+    total += W_TASKS_COMPLETED * tasks_completed;
+    total += W_WORK_TIME * work_time;
+    total += W_TRAVEL_TIME * travel_time;
+    total += W_QUEUE_TIME * queue_time;
+    total += W_CHARGING_TIME * charging_time;
+
+    total
+}
+
+/// Evaluation function for `AnalyzeEnvResult`
+fn score1(r: &AnalyzeEnvResult) -> f32 {
     let w_work_time = 1.0;
     let w_travel_time = 0.3;
-    let w_tasks = 2.0;
-    let w_queue = 0.2;
+    // let w_tasks = 1.0;
+    let w_queue = 0.6;
     let w_charging = 0.1;
 
     let work_time = r.agent_averaged_stats.work_time.to_base_unit();
     let travel_time = r.agent_averaged_stats.travel_time.to_base_unit();
-    let tasks_completed = r.n_completed_tasks.avg;
+    // let tasks_completed = r.n_completed_tasks.avg;
     let queue = r.agent_averaged_stats.queue_time.to_base_unit();
     let charging = r.agent_averaged_stats.charging_time.to_base_unit();
     let discharged = r.agent_averaged_stats.discharged_time.to_base_unit();
@@ -456,7 +534,7 @@ fn score(r: &AnalyzeEnvResult) -> f32 {
 
     w_work_time * work_time // maximize
     - w_travel_time * travel_time // minimize
-    + w_tasks * tasks_completed // maximize
+    // + w_tasks * tasks_completed // maximize
     - w_queue * queue // minimize
     - w_charging * charging // minimize
 }
@@ -733,32 +811,32 @@ fn plot_best_combinations(
 
                 let segments = vec![
                     (
-                        "Work",
+                        "Delo",
                         res.agent_averaged_stats.work_time.to_base_unit(),
                         &BLUE,
                     ),
                     (
-                        "Travel",
+                        "Premikanje",
                         res.agent_averaged_stats.travel_time.to_base_unit(),
                         &GREEN,
                     ),
                     (
-                        "Charging",
+                        "Polnjenje",
                         res.agent_averaged_stats.charging_time.to_base_unit(),
                         &RED,
                     ),
                     (
-                        "Queue",
+                        "Čakanje v vrsti",
                         res.agent_averaged_stats.queue_time.to_base_unit(),
                         &YELLOW,
                     ),
                     (
-                        "Idle",
+                        "Mirovanje",
                         res.agent_averaged_stats.idle_time.to_base_unit(),
                         &MAGENTA,
                     ),
                     (
-                        "Discharged",
+                        "Izpraznjenost",
                         res.agent_averaged_stats.discharged_time.to_base_unit(),
                         &CYAN,
                     ),
@@ -915,10 +993,6 @@ where
 
     let mut chart = ChartBuilder::on(&left)
         .margin(10)
-        .caption(
-            format!("{} - Matrika ({n_agents} agent)", &slovene_text),
-            ("serif", 25).into_font(),
-        )
         .x_label_area_size(50)
         .y_label_area_size(y_label_area_size)
         .build_cartesian_2d(0f32..n_cols as f32, 0f32..n_rows as f32)?;
@@ -966,7 +1040,7 @@ where
     for (y, row) in matrix.iter().enumerate() {
         for (x, &val) in row.iter().enumerate() {
             let color = if val == DISCHARGED_SCORE {
-                RGBColor(70, 163, 207).filled() // special case
+                RGBColor(170, 100, 214).filled() // special case
             } else {
                 let frac = ((val - min_score) / (max_score - min_score)).clamp(0.0, 1.0);
 

@@ -6,95 +6,125 @@
 \hline
 Oznaka & Strategija polnjenja & Strategija izbire postaje \\
 \hline
-c1 & CriticalOnly(30) & Manhattan(0) \\
+c1 & CriticalOnly(10) & Manhattan(0) \\
 \hline
-c2 & CriticalOnly(30) & Manhattan(0.5) \\
+c2 & CriticalOnly(10) & Manhattan(0.5) \\
 \hline
-c3 & CriticalOnly(30) & Manhattan(1) \\
+c3 & CriticalOnly(10) & Manhattan(1) \\
 \hline
-c4 & CriticalOnly(30) & Path(0) \\
+c4 & CriticalOnly(10) & Path(0) \\
 \hline
-c5 & CriticalOnly(30) & Path(0.5) \\
+c5 & CriticalOnly(10) & Path(0.5) \\
 \hline
-c6 & CriticalOnly(40) & Manhattan(0) \\
+c6 & CriticalOnly(20) & Manhattan(0) \\
 \hline
-c7 & CriticalOnly(40) & Manhattan(0.5) \\
+c7 & CriticalOnly(20) & Manhattan(0.5) \\
 \hline
-c8 & CriticalOnly(40) & Manhattan(1) \\
+c8 & CriticalOnly(20) & Manhattan(1) \\
 \hline
-c9 & CriticalOnly(40) & Path(0) \\
+c9 & CriticalOnly(20) & Path(0) \\
 \hline
-c10 & CriticalOnly(40) & Path(0.5) \\
+c10 & CriticalOnly(20) & Path(0.5) \\
 \hline
-c11 & CriticalOnly(50) & Manhattan(0) \\
+c11 & CriticalOnly(30) & Manhattan(0) \\
 \hline
-c12 & CriticalOnly(50) & Manhattan(0.5) \\
+c12 & CriticalOnly(30) & Manhattan(0.5) \\
 \hline
-c13 & CriticalOnly(50) & Manhattan(1) \\
+c13 & CriticalOnly(30) & Manhattan(1) \\
 \hline
-c14 & CriticalOnly(50) & Path(0) \\
+c14 & CriticalOnly(30) & Path(0) \\
 \hline
-c15 & CriticalOnly(50) & Path(0.5) \\
+c15 & CriticalOnly(30) & Path(0.5) \\
 \hline
-c16 & CriticalOnly(60) & Manhattan(0) \\
+c16 & CriticalOnly(40) & Manhattan(0) \\
 \hline
-c17 & CriticalOnly(60) & Manhattan(0.5) \\
+c17 & CriticalOnly(40) & Manhattan(0.5) \\
 \hline
-c18 & CriticalOnly(60) & Manhattan(1) \\
+c18 & CriticalOnly(40) & Manhattan(1) \\
 \hline
-c19 & CriticalOnly(60) & Path(0) \\
+c19 & CriticalOnly(40) & Path(0) \\
 \hline
-c20 & CriticalOnly(60) & Path(0.5) \\
+c20 & CriticalOnly(40) & Path(0.5) \\
 \hline
-c21 & CriticalOnly(70) & Manhattan(0) \\
+c21 & CriticalOnly(50) & Manhattan(0) \\
 \hline
-c22 & CriticalOnly(70) & Manhattan(0.5) \\
+c22 & CriticalOnly(50) & Manhattan(0.5) \\
 \hline
-c23 & CriticalOnly(70) & Manhattan(1) \\
+c23 & CriticalOnly(50) & Manhattan(1) \\
 \hline
-c24 & CriticalOnly(70) & Path(0) \\
+c24 & CriticalOnly(50) & Path(0) \\
 \hline
-c25 & CriticalOnly(70) & Path(0.5) \\
+c25 & CriticalOnly(50) & Path(0.5) \\
 \hline
-c26 & ThresholdWithLimit(40, 30) & Manhattan(0) \\
+c26 & CriticalOnly(60) & Manhattan(0) \\
 \hline
-c27 & ThresholdWithLimit(40, 30) & Manhattan(0.5) \\
+c27 & CriticalOnly(60) & Manhattan(0.5) \\
 \hline
-c28 & ThresholdWithLimit(40, 30) & Manhattan(1) \\
+c28 & CriticalOnly(60) & Manhattan(1) \\
 \hline
-c29 & ThresholdWithLimit(40, 30) & Path(0) \\
+c29 & CriticalOnly(60) & Path(0) \\
 \hline
-c30 & ThresholdWithLimit(40, 30) & Path(0.5) \\
+c30 & CriticalOnly(60) & Path(0.5) \\
 \hline
-c31 & ThresholdWithLimit(50, 40) & Manhattan(0) \\
+c31 & CriticalOnly(70) & Manhattan(0) \\
 \hline
-c32 & ThresholdWithLimit(50, 40) & Manhattan(0.5) \\
+c32 & CriticalOnly(70) & Manhattan(0.5) \\
 \hline
-c33 & ThresholdWithLimit(50, 40) & Manhattan(1) \\
+c33 & CriticalOnly(70) & Manhattan(1) \\
 \hline
-c34 & ThresholdWithLimit(50, 40) & Path(0) \\
+c34 & CriticalOnly(70) & Path(0) \\
 \hline
-c35 & ThresholdWithLimit(50, 40) & Path(0.5) \\
+c35 & CriticalOnly(70) & Path(0.5) \\
 \hline
-c36 & ThresholdWithLimit(60, 50) & Manhattan(0) \\
+c36 & ThresholdWithLimit(40, 30) & Manhattan(0) \\
 \hline
-c37 & ThresholdWithLimit(60, 50) & Manhattan(0.5) \\
+c37 & ThresholdWithLimit(40, 30) & Manhattan(0.5) \\
 \hline
-c38 & ThresholdWithLimit(60, 50) & Manhattan(1) \\
+c38 & ThresholdWithLimit(40, 30) & Manhattan(1) \\
 \hline
-c39 & ThresholdWithLimit(60, 50) & Path(0) \\
+c39 & ThresholdWithLimit(40, 30) & Path(0) \\
 \hline
-c40 & ThresholdWithLimit(60, 50) & Path(0.5) \\
+c40 & ThresholdWithLimit(40, 30) & Path(0.5) \\
 \hline
-c41 & ThresholdWithLimit(70, 60) & Manhattan(0) \\
+c41 & ThresholdWithLimit(50, 40) & Manhattan(0) \\
 \hline
-c42 & ThresholdWithLimit(70, 60) & Manhattan(0.5) \\
+c42 & ThresholdWithLimit(50, 40) & Manhattan(0.5) \\
 \hline
-c43 & ThresholdWithLimit(70, 60) & Manhattan(1) \\
+c43 & ThresholdWithLimit(50, 40) & Manhattan(1) \\
 \hline
-c44 & ThresholdWithLimit(70, 60) & Path(0) \\
+c44 & ThresholdWithLimit(50, 40) & Path(0) \\
 \hline
-c45 & ThresholdWithLimit(70, 60) & Path(0.5) \\
+c45 & ThresholdWithLimit(50, 40) & Path(0.5) \\
+\hline
+c46 & ThresholdWithLimit(60, 50) & Manhattan(0) \\
+\hline
+c47 & ThresholdWithLimit(60, 50) & Manhattan(0.5) \\
+\hline
+c48 & ThresholdWithLimit(60, 50) & Manhattan(1) \\
+\hline
+c49 & ThresholdWithLimit(60, 50) & Path(0) \\
+\hline
+c50 & ThresholdWithLimit(60, 50) & Path(0.5) \\
+\hline
+c51 & ThresholdWithLimit(70, 60) & Manhattan(0) \\
+\hline
+c52 & ThresholdWithLimit(70, 60) & Manhattan(0.5) \\
+\hline
+c53 & ThresholdWithLimit(70, 60) & Manhattan(1) \\
+\hline
+c54 & ThresholdWithLimit(70, 60) & Path(0) \\
+\hline
+c55 & ThresholdWithLimit(70, 60) & Path(0.5) \\
+\hline
+c56 & ThresholdWithLimit(70, 20) & Manhattan(0) \\
+\hline
+c57 & ThresholdWithLimit(70, 20) & Manhattan(0.5) \\
+\hline
+c58 & ThresholdWithLimit(70, 20) & Manhattan(1) \\
+\hline
+c59 & ThresholdWithLimit(70, 20) & Path(0) \\
+\hline
+c60 & ThresholdWithLimit(70, 20) & Path(0.5) \\
 \hline
 \end{tabular}
 \end{table}

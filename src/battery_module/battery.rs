@@ -1,6 +1,19 @@
-use std::{collections::{HashMap, VecDeque}, fs::File, io::{BufRead, BufReader}, path::Path};
+use std::{
+    collections::{HashMap, VecDeque},
+    fs::File,
+    io::{BufRead, BufReader},
+    path::Path,
+};
 
-use crate::{battery_module::{battery_config::BatteryConfig, battery_error::BatteryError, is_battery::IsBattery}, cfg::BATTERIES_PATH, logger::log_error_and_panic, units::{duration::Duration, energy::Energy, power::Power, voltage::Voltage}, utilities::utils::linear_interpolate};
+use crate::{
+    battery_module::{
+        battery_config::BatteryConfig, battery_error::BatteryError, is_battery::IsBattery,
+    },
+    cfg::BATTERIES_PATH,
+    logger::log_error_and_panic,
+    units::{duration::Duration, energy::Energy, power::Power, voltage::Voltage},
+    utilities::utils::linear_interpolate,
+};
 
 /// Represents a rechargeable battery with energy capacity, voltage, and seasonal data models.
 #[derive(Clone, Debug, PartialEq)]
@@ -21,42 +34,54 @@ pub struct Battery {
 impl IsBattery for Battery {
     /// Reduces battery energy based on power draw and elapsed time.
     fn discharge(&mut self, power: Power, duration: Duration) {
-        if self.energy <= Energy::ZERO { return } // is empty
+        if self.energy <= Energy::ZERO {
+            return;
+        } // is empty
         let energy_removed = power * duration;
         let new_energy = self.energy - energy_removed;
-        if new_energy < Energy::ZERO { self.energy = Energy::ZERO; }
-        else { self.energy = new_energy; }
-        self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
+        if new_energy < Energy::ZERO {
+            self.energy = Energy::ZERO;
+        } else {
+            self.energy = new_energy;
+        }
+        self.soc = (self.energy / self.capacity) * 100.0; // Update SoC
 
         self.update();
     }
-    
+
     /// Increases battery energy using solar charge interpolation curves.
     fn charge(&mut self, duration: Duration, month: u32) {
         if self.energy >= self.capacity {
             return; // Battery is full
         }
 
-        match self.get_morph_x_y(self.energy.to_watt_hour(), month, duration.to_base_unit() as u32) {
+        match self.get_morph_x_y(
+            self.energy.to_watt_hour(),
+            month,
+            duration.to_base_unit() as u32,
+        ) {
             Ok((_, new_energy)) => {
                 let new_energy = Energy::watt_hours(new_energy);
-                if new_energy < self.capacity { self.energy = new_energy; }
-                else { self.energy = self.capacity; }
-                self.soc = (self.energy / self.capacity) * 100.0;  // Update SoC
-    
+                if new_energy < self.capacity {
+                    self.energy = new_energy;
+                } else {
+                    self.energy = self.capacity;
+                }
+                self.soc = (self.energy / self.capacity) * 100.0; // Update SoC
+
                 self.update();
             }
             Err(e) => {
-                eprintln!("⚠️ Failed to charge: {e}");
+                println!("⚠️ Failed to charge: {e}");
             }
         }
     }
-    
+
     /// Returns the current battery state of charge.
     fn get_soc(&self) -> f32 {
         (self.energy / self.capacity) * 100.0
     }
-    
+
     /// Updates the current energy based on state of charge.
     fn recalculate_energy(&mut self) {
         self.energy = self.capacity * self.soc * 0.01;
@@ -77,13 +102,15 @@ impl Battery {
             jan_min_data: Self::get_month_data_points(format!("{}{}", path, config.jan_min)),
             jun_max_data: Self::get_month_data_points(format!("{}{}", path, config.jun_max)),
             start_index: [("jan".to_string(), 1), ("jun".to_string(), 1)]
-                .iter().cloned().collect(),
-            
+                .iter()
+                .cloned()
+                .collect(),
+
             update_count: 0,
             soc_history: VecDeque::from(vec![soc; 100]),
         }
     }
-    
+
     /// Parses charging data points from a whitespace-delimited file.
     fn get_month_data_points<P: AsRef<Path>>(file_path: P) -> Vec<(u32, f32)> {
         let path_ref = file_path.as_ref();
@@ -104,9 +131,8 @@ impl Battery {
             }
         }
         points
-        
     }
-    
+
     /// Periodically stores the latest SoC in the history.
     fn update(&mut self) {
         self.update_count += 1;
@@ -115,7 +141,7 @@ impl Battery {
             self.soc_history.push_back(self.soc);
         }
     }
-    
+
     /// Finds interpolated energy output for a given input time in the month’s dataset.
     fn find_y_for_x_month(&mut self, month: &str, x: u32) -> Result<f32, BatteryError> {
         let data = match month {
@@ -124,40 +150,107 @@ impl Battery {
             _ => return Err(BatteryError::UnsupportedMonth(month.to_string())),
         };
 
-        let start = *self.start_index.get(month).unwrap_or(&1);
+        if data.len() < 2 {
+            return Err(BatteryError::NoYForX(format!("No data for {month}")));
+        }
+
+        let first = data
+            .first()
+            .ok_or(BatteryError::NoYForX(format!("No data for {month}")))?;
+        let last = data
+            .last()
+            .ok_or(BatteryError::NoYForX(format!("No data for {month}")))?;
+
+        // Clamp x within range
+        if x <= first.0 {
+            return Ok(first.1);
+        } else if x >= last.0 {
+            return Ok(last.1);
+        }
+
+        // Safe starting index
+        let mut start = *self.start_index.get(month).unwrap_or(&1);
+        start = start.max(1).min(data.len() - 1);
+
+        // Reset if x goes backward
+        if let Some(&prev_i) = self.start_index.get(month) {
+            if x < data[prev_i.saturating_sub(1)].0 {
+                start = 1;
+            }
+        }
+
         for i in start..data.len() {
             let (x0, y0) = data[i - 1];
             let (x1, y1) = data[i];
             if x0 <= x && x <= x1 {
-                self.start_index.insert(month.to_string(), std::cmp::max(1, i - 1));
+                self.start_index
+                    .insert(month.to_string(), std::cmp::max(1, i - 1));
                 return Ok(linear_interpolate(x0 as f32, y0, x1 as f32, y1, x as f32));
             }
         }
+
         Err(BatteryError::NoYForX(x.to_string()))
     }
-    
+
     /// Finds interpolated time needed to reach a given energy in the month’s dataset.
     fn find_x_for_y_month(&mut self, month: &str, y: f32) -> Result<u32, BatteryError> {
         let data = match month {
             "jan" => &self.jan_min_data,
             "jun" => &self.jun_max_data,
-            _ => return  Err(BatteryError::UnsupportedMonth(month.to_string())),
+            _ => return Err(BatteryError::UnsupportedMonth(month.to_string())),
         };
 
-        let start = *self.start_index.get(month).unwrap_or(&1);
+        if data.len() < 2 {
+            return Err(BatteryError::NoXForY(format!("No data for {month}")));
+        }
+
+        let first = data
+            .first()
+            .ok_or(BatteryError::NoXForY(format!("No data for {month}")))?;
+        let last = data
+            .last()
+            .ok_or(BatteryError::NoXForY(format!("No data for {month}")))?;
+
+        // Clamp y within dataset range
+        if y <= first.1 {
+            return Ok(first.0);
+        } else if y >= last.1 {
+            return Ok(last.0);
+        }
+
+        // Safe starting index
+        let mut start = *self.start_index.get(month).unwrap_or(&1);
+        start = start.max(1).min(data.len() - 1);
+
+        // Reset if y goes backward
+        if let Some(&prev_i) = self.start_index.get(month) {
+            if y < data[prev_i.saturating_sub(1)].1 {
+                start = 1;
+            }
+        }
+
         for i in start..data.len() {
             let (x0, y0) = data[i - 1];
             let (x1, y1) = data[i];
-            if y0 <= y && y <= y1 {
-                self.start_index.insert(month.to_string(), std::cmp::max(1, i - 1));
-                return Ok(linear_interpolate(y0, x0 as f32, y1, x1 as f32, y) as u32);
+            if (y0 <= y && y <= y1) || (y1 <= y && y <= y0) {
+                self.start_index
+                    .insert(month.to_string(), std::cmp::max(1, i - 1));
+                let x = linear_interpolate(y0, x0 as f32, y1, x1 as f32, y);
+                return Ok(x.round() as u32);
             }
         }
+
         Err(BatteryError::NoXForY(y.to_string()))
     }
-    
+
     /// Calculates morphing time and energy for seasonal solar models.
-    pub fn get_morph_x_y(&mut self, y: f32, month: u32, time: u32) -> Result<(u32, f32), BatteryError> {
+    /// Uses cosine-based weighting between January and June datasets.
+    pub fn get_morph_x_y(
+        &mut self,
+        y: f32,
+        month: u32,
+        time: u32,
+    ) -> Result<(u32, f32), BatteryError> {
         let jan_time = self.find_x_for_y_month("jan", y)?;
         let jun_time = self.find_x_for_y_month("jun", y)?;
 
@@ -167,12 +260,13 @@ impl Battery {
         let jan_new_wh = self.find_y_for_x_month("jan", jan_next_time)?;
         let jun_new_wh = self.find_y_for_x_month("jun", jun_next_time)?;
 
-        let month = month as f32;
-        let weight1 = (1.0 + (std::f32::consts::PI * (month - 1.0) / 6.0).cos()) / 2.0;
+        let month_f = month as f32;
+        let weight1 = (1.0 + (std::f32::consts::PI * (month_f - 1.0) / 6.0).cos()) / 2.0;
         let weight2 = 1.0 - weight1;
 
         let new_time = weight1 * jan_next_time as f32 + weight2 * jun_next_time as f32;
         let new_wh = weight1 * jan_new_wh + weight2 * jun_new_wh;
-        Ok((new_time as u32, new_wh))
+
+        Ok((new_time.round() as u32, new_wh))
     }
 }

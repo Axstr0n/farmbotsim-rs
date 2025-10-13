@@ -1,0 +1,22 @@
+\begin{table}[H]
+\caption{Optimalne kombinacije strategij}
+\label{tab:optimalne_kombinacije_strategij}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Število agentov & Oznaka & Strategija polnjenja & Strategija izbire postaje \\
+\hline
+1 & c50 & ThresholdWithLimit(60, 50) & Path(0.5) \\
+\hline
+2 & c45 & ThresholdWithLimit(50, 40) & Path(0.5) \\
+\hline
+3 & c48 & ThresholdWithLimit(60, 50) & Manhattan(1) \\
+\hline
+4 & c48 & ThresholdWithLimit(60, 50) & Manhattan(1) \\
+\hline
+5 & c52 & ThresholdWithLimit(70, 60) & Manhattan(0.5) \\
+\hline
+6 & c53 & ThresholdWithLimit(70, 60) & Manhattan(1) \\
+\hline
+\end{tabular}
+\end{table}
