@@ -1,0 +1,19 @@
+[package]
+name = "farmbotsim-app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+farmbotsim-core = { path = "../farmbotsim-core" }
+
+# GUI dependencies
+eframe = "0.31.1"
+egui = { workspace=true }
+egui_extras = { version = "0.31.1", features = ["datepicker", "serde"] }
+egui_plot = "0.32.1"
+egui_commonmark = { version = "0.20", features = ["macros", "embedded_image"] }
+petgraph = { workspace = true }
+serde = { workspace=true }
+serde_json = { workspace=true }
+chrono = { workspace=true }
+enum-iterator = { workspace=true }

@@ -1,0 +1,14 @@
+[package]
+name = "farmbotsim-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+rand = { workspace = true }
+once_cell = { workspace = true }
+enum-iterator = { workspace = true }
+petgraph = { workspace = true }
+egui = { workspace = true } # for Pos2, Vec2, Color

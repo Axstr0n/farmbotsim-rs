@@ -1,0 +1,9 @@
+[package]
+name = "farmbotsim-analysis"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+farmbotsim-core = { path = "../farmbotsim-core" }
+plotters = { workspace=true }
+serde_json = { workspace=true }

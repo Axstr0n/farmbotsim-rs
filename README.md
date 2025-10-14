@@ -1,4 +1,4 @@
-# farmbotsim
+# farmbotsim-rs
 
 **!! IN DEVELOPMENT !!**
 
@@ -52,13 +52,13 @@ Follow these steps to get farmbotsim running locally:
 ## Usage
 After installation you can run main app like:
 ```
-cargo run --bin farmbotsim-rs
+cargo run -p farmbotsim-app
 ```
 This will run whole application. (Note: running first time takes longer to build)
-You can also run experiment and then analyze to get plots. To change parameters you must edit code in `src/bin/experiment.rs`.
+You can also run experiment and then analyze to get plots. To change parameters you must edit code in `crates/farmbotsim-analysis` crate.
 ```
-cargo run --bin experiment
-cargo run --bin analyze
+cargo run -p farmbotsim-analysis --bin experiment
+cargo run -p farmbotsim-analysis --bin analyze
 ```
 
 ## Building project
@@ -72,7 +72,7 @@ cargo build --release
 The **farmbotsim-rs** project is organized into several directories that help separate functionality. Here's a high-level breakdown:
 
 
-`analyse/` - Contains output of experiment, latex table generation and plots of stats
+`analyze/` - Contains output of experiment, latex table generation and plots of stats
 
 `configs/`
 - `agent_configs/` - Contains agent configs. (movement + battery)
@@ -83,36 +83,16 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `scene_configs/` - Contains parameters for scene config. (field + stations + spawn area)
 - `task_manager_configs/` - Contains configs for task manager creation
 
+`crates/` - info of crate in their README
+- `farmbotsim-analysis/`
+- `farmbotsim-app/`
+- `farmbotsim-core/`
+
 `general_help/` - Contains markdown and images for overview of project.
 
 `media/`- Contains screenshots of app.
 
 `performance_matrix/` - Stores all evaluations
-
-`src/` - Contains the core logic of the application:
-- `agent_module/` - Contains the agent struct and its associated logic, state machine.
-- `app_module/` - Main app functionality.
-- `battery_module/` - Containing battery logic.
-- `bin/`
-  - `analyze.rs` - Generates plots from output.json.
-  - `experiment.rs` - Generates output.json from specified combinations.
-- `environment/` - Contains all environment structs (Crop, Field, Station, Env, Config, ...).
-  - `env_module/` - Contains logic for env.
-  - `farm_entity_module/` - Contains logic for farm entity.
-  - `spawn_area_module/` - Contains logic for spawn area.
-  - `station_module/` - Contains logic for station.
-  - `...`
-- `movement_module/` - Contains movement logic
-- `path_finding_module/` - Includes code related to navigation and pathfinding algorithms.
-- `rendering/` - Responsible for rendering.
-- `task_module/` - Includes files for task creation and task handling.
-- `tool_module/` - Contains files for app modes (simulation, editor, path, task, ...).
-- `units/` - Unit system.
-- `utilities/` - Common utilities and helper functions used across the project.
-- `cfg.rs` - Contains constants.
-- `logger.rs` - Logger for application.
-- `main.rs` - Contains entry point into application.
-- `statistics.rs` - Contains stats needed in simulation.
 
 `.gitignore` - Ignores files/folders.
 
@@ -120,4 +100,4 @@ The **farmbotsim-rs** project is organized into several directories that help se
 
 `Cargo.toml` - Contains dependencies of project.
 
-`README.md` - This file, which contains documentation and instructions for setting up and using the application.
+`README.md` - This file, which contains documentation and instructions for setting up and using the project.

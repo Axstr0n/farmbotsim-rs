@@ -863,9 +863,9 @@ checksum = "f25c0e292a7ca6d6498557ff1df68f32c99850012b6ea401cf8daf771f22ff53"
 
 [[package]]
 name = "dwrote"
-version = "0.11.4"
+version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20c93d234bac0cdd0e2ac08bc8a5133f8df2169e95b262dfcea5e5cb7855672f"
+checksum = "9e1b35532432acc8b19ceed096e35dfa088d3ea037fe4f3c085f1f97f33b4d02"
 dependencies = [
  "lazy_static",
  "libc",
@@ -1222,7 +1222,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "farmbotsim-rs"
+name = "farmbotsim-analysis"
+version = "0.1.0"
+dependencies = [
+ "farmbotsim-core",
+ "plotters",
+ "serde_json",
+]
+
+[[package]]
+name = "farmbotsim-app"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -1232,9 +1241,21 @@ dependencies = [
  "egui_extras",
  "egui_plot",
  "enum-iterator",
+ "farmbotsim-core",
+ "petgraph",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "farmbotsim-core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "egui",
+ "enum-iterator",
  "once_cell",
  "petgraph",
- "plotters",
  "rand 0.9.0",
  "serde",
  "serde_json",
