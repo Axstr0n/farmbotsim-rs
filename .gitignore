@@ -18,6 +18,7 @@ configs/field_configs/*
 !configs/field_configs/default.json
 !configs/field_configs/default_only_line.json
 !configs/field_configs/default_only_point.json
+!configs/field_configs/1_1small.json
 
 
 configs/task_manager_configs/*

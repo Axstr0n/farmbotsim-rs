@@ -16,8 +16,8 @@ pub struct VisibilityGraph {
 
 impl PathFinding for VisibilityGraph {
     fn find_path(&mut self, start: Pos2, end: Pos2) -> Option<Vec<Pos2>> {
-        let mut added_nodes: Vec<_> = Vec::new();
-        // Check if start/end are already in graph
+        let mut added_nodes = Vec::new();
+
         let start_node = match self.find_existing_node(start) {
             Some(node) => node,
             None => {
@@ -154,8 +154,11 @@ impl VisibilityGraph {
     fn add_node_with_connections(&mut self, pos: Pos2) -> NodeIndex {
         let new_node = self.graph.add_node(pos);
 
-        // Connect to all other nodes if line doesn't intersect obstacles
-        for existing_node in self.graph.node_indices() {
+        // Collect node indices and sort to ensure deterministic connection order
+        let mut existing_nodes: Vec<_> = self.graph.node_indices().collect();
+        existing_nodes.sort_by_key(|n| n.index());
+
+        for existing_node in existing_nodes {
             if existing_node != new_node {
                 let existing_pos = self.graph[existing_node];
                 let edge_line = (pos, existing_pos);

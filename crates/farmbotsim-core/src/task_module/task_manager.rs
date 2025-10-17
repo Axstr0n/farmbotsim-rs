@@ -8,7 +8,7 @@ use crate::{
         agent_state::AgentState,
     },
     battery_module::is_battery::IsBattery,
-    cfg::MAX_VELOCITY_BETWEEN_POINTS,
+    cfg::{MAX_VELOCITY_BETWEEN_POINTS, TOLERANCE_DISTANCE},
     environment::{
         farm_entity_module::{
             farm_entity::FarmEntity, farm_entity_action_instance::FarmEntityActionInstance,
@@ -17,13 +17,13 @@ use crate::{
         field_config::FieldConfig,
         station_module::station::{Station, StationId, StationPosType},
     },
-    movement_module::pose::{path_to_poses, Pose},
+    movement_module::pose::{Pose, path_to_poses},
     path_finding_module::{path_finding::PathFinding, visibility_graph::VisibilityGraph},
     task_module::{
         strategies::{ChargingStrategy, ChooseStationStrategy},
         task_manager_config::TaskManagerConfig,
     },
-    units::duration::Duration,
+    units::{duration::Duration, length::Length},
 };
 
 /// Manages task assignment, tracking, and execution for farm entities.
@@ -77,6 +77,7 @@ impl TaskManager {
     pub fn reset(&mut self) {
         let farm_entities = self.field_config.get_farm_entities();
         let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
+        self.farm_entities = farm_entities;
         self.id_counter = id_counter;
         self.work_list = work_list;
         self.assigned_tasks.clear();
@@ -129,13 +130,22 @@ impl TaskManager {
         if self.waiting.is_empty() {
             return;
         }
+
         let mut finished_ids = Vec::new();
-        for (&id, duration) in self.waiting.iter_mut() {
-            *duration = *duration - duration_;
-            if duration.value <= 0.0 {
-                finished_ids.push(id);
+
+        // Collect and sort keys for deterministic iteration
+        let mut keys: Vec<_> = self.waiting.keys().cloned().collect();
+        keys.sort(); // requires that your ID type implements Ord
+
+        for id in keys {
+            if let Some(duration) = self.waiting.get_mut(&id) {
+                *duration = *duration - duration_;
+                if duration.value <= 0.0 {
+                    finished_ids.push(id);
+                }
             }
         }
+
         for id in finished_ids {
             self.waiting.remove(&id);
             self.add_new_task_for_id(id);
@@ -208,7 +218,7 @@ impl TaskManager {
                 // agent.task = None
             }
             // Charging agents that are full
-            else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 90.0 {
+            else if agent.state == AgentState::Charging && agent.battery.get_soc() >= 100.0 {
                 agent_ids_updated.insert(agent.id);
                 for station in &mut *stations {
                     if station.slots.contains(&Some(agent.id)) {
@@ -290,28 +300,39 @@ impl TaskManager {
         stations: &mut [Station],
         agents: &mut [Agent],
     ) {
-        for station_id in station_ids_updated {
+        // Sort station IDs to ensure deterministic order
+        let mut sorted_station_ids: Vec<_> = station_ids_updated.into_iter().collect();
+        sorted_station_ids.sort();
+
+        for station_id in sorted_station_ids {
             if let Some(station) = stations.iter_mut().find(|s| s.id == station_id) {
                 if station.queue.is_empty() {
                     continue;
                 }
 
-                let queue_snapshot: Vec<AgentId> = station.queue.iter().cloned().collect();
+                // Sort queue snapshot deterministically
+                let mut queue_snapshot: Vec<AgentId> = station.queue.iter().cloned().collect();
+                queue_snapshot.sort();
 
-                let mut updated_agents_count = 0; // moved in queue count
+                let mut updated_agents_count = 0;
+
                 for (i, agent_id) in queue_snapshot.iter().enumerate() {
+                    // Sort `agents` or use deterministic `find` based on ID
                     if let Some(agent) = agents.iter_mut().find(|a| a.id == *agent_id) {
                         let pose: Pose;
                         let intent: Intent;
+
                         if let Some(pose_) = station.move_agent_from_queue_to_slot(*agent_id) {
                             pose = pose_;
                             intent = Intent::Charge;
                             updated_agents_count += 1;
                         } else {
-                            // Move in queue
+                            // Move in queue deterministically
                             pose = station.get_waiting_pose(i - updated_agents_count);
                             intent = Intent::Queue;
                         }
+
+                        // Deterministic pathfinding + scheduling
                         if let Some(path) = self
                             .visibility_graph
                             .find_path(agent.pose.position, pose.position)
@@ -320,13 +341,16 @@ impl TaskManager {
                             if let Some(last) = path.last_mut() {
                                 last.orientation = pose.orientation;
                             }
+
                             let travel_task =
                                 Task::travel(path, agent.movement.max_velocity(), intent.clone());
                             let wait_task = Task::wait_infinite(intent);
+
                             agent.work_schedule.clear();
                             agent.work_schedule.push_back(travel_task);
                             agent.work_schedule.push_back(wait_task);
                             agent.current_task = agent.work_schedule.pop_front();
+
                             agent_ids_updated.insert(agent.id);
                         }
                     }
@@ -544,6 +568,10 @@ impl TaskManager {
 
     /// Generates idle tasks for the agent, typically involving traveling to its spawn position.
     pub fn get_idle_tasks(&mut self, agent: &Agent) -> Vec<Task> {
+        if Length::meters(agent.pose.position.distance(agent.spawn_position)) <= TOLERANCE_DISTANCE
+        {
+            return vec![];
+        }
         let mut tasks: Vec<Task> = vec![];
 
         let path = self
@@ -603,37 +631,58 @@ impl TaskManager {
     ) {
         match self.charging_strategy {
             ChargingStrategy::CriticalOnly(critical_value) => {
-                for agent in agents {
+                // Sort agents deterministically by ID
+                let mut sorted_agents: Vec<_> = agents.iter_mut().collect();
+                sorted_agents.sort_by_key(|a| a.id);
+
+                for agent in sorted_agents {
                     if agent_ids_updated.contains(&agent.id) {
                         continue;
                     }
-                    // If below critical battery go to charging
+
+                    // Deterministic condition: assign charging only if SoC below critical
                     if agent.battery.get_soc() < critical_value {
                         self.assign_station_tasks_to_agent(agent, stations);
                         agent_ids_updated.insert(agent.id);
                     }
                 }
             }
+
             ChargingStrategy::ThresholdWithLimit(threshold_value, critical_value) => {
-                let mut n_of_all_charging_agents = 0;
-                for station in stations.iter() {
-                    n_of_all_charging_agents +=
-                        station.n_occupied_slots() as usize + station.queue.len();
-                }
+                // Count currently charging agents
+                let mut n_of_all_charging_agents = stations
+                    .iter()
+                    .map(|s| s.n_occupied_slots() as usize + s.queue.len())
+                    .sum::<usize>();
+
                 let max_agents_charging = stations.len();
-                for agent in agents {
+
+                // Sort agents deterministically by battery, then by ID
+                let mut sorted_agents: Vec<_> = agents.iter_mut().collect();
+                sorted_agents.sort_by(|a, b| {
+                    a.battery
+                        .get_soc()
+                        .partial_cmp(&b.battery.get_soc())
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                        .then_with(|| a.id.cmp(&b.id))
+                });
+
+                for agent in sorted_agents {
                     if agent_ids_updated.contains(&agent.id) {
                         continue;
                     }
-                    if agent.battery.get_soc() < critical_value {
-                        // If below critical battery go to charging
+
+                    let soc = agent.battery.get_soc();
+
+                    if soc < critical_value {
+                        // Critical battery always goes first
                         self.assign_station_tasks_to_agent(agent, stations);
                         agent_ids_updated.insert(agent.id);
                         n_of_all_charging_agents += 1;
-                    } else if agent.battery.get_soc() < threshold_value
+                    } else if soc < threshold_value
                         && n_of_all_charging_agents < max_agents_charging
                     {
-                        // If not maximum number of charging agents and battery below threshold go charging
+                        // Assign only up to limit
                         self.assign_station_tasks_to_agent(agent, stations);
                         agent_ids_updated.insert(agent.id);
                         n_of_all_charging_agents += 1;

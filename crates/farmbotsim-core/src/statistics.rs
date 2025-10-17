@@ -407,6 +407,11 @@ impl AnalyzeEnvResult {
             total_energy_discharged = total_energy_discharged + stats.energy_discharged;
             total_distance_travelled = total_distance_travelled + stats.distance_travelled;
         }
+        // let vec_travel: Vec<f32> = all_agent_stats
+        //     .iter()
+        //     .map(|s| s.distance_travelled.to_base_unit())
+        //     .collect();
+        // println!("Travel: {vec_travel:?}");
 
         // Avg per episode
         let avg_work_time = total_work_time / n_episodes as f32;

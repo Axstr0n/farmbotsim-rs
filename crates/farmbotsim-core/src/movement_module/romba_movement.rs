@@ -121,11 +121,10 @@ impl IsMovement for RombaMovement {
                 let new_pose = Pose::new(new_position, new_orientation);
 
                 (new_pose, current_velocity, omega)
-            }
-            // _ => {
-            //     let msg = "Invalid inputs for RombaMovement";
-            //     log_error_and_panic(msg);
-            // },
+            } // _ => {
+              //     let msg = "Invalid inputs for RombaMovement";
+              //     log_error_and_panic(msg);
+              // },
         }
     }
     /// Computes motor inputs needed to move toward the target pose.
@@ -157,8 +156,13 @@ impl IsMovement for RombaMovement {
             }
             (true, false) => {
                 // Drive straight toward the target
-                let forward_strength = (position_error * 0.3).clamp(0.0, 1.0);
-                (forward_strength, forward_strength)
+                if position_error < 0.5 {
+                    let forward_strength = position_error * 3.6 / 3.0;
+                    (forward_strength, forward_strength)
+                } else {
+                    let forward_strength = (position_error * 0.3).clamp(0.0, 1.0);
+                    (forward_strength, forward_strength)
+                }
             }
             (false, true) => {
                 // We're close to the target position, now match final orientation
@@ -176,7 +180,12 @@ impl RombaMovement {
     fn turning_inputs(current: Angle, target: Angle) -> (f32, f32) {
         let delta = (target.to_degrees() - current.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
         let norm = delta / 180.0;
-        let strength = (norm.abs() * 0.1).clamp(0.0, 1.0);
+        let strength = if delta.abs() < 25.0 {
+            delta.abs() * 3.6 * 0.2 * std::f32::consts::PI / (6.0 * 180.0)
+            //(norm.abs() * 0.5).clamp(0.0, 1.0)
+        } else {
+            (norm.abs() * 0.1).clamp(0.0, 1.0)
+        };
 
         if norm < 0.0 {
             (strength, -strength) // Turn right

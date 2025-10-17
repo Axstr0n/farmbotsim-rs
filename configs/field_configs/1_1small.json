@@ -1,0 +1,17 @@
+{
+  "configs": [
+    {
+      "Line": {
+        "left_top_pos": {
+          "x": 2.0,
+          "y": 2.0
+        },
+        "angle": "0.000 deg",
+        "n_lines": 10,
+        "length": "5.000 m",
+        "line_spacing": "0.500 m",
+        "farm_entity_plan_path": "configs/farm_entity_plans/default_line.json"
+      }
+    }
+  ]
+}

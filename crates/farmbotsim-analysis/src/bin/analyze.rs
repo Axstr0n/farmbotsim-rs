@@ -180,6 +180,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         plot_matrix_value(
             n_agents,
             results,
+            |r| r.agent_averaged_stats.idle_time.to_base_unit(),
+            DisplayValue::WaitTime,
+            MetricDirection::LowerIsBetter,
+        )?;
+        plot_matrix_value(
+            n_agents,
+            results,
             |r| r.agent_averaged_stats.discharged_time.to_base_unit(),
             DisplayValue::DischargeTime,
             MetricDirection::LowerIsBetter,
