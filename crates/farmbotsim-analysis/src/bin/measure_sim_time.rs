@@ -7,7 +7,7 @@ fn main() {
     let scene_config_path = format!("{SCENE_CONFIGS_PATH}1s_2s.json");
     let agent_config_path = DEFAULT_AGENT_CONFIG_PATH.to_string();
     let n_episodes = 1;
-    let termination_duration = Duration::days(1.0);
+    let termination_duration = Duration::days(7.0);
     let number_agents = vec![1, 2, 3, 4, 5, 6];
 
     let charging_strategies = vec![
@@ -124,8 +124,11 @@ fn run_combinations(
     results
 }
 
+// 20.10.2025
 // === Real Time Stats per Agent Count ===
-// Agents: 1  | Real-Time (s): min =    0.145, avg =    0.153, max =    0.162
-// Agents: 2  | Real-Time (s): min =    0.275, avg =    0.283, max =    0.290
-// Agents: 3  | Real-Time (s): min =    0.421, avg =    0.432, max =    0.448
-// Agents: 4  | Real-Time (s): min =    0.446, avg =    0.500, max =    0.597
+// Agents: 1  | Real-Time (s): min =    1.903, avg =    1.939, max =    2.011
+// Agents: 2  | Real-Time (s): min =    3.578, avg =    3.623, max =    3.673
+// Agents: 3  | Real-Time (s): min =    5.328, avg =    5.592, max =    6.148
+// Agents: 4  | Real-Time (s): min =    5.997, avg =    6.055, max =    6.106
+// Agents: 5  | Real-Time (s): min =    6.523, avg =    6.588, max =    6.648
+// Agents: 6  | Real-Time (s): min =    6.867, avg =    7.078, max =    7.517

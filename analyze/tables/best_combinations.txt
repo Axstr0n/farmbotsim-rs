@@ -6,17 +6,17 @@
 \hline
 Število agentov & Oznaka & Strategija polnjenja & Strategija izbire postaje \\
 \hline
-1 & c45 & ThresholdWithLimit(50, 40) & Path(0.5) \\
+1 & c40 & ThresholdWithLimit(50, 40) & Path(0.5) \\
 \hline
-2 & c45 & ThresholdWithLimit(50, 40) & Path(0.5) \\
+2 & c40 & ThresholdWithLimit(50, 40) & Path(0.5) \\
 \hline
-3 & c25 & CriticalOnly(50) & Path(0.5) \\
+3 & c18 & CriticalOnly(50) & Manhattan(1) \\
 \hline
-4 & c50 & ThresholdWithLimit(60, 50) & Path(0.5) \\
+4 & c43 & ThresholdWithLimit(60, 50) & Manhattan(1) \\
 \hline
-5 & c25 & CriticalOnly(50) & Path(0.5) \\
+5 & c50 & ThresholdWithLimit(70, 60) & Path(0.5) \\
 \hline
-6 & c28 & CriticalOnly(60) & Manhattan(1) \\
+6 & c55 & ThresholdWithLimit(70, 20) & Path(0.5) \\
 \hline
 \end{tabular}
 \end{table}

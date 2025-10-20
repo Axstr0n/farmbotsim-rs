@@ -5,17 +5,16 @@
 \begin{tabular}{|c|c|c|c|c|c|}
 \hline
 \rotatebox{90}{*} & \rotatebox{90}{Manhattan(0)} & \rotatebox{90}{Manhattan(0.5)} & \rotatebox{90}{Manhattan(1)} & \rotatebox{90}{Path(0)} & \rotatebox{90}{Path(0.5)} \\ \hline
-CriticalOnly(10) & c1 & c2 & c3 & c4 & c5 \\ \hline
-CriticalOnly(20) & c6 & c7 & c8 & c9 & c10 \\ \hline
-CriticalOnly(30) & c11 & c12 & c13 & c14 & c15 \\ \hline
-CriticalOnly(40) & c16 & c17 & c18 & c19 & c20 \\ \hline
-CriticalOnly(50) & c21 & c22 & c23 & c24 & c25 \\ \hline
-CriticalOnly(60) & c26 & c27 & c28 & c29 & c30 \\ \hline
-CriticalOnly(70) & c31 & c32 & c33 & c34 & c35 \\ \hline
-ThresholdWithLimit(40, 30) & c36 & c37 & c38 & c39 & c40 \\ \hline
-ThresholdWithLimit(50, 40) & c41 & c42 & c43 & c44 & c45 \\ \hline
-ThresholdWithLimit(60, 50) & c46 & c47 & c48 & c49 & c50 \\ \hline
-ThresholdWithLimit(70, 20) & c56 & c57 & c58 & c59 & c60 \\ \hline
-ThresholdWithLimit(70, 60) & c51 & c52 & c53 & c54 & c55 \\ \hline
+CriticalOnly(20) & c1 & c2 & c3 & c4 & c5 \\ \hline
+CriticalOnly(30) & c6 & c7 & c8 & c9 & c10 \\ \hline
+CriticalOnly(40) & c11 & c12 & c13 & c14 & c15 \\ \hline
+CriticalOnly(50) & c16 & c17 & c18 & c19 & c20 \\ \hline
+CriticalOnly(60) & c21 & c22 & c23 & c24 & c25 \\ \hline
+CriticalOnly(70) & c26 & c27 & c28 & c29 & c30 \\ \hline
+ThresholdWithLimit(40, 30) & c31 & c32 & c33 & c34 & c35 \\ \hline
+ThresholdWithLimit(50, 40) & c36 & c37 & c38 & c39 & c40 \\ \hline
+ThresholdWithLimit(60, 50) & c41 & c42 & c43 & c44 & c45 \\ \hline
+ThresholdWithLimit(70, 20) & c51 & c52 & c53 & c54 & c55 \\ \hline
+ThresholdWithLimit(70, 60) & c46 & c47 & c48 & c49 & c50 \\ \hline
 \end{tabular}
 \end{table}

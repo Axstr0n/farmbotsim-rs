@@ -5,10 +5,9 @@ fn main() {
     let scene_config_path = format!("{SCENE_CONFIGS_PATH}1s_2s.json").to_string();
     let agent_config_path = DEFAULT_AGENT_CONFIG_PATH.to_string();
     let n_episodes = 1;
-    let termination_duration = Duration::days(1.0);
+    let termination_duration = Duration::days(7.0);
     let number_agents = vec![1, 2, 3, 4, 5, 6];
     let charging_strategies = vec![
-        ChargingStrategy::CriticalOnly(10.0),
         ChargingStrategy::CriticalOnly(20.0),
         ChargingStrategy::CriticalOnly(30.0),
         ChargingStrategy::CriticalOnly(40.0),
