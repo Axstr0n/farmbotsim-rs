@@ -424,7 +424,7 @@ fn write_combinations_table_latex(
 /// shows best combination for each agent count
 fn write_best_combinations_table_latex(
     base_file_path: &str,
-    best_combinations: &HashMap<u32, Combination>,
+    best_combinations: &HashMap<u32, Option<Combination>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let file_path = &format!("{base_file_path}.txt").to_lowercase();
     let mut file = File::create(file_path)?;
@@ -442,21 +442,34 @@ fn write_best_combinations_table_latex(
         "Število agentov & Oznaka & Strategija polnjenja & Strategija izbire postaje \\\\"
     )?;
     writeln!(file, "\\hline")?;
-    // Suppose `best_combinations: HashMap<u32, Combination>`
+
     let mut keys: Vec<_> = best_combinations.keys().cloned().collect();
     keys.sort(); // ascending order
 
     for n_agents in keys {
-        if let Some(c) = best_combinations.get(&n_agents) {
-            let label = &c.label;
-            let charging_str = format!("{}", c.charging_strategy);
-            let station_str = format!("{}", c.station_strategy);
+        match best_combinations.get(&n_agents) {
+            Some(Some(c)) => {
+                // Normal case: we have a valid combination
+                let label = &c.label;
+                let charging_str = format!("{}", c.charging_strategy);
+                let station_str = format!("{}", c.station_strategy);
 
-            writeln!(
-                file,
-                "{n_agents} & {label} & {charging_str} & {station_str} \\\\"
-            )?;
-            writeln!(file, "\\hline")?;
+                writeln!(
+                    file,
+                    "{n_agents} & {label} & {charging_str} & {station_str} \\\\"
+                )?;
+                writeln!(file, "\\hline")?;
+            }
+            Some(None) => {
+                // Case: best combination was None (e.g., score == DISCHARGE_SCORE)
+                writeln!(file, "{n_agents} & / & / & / \\\\")?;
+                writeln!(file, "\\hline")?;
+            }
+            None => {
+                // Shouldn’t happen, but handle gracefully
+                writeln!(file, "{n_agents} & // missing entry \\\\")?;
+                writeln!(file, "\\hline")?;
+            }
         }
     }
 
@@ -466,8 +479,8 @@ fn write_best_combinations_table_latex(
 }
 
 /// Get best combination for each agent count
-fn select_best_combination(results: &[AnalyzeEnvResult]) -> HashMap<u32, Combination> {
-    let mut best_per_agents: HashMap<u32, Combination> = HashMap::new();
+fn select_best_combination(results: &[AnalyzeEnvResult]) -> HashMap<u32, Option<Combination>> {
+    let mut best_per_agents: HashMap<u32, Option<Combination>> = HashMap::new();
 
     // Group results by n_agents
     let mut results_by_agents: HashMap<u32, Vec<&AnalyzeEnvResult>> = HashMap::new();
@@ -481,7 +494,11 @@ fn select_best_combination(results: &[AnalyzeEnvResult]) -> HashMap<u32, Combina
             .iter()
             .max_by(|a, b| score(a).partial_cmp(&score(b)).unwrap())
         {
-            best_per_agents.insert(n_agents, best.combination.clone());
+            if score(best) == DISCHARGED_SCORE {
+                best_per_agents.insert(n_agents, None);
+            } else {
+                best_per_agents.insert(n_agents, Some(best.combination.clone()));
+            }
         }
     }
 
@@ -700,7 +717,7 @@ enum TimePlotMode {
 /// each bar is segmented on time chunks (work, queue, travel, charge, wait, discharge)
 fn plot_best_combinations(
     base_png_path: &str,
-    best_combinations: HashMap<u32, Combination>,
+    best_combinations: HashMap<u32, Option<Combination>>,
     results: &[AnalyzeEnvResult],
     mode: TimePlotMode,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -716,7 +733,7 @@ fn plot_best_combinations(
     let mut max_total_time = 0.0;
     if let TimePlotMode::Absolute = mode {
         for n_agents in &agent_counts {
-            if let Some(best_combo) = best_combinations.get(n_agents) {
+            if let Some(Some(best_combo)) = best_combinations.get(n_agents) {
                 if let Some(res) = results
                     .iter()
                     .find(|r| r.n_agents == *n_agents && r.combination.label == best_combo.label)
@@ -727,6 +744,7 @@ fn plot_best_combinations(
                         + res.agent_averaged_stats.queue_time.to_base_unit()
                         + res.agent_averaged_stats.discharged_time.to_base_unit()
                         + res.agent_averaged_stats.idle_time.to_base_unit();
+
                     if total > max_total_time {
                         max_total_time = total;
                     }
@@ -773,7 +791,8 @@ fn plot_best_combinations(
     // Draw stacked bars
     for (idx, n_agents) in agent_counts.iter().enumerate() {
         let idx = idx as f32;
-        if let Some(best_combo) = best_combinations.get(n_agents) {
+
+        if let Some(Some(best_combo)) = best_combinations.get(n_agents) {
             if let Some(res) = results
                 .iter()
                 .find(|r| r.n_agents == *n_agents && r.combination.label == best_combo.label)
@@ -866,6 +885,8 @@ fn plot_best_combinations(
                     ("sans-serif", 15).into_font().color(&BLACK),
                 )))?;
             }
+        } else {
+            // No best combination
         }
     }
 

@@ -16,7 +16,7 @@
 \hline
 5 & c50 & ThresholdWithLimit(70, 60) & Path(0.5) \\
 \hline
-6 & c55 & ThresholdWithLimit(70, 20) & Path(0.5) \\
+6 & / & / & / \\
 \hline
 \end{tabular}
 \end{table}
