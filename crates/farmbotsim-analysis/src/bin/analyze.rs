@@ -919,12 +919,19 @@ fn plot_matrix_value<F>(
 where
     F: Fn(&AnalyzeEnvResult) -> f32,
 {
+    let size = (900, 600);
+    let matrix_percentage = 0.92;
     let png_path = format!(
         "analyze/matrices/{n_agents}_agents/matrix_{n_agents}_{}.png",
         display_value.to_path_str()
     );
     println!("{png_path}");
     let slovene_text: String = display_value.to_slovene_plot_label().to_string();
+    let matrix_axis_desc_size = 25;
+    let matrix_axis_label_size = 18;
+    let matrix_value_size = 18;
+    let colorbar_axis_desc_size = 25;
+    let colorbar_axis_label_size = 16;
 
     // Filter results by n_agents
     let results: Vec<_> = results.iter().filter(|r| r.n_agents == n_agents).collect();
@@ -965,27 +972,59 @@ where
         }
     }
 
-    let max_score = matrix
-        .iter()
-        .flat_map(|row| row.iter())
-        .cloned()
-        .fold(f32::MIN, f32::max);
+    let mut min_score: Option<f32> = None;
+    let mut max_score: Option<f32> = None;
+    let mut all_discharged = true;
 
-    let min_score = matrix
-        .iter()
-        .flat_map(|row| row.iter())
-        .filter(|&&v| v > DISCHARGED_SCORE) // ignore discharge score
-        .cloned()
-        .fold(f32::MAX, f32::min);
+    for row in &matrix {
+        for &val in row {
+            // Track max ignoring discharged values if possible
+            if val > DISCHARGED_SCORE {
+                min_score = Some(match min_score {
+                    Some(m) => m.min(val),
+                    None => val,
+                });
+                all_discharged = false;
+            }
 
-    let root = BitMapBackend::new(&png_path, (900, 600)).into_drawing_area();
+            // Track max for all values
+            max_score = Some(match max_score {
+                Some(m) => m.max(val),
+                None => val,
+            });
+        }
+    }
+
+    // If all values were discharged, min_score = DISCHARGED_SCORE
+    let min_score = if all_discharged {
+        max_score.unwrap() // all values are discharged, pick any value
+    } else {
+        min_score.unwrap()
+    };
+
+    // max_score should ignore discharged values if possible
+    let max_score = if all_discharged {
+        max_score.unwrap()
+    } else {
+        matrix
+            .iter()
+            .flat_map(|row| row.iter())
+            .filter(|&&v| v > DISCHARGED_SCORE)
+            .cloned()
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap()
+    };
+
+    let root = BitMapBackend::new(&png_path, size).into_drawing_area();
     root.fill(&WHITE)?;
 
     // Split area: left = matrix, right = colorbar
-    let (left, right) = root.split_horizontally(800);
+    let left_size = (size.0 as f32 * matrix_percentage) as u32;
+    let (left, right) = root.split_horizontally(left_size);
 
     // ---- Matrix ----
-    let label_font = ("sans-serif", 15).into_font();
+    let label_font = ("sans-serif", matrix_axis_label_size).into_font();
+    let desc_font = ("sans-serif", matrix_axis_desc_size).into_font();
     let max_label_width = charging_strats
         .iter()
         .map(|s| label_font.box_size(s).unwrap().0) // .0 = width in pixels
@@ -995,7 +1034,7 @@ where
 
     let mut chart = ChartBuilder::on(&left)
         .margin(10)
-        .x_label_area_size(50)
+        .x_label_area_size(60)
         .y_label_area_size(y_label_area_size)
         .build_cartesian_2d(0f32..n_cols as f32, 0f32..n_rows as f32)?;
 
@@ -1034,7 +1073,8 @@ where
         })
         .x_desc("Strategija izbire postaje")
         .y_desc("Strategija polnjenja")
-        .label_style(("sans-serif", 15))
+        .label_style(label_font)
+        .axis_desc_style(desc_font)
         .x_label_offset(x_offset_pixels)
         .y_label_offset(-y_offset_pixels)
         .draw()?;
@@ -1092,7 +1132,8 @@ where
             let cy = (y0 + y1) / 2.0;
 
             let pos = Pos::new(HPos::Center, VPos::Center);
-            let text_style = TextStyle::from(("sans-serif", 15).into_font()).pos(pos);
+            let text_style =
+                TextStyle::from(("sans-serif", matrix_value_size).into_font()).pos(pos);
             chart.draw_series(std::iter::once(Text::new(
                 format!("{val:.1}"),
                 (cx, cy),
@@ -1102,24 +1143,26 @@ where
     }
 
     // ---- Colorbar ----
+    let label_font = ("sans-serif", colorbar_axis_label_size).into_font();
+    let desc_font = ("sans-serif", colorbar_axis_desc_size).into_font();
     let y_range = match direction {
         MetricDirection::HigherIsBetter => min_score..max_score,
         MetricDirection::LowerIsBetter => max_score..min_score,
     };
     let mut cb = ChartBuilder::on(&right)
         .margin_left(20)
-        .margin_right(40)
-        .margin_top(40)
-        .margin_bottom(58)
-        .y_label_area_size(20)
+        .margin_right(10)
+        .margin_top(10)
+        .margin_bottom(63)
+        .y_label_area_size(25)
         .build_cartesian_2d(0f32..1f32, y_range)?;
 
     cb.configure_mesh()
         .disable_x_mesh()
         .y_labels(0) // disable auto ticks
         .y_desc(&slovene_text)
-        .label_style(("sans-serif", 14))
-        .axis_desc_style(("sans-serif", 16))
+        .label_style(label_font.clone())
+        .axis_desc_style(desc_font)
         .draw()?;
 
     // Fill with vertical gradient
@@ -1143,15 +1186,21 @@ where
     }))?;
 
     // manually draw min/max ticks
-    let pos = Pos::new(HPos::Right, VPos::Center);
-    let text_style = TextStyle::from(("sans-serif", 14).into_font()).pos(pos);
+    if min_score != max_score {
+        let ticks = match direction {
+            MetricDirection::HigherIsBetter => [(min_score, VPos::Bottom), (max_score, VPos::Top)],
+            MetricDirection::LowerIsBetter => [(min_score, VPos::Top), (max_score, VPos::Bottom)],
+        };
 
-    for &y in &[min_score, max_score] {
-        cb.draw_series(std::iter::once(Text::new(
-            format!("{y:.0}"),
-            (0.0, y),
-            &text_style,
-        )))?;
+        for (val, vpos) in ticks {
+            let pos = Pos::new(HPos::Right, vpos);
+            let text_style = TextStyle::from(label_font.clone()).pos(pos);
+            cb.draw_series(std::iter::once(Text::new(
+                format!("{val:.0}"),
+                (0.0, val),
+                &text_style,
+            )))?;
+        }
     }
 
     Ok(())
