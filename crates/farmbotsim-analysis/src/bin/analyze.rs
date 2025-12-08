@@ -915,22 +915,34 @@ enum MetricDirection {
     LowerIsBetter,
 }
 
-trait ToSlovene {
-    fn to_slovene(&self) -> String;
+trait ToLanguage {
+    fn to_language(&self, language: Language) -> String;
 }
-impl ToSlovene for ChooseStationStrategy {
-    fn to_slovene(&self) -> String {
-        match self {
-            Self::Manhattan(f) => format!("Manhattan({f})"),
-            Self::Path(f) => format!("A*({f})"),
+enum Language {
+    Slovene,
+    English,
+}
+impl ToLanguage for ChooseStationStrategy {
+    fn to_language(&self, language: Language) -> String {
+        match (self, language) {
+            (Self::Manhattan(f), Language::Slovene) => format!("Manhattan({f})"),
+            (Self::Manhattan(f), Language::English) => format!("Manhattan({f})"),
+            (Self::Path(f), Language::Slovene) => format!("Pot({f})"),
+            (Self::Path(f), Language::English) => format!("Path({f})"),
         }
     }
 }
-impl ToSlovene for ChargingStrategy {
-    fn to_slovene(&self) -> String {
-        match self {
-            Self::CriticalOnly(t) => format!("SamoKritično({t})"),
-            Self::ThresholdWithLimit(t1, t2) => format!("PragZLimito({t1},{t2})"),
+impl ToLanguage for ChargingStrategy {
+    fn to_language(&self, language: Language) -> String {
+        match (self, language) {
+            (Self::CriticalOnly(t), Language::Slovene) => format!("SamoKritično({t})"),
+            (Self::CriticalOnly(t), Language::English) => format!("CriticalOnly({t})"),
+            (Self::ThresholdWithLimit(t1, t2), Language::Slovene) => {
+                format!("PragZLimito({t1},{t2})")
+            }
+            (Self::ThresholdWithLimit(t1, t2), Language::English) => {
+                format!("ThresholdWithLimit({t1},{t2})")
+            }
         }
     }
 }
@@ -977,7 +989,7 @@ where
     charging_strats.dedup();
     let charging_strats: Vec<String> = charging_strats
         .into_iter()
-        .map(|c| c.to_slovene())
+        .map(|c| c.to_language(Language::English))
         .collect();
 
     let mut station_strats: Vec<_> = results
@@ -986,7 +998,10 @@ where
         .collect();
     station_strats.sort();
     station_strats.dedup();
-    let station_strats: Vec<String> = station_strats.into_iter().map(|s| s.to_slovene()).collect();
+    let station_strats: Vec<String> = station_strats
+        .into_iter()
+        .map(|s| s.to_language(Language::English))
+        .collect();
 
     let n_rows = charging_strats.len();
     let n_cols = station_strats.len();
@@ -996,8 +1011,14 @@ where
     for (i, charging) in charging_strats.iter().enumerate() {
         for (j, station) in station_strats.iter().enumerate() {
             if let Some(r) = results.iter().find(|r| {
-                r.combination.charging_strategy.to_slovene() == *charging
-                    && r.combination.station_strategy.to_slovene() == *station
+                r.combination
+                    .charging_strategy
+                    .to_language(Language::English)
+                    == *charging
+                    && r.combination
+                        .station_strategy
+                        .to_language(Language::English)
+                        == *station
             }) {
                 matrix[i][j] = value_fn(r);
             }
