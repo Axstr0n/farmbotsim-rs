@@ -726,7 +726,7 @@ fn plot_best_combinations(
     let axis_desc_size = 25;
     let axis_label_size = 18;
     let combo_label_size = 18;
-    let legend_size = 18;
+    let legend_size = 23;
     let root = BitMapBackend::new(png_path, (900, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 
