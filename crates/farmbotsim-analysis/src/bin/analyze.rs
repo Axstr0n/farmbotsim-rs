@@ -1,3 +1,4 @@
+use farmbotsim_core::prelude::{ChargingStrategy, ChooseStationStrategy};
 use plotters::prelude::*;
 use plotters::style::text_anchor::{HPos, Pos, VPos};
 use std::collections::HashMap;
@@ -233,10 +234,10 @@ fn prep_folder(num_agents: &[u32]) -> io::Result<()> {
             let path = entry.path();
 
             if path.is_file() {
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    if name != "output.json" {
-                        fs::remove_file(path)?;
-                    }
+                if let Some(name) = path.file_name().and_then(|n| n.to_str())
+                    && name != "output.json"
+                {
+                    fs::remove_file(path)?;
                 }
             } else if path.is_dir() {
                 fs::remove_dir_all(path)?;
@@ -722,7 +723,11 @@ fn plot_best_combinations(
     mode: TimePlotMode,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let png_path = &format!("{base_png_path}_{mode:?}.png").to_lowercase();
-    let root = BitMapBackend::new(png_path, (600, 400)).into_drawing_area();
+    let axis_desc_size = 25;
+    let axis_label_size = 18;
+    let combo_label_size = 18;
+    let legend_size = 18;
+    let root = BitMapBackend::new(png_path, (900, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 
     // Sort agent counts
@@ -733,21 +738,20 @@ fn plot_best_combinations(
     let mut max_total_time = 0.0;
     if let TimePlotMode::Absolute = mode {
         for n_agents in &agent_counts {
-            if let Some(Some(best_combo)) = best_combinations.get(n_agents) {
-                if let Some(res) = results
+            if let Some(Some(best_combo)) = best_combinations.get(n_agents)
+                && let Some(res) = results
                     .iter()
                     .find(|r| r.n_agents == *n_agents && r.combination.label == best_combo.label)
-                {
-                    let total = res.agent_averaged_stats.work_time.to_base_unit()
-                        + res.agent_averaged_stats.travel_time.to_base_unit()
-                        + res.agent_averaged_stats.charging_time.to_base_unit()
-                        + res.agent_averaged_stats.queue_time.to_base_unit()
-                        + res.agent_averaged_stats.discharged_time.to_base_unit()
-                        + res.agent_averaged_stats.idle_time.to_base_unit();
+            {
+                let total = res.agent_averaged_stats.work_time.to_base_unit()
+                    + res.agent_averaged_stats.travel_time.to_base_unit()
+                    + res.agent_averaged_stats.charging_time.to_base_unit()
+                    + res.agent_averaged_stats.queue_time.to_base_unit()
+                    + res.agent_averaged_stats.discharged_time.to_base_unit()
+                    + res.agent_averaged_stats.idle_time.to_base_unit();
 
-                    if total > max_total_time {
-                        max_total_time = total;
-                    }
+                if total > max_total_time {
+                    max_total_time = total;
                 }
             }
         }
@@ -770,6 +774,7 @@ fn plot_best_combinations(
         .configure_mesh()
         .disable_mesh()
         .x_labels(agent_counts.len() + 1)
+        .label_style(("sans-serif", axis_label_size))
         .x_label_formatter(&|idx: &f32| {
             let i = idx.round() as usize;
             agent_counts
@@ -782,7 +787,7 @@ fn plot_best_combinations(
             TimePlotMode::Percentage => "Poraba časa [%]",
         })
         .x_desc("Število agentov")
-        .axis_desc_style(("sans-serif", 15))
+        .axis_desc_style(("sans-serif", axis_desc_size))
         .draw()?;
 
     let bar_width = 0.5;
@@ -882,7 +887,10 @@ fn plot_best_combinations(
                             TimePlotMode::Percentage => 105.0,
                         },
                     ),
-                    ("sans-serif", 15).into_font().color(&BLACK),
+                    ("sans-serif", combo_label_size)
+                        .into_font()
+                        .color(&BLACK)
+                        .pos(Pos::new(HPos::Center, VPos::Bottom)),
                 )))?;
             }
         } else {
@@ -893,6 +901,7 @@ fn plot_best_combinations(
     // Add legend
     chart
         .configure_series_labels()
+        .label_font(("sans-serif", legend_size))
         .background_style(WHITE.mix(0.8))
         .border_style(BLACK)
         .draw()?;
@@ -904,6 +913,26 @@ fn plot_best_combinations(
 enum MetricDirection {
     HigherIsBetter,
     LowerIsBetter,
+}
+
+trait ToSlovene {
+    fn to_slovene(&self) -> String;
+}
+impl ToSlovene for ChooseStationStrategy {
+    fn to_slovene(&self) -> String {
+        match self {
+            Self::Manhattan(f) => format!("Manhattan({f})"),
+            Self::Path(f) => format!("A*({f})"),
+        }
+    }
+}
+impl ToSlovene for ChargingStrategy {
+    fn to_slovene(&self) -> String {
+        match self {
+            Self::CriticalOnly(t) => format!("SamoKritično({t})"),
+            Self::ThresholdWithLimit(t1, t2) => format!("PragZLimito({t1},{t2})"),
+        }
+    }
 }
 
 /// Plots matrix where x-axis represent station_strategies,
@@ -942,19 +971,22 @@ where
     // Unique strategies sorted for consistent ordering
     let mut charging_strats: Vec<_> = results
         .iter()
-        .map(|r| format!("{:?}", r.combination.charging_strategy))
-        .collect::<std::collections::HashSet<_>>()
-        .into_iter()
+        .map(|r| r.combination.charging_strategy.clone())
         .collect();
     charging_strats.sort();
+    charging_strats.dedup();
+    let charging_strats: Vec<String> = charging_strats
+        .into_iter()
+        .map(|c| c.to_slovene())
+        .collect();
 
     let mut station_strats: Vec<_> = results
         .iter()
-        .map(|r| format!("{:?}", r.combination.station_strategy))
-        .collect::<std::collections::HashSet<_>>()
-        .into_iter()
+        .map(|r| r.combination.station_strategy.clone())
         .collect();
     station_strats.sort();
+    station_strats.dedup();
+    let station_strats: Vec<String> = station_strats.into_iter().map(|s| s.to_slovene()).collect();
 
     let n_rows = charging_strats.len();
     let n_cols = station_strats.len();
@@ -964,8 +996,8 @@ where
     for (i, charging) in charging_strats.iter().enumerate() {
         for (j, station) in station_strats.iter().enumerate() {
             if let Some(r) = results.iter().find(|r| {
-                format!("{:?}", r.combination.charging_strategy) == *charging
-                    && format!("{:?}", r.combination.station_strategy) == *station
+                r.combination.charging_strategy.to_slovene() == *charging
+                    && r.combination.station_strategy.to_slovene() == *station
             }) {
                 matrix[i][j] = value_fn(r);
             }

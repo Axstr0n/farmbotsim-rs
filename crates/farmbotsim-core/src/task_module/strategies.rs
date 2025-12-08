@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 /// Strategies for selecting a charging station.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", content = "value")]
@@ -32,6 +34,32 @@ impl std::fmt::Display for ChooseStationStrategy {
             Self::Path(v) => format!("Path({v})"),
         };
         write!(f, "{str}")
+    }
+}
+impl Eq for ChooseStationStrategy {}
+impl PartialOrd for ChooseStationStrategy {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for ChooseStationStrategy {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            // 1. Same variant: compare f32 factor
+            (ChooseStationStrategy::Manhattan(a), ChooseStationStrategy::Manhattan(b)) => {
+                a.partial_cmp(b).unwrap_or(Ordering::Equal)
+            }
+
+            (ChooseStationStrategy::Path(a), ChooseStationStrategy::Path(b)) => {
+                a.partial_cmp(b).unwrap_or(Ordering::Equal)
+            }
+
+            // 2. Different variants: define a fixed order
+            (ChooseStationStrategy::Manhattan(_), ChooseStationStrategy::Path(_)) => Ordering::Less,
+            (ChooseStationStrategy::Path(_), ChooseStationStrategy::Manhattan(_)) => {
+                Ordering::Greater
+            }
+        }
     }
 }
 
@@ -71,5 +99,35 @@ impl std::fmt::Display for ChargingStrategy {
             Self::ThresholdWithLimit(t, c) => format!("ThresholdWithLimit({t}, {c})"),
         };
         write!(f, "{str}")
+    }
+}
+impl Eq for ChargingStrategy {}
+impl PartialOrd for ChargingStrategy {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for ChargingStrategy {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            // Both CriticalOnly → compare first parameter
+            (ChargingStrategy::CriticalOnly(a), ChargingStrategy::CriticalOnly(b)) => {
+                a.partial_cmp(b).unwrap_or(Ordering::Equal)
+            }
+
+            // Both ThresholdWithLimit → compare first parameter
+            (
+                ChargingStrategy::ThresholdWithLimit(t1, _),
+                ChargingStrategy::ThresholdWithLimit(t2, _),
+            ) => t1.partial_cmp(t2).unwrap_or(Ordering::Equal),
+
+            // Variant ordering: CriticalOnly < ThresholdWithLimit
+            (ChargingStrategy::CriticalOnly(_), ChargingStrategy::ThresholdWithLimit(_, _)) => {
+                Ordering::Less
+            }
+            (ChargingStrategy::ThresholdWithLimit(_, _), ChargingStrategy::CriticalOnly(_)) => {
+                Ordering::Greater
+            }
+        }
     }
 }
