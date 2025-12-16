@@ -1,8 +1,6 @@
 # farmbotsim-rs
 
-**!! IN DEVELOPMENT !!**
-
-**! You can download the LATEST VERSION of this application from the Releases page (Windows only) !**
+**! You can download the LATEST VERSION of this application from the Releases page !**
 
 ---
 
@@ -51,20 +49,20 @@ Follow these steps to get farmbotsim running locally:
 
 ## Usage
 After installation you can run main app like:
-```
+```bash
 cargo run -p farmbotsim-app
 ```
 This will run whole application. (Note: running first time takes longer to build)
 You can also run experiment and then analyze to get plots. To change parameters you must edit code in `crates/farmbotsim-analysis` crate.
-```
+```bash
 cargo run -p farmbotsim-analysis --bin experiment
 cargo run -p farmbotsim-analysis --bin analyze
 ```
 
-## Building project
-To build the project in release mode use:
+## Building app
+To build the app in release mode use:
 ```bash
-cargo build --release
+cargo build --release -p farmbotsim-app
 ```
 
 ## Code Structure Overview
